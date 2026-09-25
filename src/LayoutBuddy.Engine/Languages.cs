@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -30,6 +30,9 @@ public sealed record LanguageInfo(
     /// </summary>
     public string? ShiftKeyboard { get; init; }
 
+    /// <summary>Letters join into syllable blocks as they are typed (Korean, see <see cref="Hangul"/>).</summary>
+    public bool JoinsSyllables { get; init; }
+
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
 }
 
@@ -42,6 +45,11 @@ public static class Languages
     private const string Circumflex = "~̂^";
     private const string Tonos = "~́΄";
     private const string Apostrophe = "~́'";
+
+    // Syllables, plus the letters they are made of: letters that didn't join a syllable are part of the word.
+    private static readonly string HangulSyllables =
+        string.Concat(Enumerable.Range('가', '힣' - '가' + 1).Select(c => (char)c)) +
+        "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
 
     public static readonly IReadOnlyList<LanguageInfo> All =
     [
@@ -113,6 +121,16 @@ public static class Languages
         new(Lang.Armenian, "hy", "Armenian", "Հայերեն", "ՀԱ", "#4D7C0F", 0x2B,
             "աբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆև", true, false,
             "՝ է թ փ ձ ջ ւ և ր չ ճ - ժ ք ո ե ռ տ ը ւ ի օ պ խ ծ շ ա ս դ ֆ գ հ յ կ լ ; ՛ զ ղ ց վ բ ն մ , ․ /"),
+
+        // The standard 2-set (Dubeolsik) layout of the Korean IME. Words are whole syllables; the letters
+        // (jamo) the keys type are joined into them.
+        new(Lang.Korean, "ko", "Korean", "한국어", "한", "#475569", 0x12,
+            HangulSyllables, false, false,
+            "` 1 2 3 4 5 6 7 8 9 0 - = ㅂ ㅈ ㄷ ㄱ ㅅ ㅛ ㅕ ㅑ ㅐ ㅔ [ ] \\ ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ ; ' ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ , . /")
+        {
+            ShiftKeyboard = "~ ! @ # $ % ^ & * ( ) _ + ㅃ ㅉ ㄸ ㄲ ㅆ ㅛ ㅕ ㅑ ㅒ ㅖ { } | ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ : \" ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ < > ?",
+            JoinsSyllables = true,
+        },
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);

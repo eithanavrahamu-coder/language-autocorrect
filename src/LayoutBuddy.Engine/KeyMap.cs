@@ -85,7 +85,8 @@ public static class KeyMap
         int i = PhysicalKeys.IndexOf(char.ToLowerInvariant(usKey));
         if (info.ShiftKeyboard == null || i < 0) return false;
         var t = _maps[lang].Shifted[i];
-        return !t.Dead && t.Text.Length == 1 && info.IsLetter(t.Text[0]);
+        return !t.Dead && t.Text.Length == 1 && t.Text != _maps[lang].Plain[i].Text
+               && (info.IsLetter(t.Text[0]) || info.JoinsSyllables && Hangul.IsLetter(t.Text[0]));
     }
 
     public static bool IsShiftedKey(char c) => ShiftedKeys.IndexOf(c) >= 0;
@@ -125,14 +126,19 @@ public static class KeyMap
         }
 
         var s = sb.ToString();
+        if (Languages.Get(lang).JoinsSyllables) s = Hangul.Compose(s);
         if (capitalizeFirst && Languages.Get(lang).HasCase && s.Length > 0)
             s = char.ToUpperInvariant(s[0]) + s[1..];
         return s;
     }
 
-    /// <summary>True if every key types exactly one character (no dead keys or multi-letter keys like Arabic لا).</summary>
+    /// <summary>
+    /// True if every key types exactly one character (no dead keys, multi-letter keys like Arabic لا,
+    /// or Korean letters joined into syllables).
+    /// </summary>
     public static bool IsSimple(string usKeys, Lang lang)
     {
+        if (Languages.Get(lang).JoinsSyllables) return false;
         var map = _maps[lang];
         foreach (var k in usKeys)
             if (Lookup(map, k) is { } t && (t.Dead || t.Text.Length != 1)) return false;
@@ -157,7 +163,9 @@ public static class KeyMap
         int KeyFor(string s) => Array.FindLastIndex(map.Plain, t => !t.Dead && t.Text == s);
         int ShiftedKeyFor(string s) => shiftLetters ? Array.FindLastIndex(map.Shifted, t => !t.Dead && t.Text == s) : -1;
         var sb = new StringBuilder();
-        foreach (var ch in text.Normalize(NormalizationForm.FormC))
+        text = text.Normalize(NormalizationForm.FormC);
+        if (Languages.Get(lang).JoinsSyllables) text = Hangul.Decompose(text);
+        foreach (var ch in text)
         {
             // A key that types this exact character (French é, German ö, Georgian Shift+T თ)...
             int i = KeyFor(ch.ToString());

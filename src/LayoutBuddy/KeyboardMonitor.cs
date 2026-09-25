@@ -143,8 +143,11 @@ internal sealed class KeyboardMonitor : IDisposable
         {
             case FixWord fix:
             {
-                var send = new InputSender()
-                    .Tap(Native.VK_BACK, fix.Backspaces)
+                var send = new InputSender();
+                // The Korean IME may still be putting the last syllable together: pressing Hangul/English twice
+                // finishes it (keeping the mode), so each Backspace deletes a whole syllable.
+                if (layout == Lang.Korean) send.Tap(Native.VK_HANGUL, 2);
+                send.Tap(Native.VK_BACK, fix.Backspaces)
                     .Text(fix.Text)
                     .Tap(fix.Boundary == KeyKind.Enter ? Native.VK_RETURN : Native.VK_SPACE);
                 LayoutService.AppendSwitch(send, fix.Layout);

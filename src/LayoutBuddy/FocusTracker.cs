@@ -78,7 +78,7 @@ internal sealed class FocusTracker : IDisposable
         var hkl = LayoutService.CurrentHkl();
         var process = ProcessName(pid);
         if (focusChanged) LogFocusOnce(process, focus, hkl);
-        _snapshot = new FocusSnapshot(fg, focus, process, LayoutService.FromHkl(hkl),
+        _snapshot = new FocusSnapshot(fg, focus, process, LayoutService.TypedLanguage(hkl),
             caret, _isPassword);
     }
 

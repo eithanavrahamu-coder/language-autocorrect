@@ -104,8 +104,11 @@ public sealed class LanguageModel
     public bool IsKnown(string core)
     {
         var rank = Rank(core);
-        return rank != null && rank <= KnownRankLimit(core.Length);
+        return rank != null && rank <= KnownRankLimit(Length(core));
     }
+
+    /// <summary>A word's length in letters (a Korean syllable counts as the letters typed for it: 못 = ㅁㅗㅅ).</summary>
+    public int Length(string core) => Info.JoinsSyllables ? Hangul.Decompose(core).Length : core.Length;
 
     public static int KnownRankLimit(int length) => length switch
     {

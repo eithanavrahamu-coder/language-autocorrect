@@ -25,7 +25,8 @@ internal static class LayoutService
     public static Lang? FromHkl(IntPtr hkl) => LanguageByHkl.GetOrAdd(hkl, h =>
     {
         var info = Languages.FromWindowsLangId((int)((long)h & 0xFFFF));
-        return info == null || TypesOtherScript(h, info) ? null : info.Lang;
+        // The Korean keyboard itself types English letters; its IME turns them into Hangul.
+        return info == null || (info.Lang != Lang.Korean && TypesOtherScript(h, info)) ? null : info.Lang;
     });
 
     private static bool TypesOtherScript(IntPtr hkl, LanguageInfo info)
@@ -78,7 +79,17 @@ internal static class LayoutService
         return hkl;
     }
 
-    public static Lang? Current() => FromHkl(CurrentHkl());
+    /// <summary>The language typed in the focused window right now.</summary>
+    public static Lang? Current() => TypedLanguage(CurrentHkl());
+
+    /// <summary>The language a keyboard types right now: the Korean keyboard types English in its English mode.</summary>
+    public static Lang? TypedLanguage(IntPtr hkl)
+    {
+        var lang = FromHkl(hkl);
+        if (lang != Lang.Korean) return lang;
+        // If the mode can't be read, don't guess: fixing English as if it were Korean would switch the mode.
+        return KoreanImeMode() is int mode ? ((mode & IME_CMODE_NATIVE) != 0 ? Lang.Korean : Lang.English) : null;
+    }
 
     /// <summary>The installed keyboard layouts, in the order Windows cycles through them.</summary>
     private static IntPtr[] Installed()
@@ -110,35 +121,83 @@ internal static class LayoutService
     public static void AppendSwitch(InputSender input, Lang target)
     {
         var current = CurrentHkl();
+        if (FromHkl(current) == Lang.Korean && target is Lang.Korean or Lang.English)
+        {
+            // Korean and English are two modes of the Korean keyboard: press Hangul/English.
+            if (TypedLanguage(current) is Lang now && now != target) input.Tap(Native.VK_HANGUL);
+            return;
+        }
         if (FromHkl(current) == target) return;
+
+        // Without an English keyboard, English is typed with the Korean keyboard's English mode.
+        var keyboard = target == Lang.English && FindInstalled(Lang.English) == null && FindInstalled(Lang.Korean) != null
+            ? Lang.Korean
+            : target;
 
         // The hotkey moves to the next layout in the list; press it as many times as needed.
         var layouts = Installed();
         int from = Array.IndexOf(layouts, current);
-        int to = Array.FindIndex(layouts, h => FromHkl(h) == target);
+        int to = Array.FindIndex(layouts, h => FromHkl(h) == keyboard);
         var hotkey = UsableHotkey();
         if (hotkey == null || from < 0 || to < 0 || layouts.Length > 4)
         {
-            PostSwitch(target);
-            return;
+            PostSwitch(keyboard);
         }
-
-        int presses = (to - from + layouts.Length) % layouts.Length;
-        for (int i = 0; i < presses; i++)
+        else
         {
-            switch (hotkey.Value)
+            int presses = (to - from + layouts.Length) % layouts.Length;
+            for (int i = 0; i < presses; i++)
             {
-                case SwitchHotkey.AltShift: input.Chord(Native.VK_LMENU, Native.VK_LSHIFT); break;
-                case SwitchHotkey.CtrlShift: input.Chord(Native.VK_LCONTROL, Native.VK_LSHIFT); break;
-                case SwitchHotkey.WinSpace: input.Chord(Native.VK_LWIN, Native.VK_SPACE); break;
+                switch (hotkey.Value)
+                {
+                    case SwitchHotkey.AltShift: input.Chord(Native.VK_LMENU, Native.VK_LSHIFT); break;
+                    case SwitchHotkey.CtrlShift: input.Chord(Native.VK_LCONTROL, Native.VK_LSHIFT); break;
+                    case SwitchHotkey.WinSpace: input.Chord(Native.VK_LWIN, Native.VK_SPACE); break;
+                }
             }
+
+            // Safety net: if the hotkey didn't land on the right layout, switch directly.
+            _ = Task.Delay(400).ContinueWith(_ =>
+            {
+                if (FromHkl(CurrentHkl()) is Lang now && now != keyboard) PostSwitch(keyboard);
+            });
         }
 
-        // Safety net: if the hotkey didn't land on the right layout, switch directly.
-        _ = Task.Delay(400).ContinueWith(_ =>
-        {
-            if (Current() is Lang now && now != target) PostSwitch(target);
-        });
+        // The Korean keyboard comes back in whichever mode it was left in.
+        if (keyboard == Lang.Korean) _ = Task.Delay(600).ContinueWith(_ => SetKoreanMode(hangul: target == Lang.Korean));
+    }
+
+    // ---------------- the Korean IME's Hangul and English modes ----------------
+
+    [DllImport("imm32.dll")]
+    private static extern IntPtr ImmGetDefaultIMEWnd(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam,
+        uint flags, uint timeoutMs, out IntPtr result);
+
+    private const uint WM_IME_CONTROL = 0x283;
+    private const int IMC_GETCONVERSIONMODE = 0x1, IMC_SETCONVERSIONMODE = 0x2;
+    private const int IME_CMODE_NATIVE = 0x1; // Hangul mode
+    private const uint SMTO_ABORTIFHUNG = 0x2;
+
+    /// <summary>The Korean IME's conversion mode in the window being typed into, or null if it can't be read.</summary>
+    private static int? KoreanImeMode()
+    {
+        var ime = ImmGetDefaultIMEWnd(FocusWindow());
+        if (ime == IntPtr.Zero) return null;
+        var ok = SendMessageTimeout(ime, WM_IME_CONTROL, IMC_GETCONVERSIONMODE, IntPtr.Zero, SMTO_ABORTIFHUNG, 50, out var mode);
+        return ok == IntPtr.Zero ? null : (int)mode;
+    }
+
+    /// <summary>Puts the Korean IME of the window being typed into in Hangul or English mode.</summary>
+    private static void SetKoreanMode(bool hangul)
+    {
+        if (FromHkl(CurrentHkl()) != Lang.Korean || KoreanImeMode() is not int mode) return;
+        int wanted = hangul ? mode | IME_CMODE_NATIVE : mode & ~IME_CMODE_NATIVE;
+        if (wanted == mode) return;
+        var ime = ImmGetDefaultIMEWnd(FocusWindow());
+        SendMessageTimeout(ime, WM_IME_CONTROL, IMC_SETCONVERSIONMODE, wanted, SMTO_ABORTIFHUNG, 100, out _);
     }
 
     /// <summary>A hotkey can be used only when no Shift/Alt/Win is held down.</summary>
@@ -217,7 +276,8 @@ internal static class LayoutService
     {
         foreach (var hkl in Installed())
         {
-            if (FromHkl(hkl) is not Lang lang) continue;
+            // The Korean keyboard types English letters; its Hangul letters come from the IME.
+            if (FromHkl(hkl) is not Lang lang || lang == Lang.Korean) continue;
             try
             {
                 var tokens = ReadKeyboard(hkl);
