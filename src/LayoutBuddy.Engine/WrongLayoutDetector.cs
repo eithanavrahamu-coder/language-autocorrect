@@ -77,15 +77,36 @@ public sealed class WrongLayoutDetector
         return new(typed, alt, target, altCore, typedKnown, typedRank, typedLp, altKnown, altRank, altLp);
     }
 
-    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity)
+    /// <param name="context">
+    /// Language of the words just before this one: positive = that many recent words are in the other language
+    /// (so this word probably is too), negative = they are in the language as typed.
+    /// </param>
+    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity, int context = 0)
     {
         var a = Analyze(usKeys, current);
         Detection No(string why) => new(false, a.Typed, a.Alt, a.Target, why);
         Detection Yes(string why) => new(true, a.Typed, a.Alt, a.Target, why);
 
+        // The sentence so far is in the typed language: only fix clear mistakes.
+        if (context < 0 && sensitivity != Sensitivity.Low) sensitivity = Sensitivity.Low;
+
         var p = For(sensitivity);
         if (usKeys.Length < 2) return No("too short");
         if (a.AltCore == null || a.AltCore.Length < 2) return No("alt not a word shape");
+
+        // The sentence so far is in the other language ("הוא אוכל far" -> כשר):
+        // a word that exists there is fixed even if it is also a real word as typed.
+        // Rare dictionary entries count too (כשר is rank ~20000), but not rare short ones or ones with
+        // an apostrophe, which are mostly junk in the word lists.
+        // The whole result must be a clean word (no stray ' , . / around it).
+        bool altClean = a.Alt.Equals(a.AltCore, StringComparison.OrdinalIgnoreCase);
+        bool altIsWord = altClean && (a.AltKnown ||
+            (a.AltRank <= 25000 && a.AltCore.Length >= 3 && !a.AltCore.Contains('\'')));
+        if (context >= 2 && altIsWord)
+            return Yes("fits the sentence");
+        if (context == 1 && altClean && a.AltKnown &&
+            (!a.TypedKnown || (a.TypedRank is int t1 && a.AltRank is int r1 && t1 * 10 >= r1)))
+            return Yes("fits the sentence");
 
         if (a.TypedKnown)
         {
@@ -104,6 +125,23 @@ public sealed class WrongLayoutDetector
             return Yes("alt looks more like a word");
 
         return No("not confident");
+    }
+
+    /// <summary>
+    /// Which language a finished word is in: the typed layout if it is a word there and not in the other,
+    /// the other language if the reverse, otherwise null (ambiguous or unknown).
+    /// </summary>
+    public Lang? LanguageOf(string usKeys, Lang typedIn)
+    {
+        var a = Analyze(usKeys, typedIn);
+        if (a.TypedKnown && !a.AltKnown) return typedIn;
+        if (a.AltKnown && !a.TypedKnown) return a.Target;
+        if (a.TypedKnown && a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar)
+        {
+            if (tr * 20 <= ar) return typedIn;
+            if (ar * 20 <= tr) return a.Target;
+        }
+        return null;
     }
 
     /// <summary>

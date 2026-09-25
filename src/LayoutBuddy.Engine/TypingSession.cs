@@ -169,6 +169,23 @@ public sealed class TypingSession
         if (_history.Count > MaxEarlierWords + 4) _history.RemoveAt(0);
     }
 
+    /// <summary>
+    /// Looks at up to 3 previous words in this sentence. Returns how many more of them are in the other
+    /// language than in <paramref name="layout"/>'s language (0 for the first word).
+    /// </summary>
+    private int SentenceContext(Lang layout)
+    {
+        int score = 0;
+        for (int i = _history.Count - 1, seen = 0; i >= 0 && seen < 3; i--, seen++)
+        {
+            var w = _history[i];
+            var lang = _detector.LanguageOf(w.Keys, w.Layout);
+            if (lang == null) continue;
+            score += lang == layout ? -1 : 1;
+        }
+        return score;
+    }
+
     private FixWord? TryFix(Lang layout, Sensitivity sensitivity, KeyKind boundary, DateTime now)
     {
         if (_keys.Length == 0 || _tainted || _wordLayout != layout) return null;
@@ -176,7 +193,7 @@ public sealed class TypingSession
         var typed = KeyMap.Render(keys, layout);
         if (NeverFix.IsBlocked(typed)) return null;
 
-        var d = _detector.Evaluate(keys, layout, sensitivity);
+        var d = _detector.Evaluate(keys, layout, sensitivity, SentenceContext(layout));
         if (!d.ShouldFix) return null;
 
         // Also fix the words just before this one that were typed in the same wrong layout.

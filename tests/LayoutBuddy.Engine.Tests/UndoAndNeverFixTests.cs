@@ -217,14 +217,14 @@ public class TypingSessionTests
     [Fact]
     public void FixesEarlierWordsTypedInTheSameWrongLayout()
     {
-        // "ha" (יש) and "jh" (חי) are not fixed on their own; once "akuo" is, all three get fixed together.
+        // "ha" (יש) is not fixed on its own; "jh" (חי) is, because "ha" reads as Hebrew. Both get fixed together.
         var s = NewSession();
-        Assert.IsType<PassThrough>(TypeWords(s, "ha jh ", Lang.English, T0));
-        var a = Assert.IsType<FixWord>(TypeWords(s, "akuo ", Lang.English, T0));
-        Assert.Equal("יש חי שלום", a.Text);
-        Assert.Equal("ha jh akuo".Length, a.Backspaces);
-        Assert.Equal(3, a.Correction.WordCount);
-        Assert.Equal("akuo", a.Correction.TriggerTyped);
+        Assert.IsType<PassThrough>(TypeWords(s, "ha ", Lang.English, T0));
+        var a = Assert.IsType<FixWord>(TypeWords(s, "jh ", Lang.English, T0));
+        Assert.Equal("יש חי", a.Text);
+        Assert.Equal("ha jh".Length, a.Backspaces);
+        Assert.Equal(2, a.Correction.WordCount);
+        Assert.Equal("jh", a.Correction.TriggerTyped);
     }
 
     [Fact]
@@ -279,6 +279,48 @@ public class TypingSessionTests
         s.OnKey(KeyInput.Backspace, Lang.English, true, Sensitivity.Medium, T0);
         var a = Assert.IsType<FixWord>(TypeWords(s, "o ", Lang.English, T0));
         Assert.Equal("שלום", a.Text);
+    }
+
+    [Fact]
+    public void WordThatFitsTheSentenceIsFixed()
+    {
+        // "הוא אוכל far": "far" is English, but after two Hebrew words it means "כשר".
+        var s = NewSession();
+        TypeWords(s, KeyMap.ToUsKeys("הוא אוכל") + " ", Lang.Hebrew, T0);
+        var a = Assert.IsType<FixWord>(TypeWords(s, "far ", Lang.English, T0));
+        Assert.Equal("כשר", a.Text);
+    }
+
+    [Fact]
+    public void SameWordInAnEnglishSentenceStays()
+    {
+        var s = NewSession();
+        Assert.IsType<PassThrough>(TypeWords(s, "it is not far ", Lang.English, T0));
+    }
+
+    [Fact]
+    public void FirstWordAloneStays()
+    {
+        var s = NewSession();
+        Assert.IsType<PassThrough>(TypeWords(s, "far ", Lang.English, T0));
+    }
+
+    [Fact]
+    public void OneHebrewWordIsNotEnoughToOverrideACommonEnglishWord()
+    {
+        var s = NewSession();
+        TypeWords(s, KeyMap.ToUsKeys("אוכל") + " ", Lang.Hebrew, T0);
+        Assert.IsType<PassThrough>(TypeWords(s, "far ", Lang.English, T0));
+    }
+
+    [Fact]
+    public void EnglishWordAfterHebrewSentenceWorksBothWays()
+    {
+        // "I love my" typed correctly, then Hebrew layout by mistake: "גםע" (dog typed in Hebrew) -> dog.
+        var s = NewSession();
+        TypeWords(s, "i love my ", Lang.English, T0);
+        var a = Assert.IsType<FixWord>(TypeWords(s, "dog ", Lang.Hebrew, T0));
+        Assert.Equal("dog", a.Text);
     }
 
     [Fact]

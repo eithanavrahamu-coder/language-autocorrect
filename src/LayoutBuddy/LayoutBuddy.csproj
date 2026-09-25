@@ -13,7 +13,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>LayoutBuddy</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>2.2.1</Version>
+    <Version>2.3.0</Version>
     <Product>LayoutBuddy</Product>
     <Company>Eithan Avraham</Company>
     <Authors>Eithan Avraham</Authors>

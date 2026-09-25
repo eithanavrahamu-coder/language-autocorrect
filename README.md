@@ -6,7 +6,9 @@ A Windows app for people who type in Hebrew and English:
 
 - **Auto-correct** – notices words typed in the wrong layout (e.g. `akuo` → `שלום`, `יקךךם` → `hello`) and fixes them when you
   press Space or Enter, then switches the keyboard for you. Words just before it that were typed in the same wrong layout
-  are fixed too (`ha jh akuo` → `יש חי שלום`). When both readings are real words, the much more common one wins.
+  are fixed too (`ha jh akuo` → `יש חי שלום`). When both readings are real words, the words before it decide:
+  `הוא אוכל far` → `הוא אוכל כשר`, while `it is not far` stays as typed. For the first word of a line, the much more
+  common reading wins.
 - **Language indicator** – a small `EN` / `עב` badge next to the text cursor.
 - **Voice** – says "English" / "עברית" when the keyboard changes.
 
