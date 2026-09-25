@@ -1,0 +1,115 @@
+@import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import '@fontsource-variable/onest/index.css';
+
+/* Colors are the app's own (src/LayoutBuddy/UI/app.html), so the site and the app feel like one thing. */
+:root {
+  --bg: #FBFAF8;
+  --bg-2: #F4F2EE;
+  --card: #FFFFFF;
+  --text: #1B1A18;
+  --muted: #75706A;
+  --faint: #A7A29B;
+  --line: #E9E5DF;
+  --hover: #EDEAE5;
+  --accent: #5847E0;
+  --accent-soft: #EEEBFF;
+  --en: #2563EB;
+  --he: #16A34A;
+  --glow: .22;
+  --shadow-1: 0 1px 2px rgba(20, 18, 15, .04), 0 4px 16px rgba(20, 18, 15, .04);
+  --shadow-window: 0 1px 1px rgba(20, 18, 15, .04), 0 12px 32px -8px rgba(20, 18, 15, .14), 0 40px 80px -24px rgba(40, 30, 90, .18);
+  --radius: 14px;
+  --radius-lg: 22px;
+
+  --font-display: 'Bricolage Grotesque Variable', 'Onest Variable', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  --font-body: 'Onest Variable', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+
+  --page: 1160px;
+  --gutter: 24px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --bg-2: #1D1D1B;
+    --card: #222220;
+    --text: #F2F0EC;
+    --muted: #A29E97;
+    --faint: #6E6A64;
+    --line: #2F2E2B;
+    --hover: #2A2927;
+    --accent: #8B7CFF;
+    --accent-soft: #2B2746;
+    --en: #5B8DEF;
+    --he: #34C06A;
+    --glow: .16;
+    --shadow-1: none;
+    --shadow-window: 0 0 0 1px rgba(255, 255, 255, .04), 0 24px 64px -16px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+  -webkit-text-size-adjust: 100%;
+  interpolate-size: allow-keywords;
+  overflow-x: clip;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+p { margin: 0; text-wrap: pretty; }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; }
+
+::selection { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.skip {
+  position: absolute; left: 16px; top: -48px; z-index: 100;
+  background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 10px; text-decoration: none;
+}
+.skip:focus { top: 12px; }
+
+.page { width: min(100% - 2 * var(--gutter), var(--page)); margin-inline: auto; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

@@ -1,0 +1,33 @@
+{
+  "name": "language-autocorrect-website",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/prepare.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/prepare.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/onest": "^5.3.1",
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

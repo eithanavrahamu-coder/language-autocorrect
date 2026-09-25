@@ -44,7 +44,8 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 ## Installing and uninstalling
 
-Download `LanguageAutocorrect.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
+Download `LanguageAutocorrect.exe` from the website, **https://eithanavrahamu-coder.github.io/language-auto/**
+(or from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
 The setup window offers:
 
 - **Install** – copies the app to `%LocalAppData%\Programs\Language Autocorrect`, adds Start menu (and optionally desktop)
@@ -66,6 +67,10 @@ Requires the .NET 10 SDK.
 dotnet test tests/LayoutBuddy.Engine.Tests
 dotnet publish src/LayoutBuddy -c Release -p:PublishSingleFile=true -o publish
 ```
+
+The download page is in `website/` (React, built with Vite; needs Node.js). `npm run dev` there shows it locally.
+It reads the languages and the version from the app's code, and every build on `main` publishes it to GitHub Pages
+together with the app it just built. `npm run screenshots` retakes the app screenshots it shows.
 
 The app was previously called LayoutBuddy and then Type Language Corrector 4000; installing this version replaces
 installs under those names and keeps their settings. The code still uses `LayoutBuddy` as its internal project name.
