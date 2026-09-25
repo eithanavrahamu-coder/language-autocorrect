@@ -81,6 +81,29 @@
   .link { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
   .link:hover { color: var(--text); background: var(--hover); }
 
+  /* languages step */
+  .lang-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 22px 0 16px; }
+  .lang-card {
+    display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid var(--line); background: var(--card); text-align: left; font: inherit; color: inherit;
+    transition: border-color .12s, background .12s;
+  }
+  .lang-card:hover { background: var(--hover); }
+  .lang-card.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+  .lang-card.locked { cursor: default; }
+  .lang-badge { width: 32px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .lang-text { flex: 1; min-width: 0; line-height: 1.25; }
+  .lang-native { font-weight: 600; font-size: 13.5px; }
+  .lang-sub { color: var(--faint); font-size: 11.5px; }
+  .lang-check {
+    width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line); flex-shrink: 0;
+    display: grid; place-items: center; color: #fff;
+  }
+  .lang-card.on .lang-check { background: var(--accent); border-color: var(--accent); }
+  .lang-check svg { width: 11px; height: 11px; opacity: 0; }
+  .lang-card.on .lang-check svg { opacity: 1; }
+  .hint { color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.45; }
+
   /* progress */
   .center { margin: auto 0; display: flex; flex-direction: column; align-items: center; width: 100%; }
   .bar { width: 100%; max-width: 320px; height: 6px; border-radius: 99px; background: var(--hover); overflow: hidden; margin-top: 26px; }
@@ -104,13 +127,13 @@
 <section class="screen" id="s-welcome">
   <div class="logo">אA</div>
   <h1 id="welcomeTitle">Install Language Autocorrect</h1>
-  <p class="sub" id="welcomeSub">Type Hebrew and English without watching the keyboard.</p>
+  <p class="sub" id="welcomeSub">Type in all your languages without watching the keyboard.</p>
   <div class="version"><span id="welcomeVersion"></span> · Made by Eithan Avraham</div>
 
   <div class="features">
     <div class="feature">
       <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h7M4 17h9"/><path d="m15 15 2 2 4-4"/></svg></div>
-      <div><div class="f-title">Fixes wrong-layout typing</div><div class="f-desc">akuo becomes שלום the moment you press Space.</div></div>
+      <div><div class="f-title">Fixes wrong-layout typing</div><div class="f-desc">ghbdtn becomes привет, akuo becomes שלום, the moment you press Space.</div></div>
     </div>
     <div class="feature">
       <div class="f-icon" style="color:var(--en)">EN</div>
@@ -127,7 +150,7 @@
     <label class="option"><span>Desktop shortcut</span><span class="toggle"><input type="checkbox" id="optDesktop" checked><i></i></span></label>
   </div>
   <div class="actions">
-    <button class="btn primary" id="installBtn">Install</button>
+    <button class="btn primary" id="installBtn">Next</button>
     <button class="link" id="portableBtn">Run without installing</button>
   </div>
 </section>
@@ -146,6 +169,18 @@
   <div class="actions">
     <button class="btn danger" id="uninstallBtn">Uninstall</button>
     <button class="link" id="cancelBtn">Cancel</button>
+  </div>
+</section>
+
+<!-- Languages -->
+<section class="screen" id="s-languages">
+  <h1 style="margin-top:4px">Which languages do you type in?</h1>
+  <p class="sub">English is always included. You can change this later in Settings.</p>
+  <div class="lang-grid" id="langGrid"></div>
+  <p class="hint" id="langHint"></p>
+  <div class="actions" style="margin-top:auto">
+    <button class="btn primary" id="langInstallBtn">Install</button>
+    <button class="link" id="langBackBtn">Back</button>
   </div>
 </section>
 
@@ -179,6 +214,8 @@
   const host = window.chrome && window.chrome.webview;
   const send = m => host ? host.postMessage(m) : console.log('send', m);
   let mode = 'install';
+  let languages = [];
+  const CHECK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5"/></svg>';
 
   function screen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + id));
@@ -186,12 +223,15 @@
 
   function init(m) {
     mode = m.mode;
+    languages = m.languages || [];
+    renderLanguages();
     if (mode === 'uninstall') { screen('uninstall'); return; }
     if (mode === 'update') {
       $('#welcomeTitle').textContent = 'Update Language Autocorrect';
       $('#welcomeSub').textContent = 'Your settings and word list are kept.';
       $('#welcomeVersion').textContent = (m.installedVersion ? 'Version ' + m.installedVersion + ' → ' : 'Version ') + m.version;
       $('#installBtn').textContent = 'Update';
+      $('#installBtn').dataset.direct = '1';
       $('#options').style.display = 'none';
     } else {
       $('#welcomeVersion').textContent = 'Version ' + m.version;
@@ -199,11 +239,44 @@
     screen('welcome');
   }
 
-  $('#installBtn').addEventListener('click', () => {
+  function install() {
     $('#workingTitle').textContent = mode === 'update' ? 'Updating…' : 'Installing…';
     screen('working');
-    send({ type: 'install', startWithWindows: $('#optStartup').checked, desktopShortcut: $('#optDesktop').checked });
-  });
+    send({
+      type: 'install',
+      startWithWindows: $('#optStartup').checked,
+      desktopShortcut: $('#optDesktop').checked,
+      languages: mode === 'update' ? null : languages.filter(l => l.selected).map(l => l.code),
+    });
+  }
+  $('#installBtn').addEventListener('click', () => $('#installBtn').dataset.direct ? install() : screen('languages'));
+  $('#langInstallBtn').addEventListener('click', install);
+  $('#langBackBtn').addEventListener('click', () => screen('welcome'));
+
+  function renderLanguages() {
+    const grid = $('#langGrid');
+    grid.innerHTML = '';
+    languages.forEach(l => {
+      const card = document.createElement('button');
+      card.className = 'lang-card' + (l.selected ? ' on' : '') + (l.locked ? ' locked' : '');
+      card.innerHTML = `<span class="lang-badge"></span><span class="lang-text"><div class="lang-native"></div><div class="lang-sub"></div></span><span class="lang-check">${CHECK}</span>`;
+      const badge = card.querySelector('.lang-badge');
+      badge.textContent = l.badge;
+      badge.style.background = l.color;
+      card.querySelector('.lang-native').textContent = l.nativeName;
+      card.querySelector('.lang-sub').textContent = l.locked ? 'Always on' : l.name;
+      card.addEventListener('click', () => {
+        if (l.locked) return;
+        l.selected = !l.selected;
+        renderLanguages();
+      });
+      grid.appendChild(card);
+    });
+    const missing = languages.filter(l => l.selected && !l.installed).map(l => l.name);
+    $('#langHint').textContent = missing.length
+      ? `You'll need to add the ${missing.join(', ')} keyboard${missing.length > 1 ? 's' : ''} in Windows. We'll show you how.`
+      : 'Languages with a keyboard already in Windows are selected for you.';
+  }
   $('#portableBtn').addEventListener('click', () => send({ type: 'runPortable' }));
   $('#uninstallBtn').addEventListener('click', () => {
     $('#workingTitle').textContent = 'Uninstalling…';
@@ -233,9 +306,16 @@
       $('#closeBtn').style.display = 'none';
     } else {
       $('#doneTitle').textContent = ok ? (mode === 'update' ? 'Updated' : "You're all set") : 'Something went wrong';
-      $('#doneSub').textContent = ok ? 'Try it: type akuo and press Space.' : 'If the app is running, exit it from the tray icon and try again.';
+      const missing = mode === 'install' ? languages.filter(l => l.selected && !l.installed).map(l => l.name) : [];
+      $('#doneSub').textContent = !ok ? 'If the app is running, exit it from the tray icon and try again.'
+        : missing.length ? `One more step: add the ${missing.join(', ')} keyboard${missing.length > 1 ? 's' : ''} in Windows.`
+        : 'Just type. Words on the wrong keyboard are fixed when you press Space.';
       $('#doneBtn').textContent = ok ? 'Open' : 'Close';
       if (!ok) $('#doneBtn').onclick = () => send({ type: 'close' });
+      if (ok && missing.length) {
+        $('#closeBtn').textContent = 'Add keyboards in Windows';
+        $('#closeBtn').onclick = () => send({ type: 'openLanguageSettings' });
+      }
     }
     screen('done');
   }
@@ -250,7 +330,18 @@
     send({ type: 'ready' });
   } else {
     const q = new URLSearchParams(location.search);
-    init({ mode: q.get('mode') || 'install', version: '2.2.0', installedVersion: '2.1.0' });
+    init({
+      mode: q.get('mode') || 'install', version: '3.2.0', installedVersion: '3.1.0',
+      languages: [
+        ['en', 'English', 'English', 'EN', '#2563EB', true], ['he', 'Hebrew', 'עברית', 'עב', '#16A34A', true],
+        ['ru', 'Russian', 'Русский', 'РУ', '#DC2626', false], ['ar', 'Arabic', 'العربية', 'ع', '#0D9488', false],
+        ['uk', 'Ukrainian', 'Українська', 'УК', '#CA8A04', false], ['fa', 'Persian', 'فارسی', 'فا', '#9333EA', false],
+        ['el', 'Greek', 'Ελληνικά', 'ΕΛ', '#0284C7', false], ['fr', 'French', 'Français', 'FR', '#4F46E5', false],
+        ['de', 'German', 'Deutsch', 'DE', '#EA580C', false],
+      ].map(([code, name, nativeName, badge, color, installed]) =>
+        ({ code, name, nativeName, badge, color, installed, selected: installed, locked: code === 'en' })),
+    });
+    if (q.get('screen') === 'languages') screen('languages');
     if (q.get('screen') === 'working') { screen('working'); progress({ value: .6, step: 'Adding to Settings → Apps' }); }
     if (q.get('screen') === 'done') done({});
   }

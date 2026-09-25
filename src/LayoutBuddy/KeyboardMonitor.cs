@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using LayoutBuddy.Engine;
@@ -97,7 +98,7 @@ internal sealed class KeyboardMonitor : IDisposable
             {
                 try
                 {
-                    if (HandleKey((int)k.vkCode)) return 1;
+                    if (HandleKey((int)k.vkCode, (int)k.scanCode, (k.flags & LLKHF_EXTENDED) != 0)) return 1;
                 }
                 catch (Exception ex)
                 {
@@ -114,8 +115,10 @@ internal sealed class KeyboardMonitor : IDisposable
         or Native.VK_MENU or Native.VK_LMENU or Native.VK_RMENU
         or Native.VK_LWIN or Native.VK_RWIN or Native.VK_CAPITAL;
 
+    private const uint LLKHF_EXTENDED = 0x01;
+
     /// <summary>Returns true to swallow the key.</summary>
-    private bool HandleKey(int vk)
+    private bool HandleKey(int vk, int scanCode, bool extended)
     {
         if (IsModifier(vk)) return false;
 
@@ -133,7 +136,7 @@ internal sealed class KeyboardMonitor : IDisposable
         }
 
         var ctx = _context();
-        var input = Classify(vk);
+        var input = Classify(vk, scanCode, extended);
         var action = _session.OnKey(input, layout.Value, ctx.AutoCorrect && !ctx.Blocked, ctx.Sensitivity, DateTime.UtcNow);
 
         switch (action)
@@ -167,7 +170,31 @@ internal sealed class KeyboardMonitor : IDisposable
         }
     }
 
-    private static KeyInput Classify(int vk)
+    /// <summary>
+    /// Scan code (the key's physical position) -> the character that key types on a US keyboard.
+    /// Physical position, not the virtual key, because French/German keyboards move letters around.
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<int, char> PhysicalKeyByScanCode = BuildScanCodes();
+
+    private static System.Collections.Generic.Dictionary<int, char> BuildScanCodes()
+    {
+        var map = new System.Collections.Generic.Dictionary<int, char> { [0x29] = '`', [0x2B] = '\\' };
+        void Row(int first, string keys)
+        {
+            for (int i = 0; i < keys.Length; i++) map[first + i] = keys[i];
+        }
+        Row(0x02, "1234567890-=");
+        Row(0x10, "qwertyuiop[]");
+        Row(0x1E, "asdfghjkl;'");
+        Row(0x2C, "zxcvbnm,./");
+        return map;
+    }
+
+    /// <summary>The scan code of each physical key (used to read the user's actual keyboard layouts).</summary>
+    public static System.Collections.Generic.IEnumerable<(int ScanCode, char Key)> PhysicalKeys =>
+        PhysicalKeyByScanCode.Select(kv => (kv.Key, kv.Value));
+
+    private static KeyInput Classify(int vk, int scanCode, bool extended)
     {
         bool ctrl = Native.IsDown(Native.VK_CONTROL);
         bool alt = Native.IsDown(Native.VK_MENU);
@@ -183,23 +210,9 @@ internal sealed class KeyboardMonitor : IDisposable
             case Native.VK_RETURN: return KeyInput.Enter;
         }
 
+        if (extended || !PhysicalKeyByScanCode.TryGetValue(scanCode, out char key)) return KeyInput.Other;
         bool shift = Native.IsDown(Native.VK_SHIFT);
-        if (vk >= 'A' && vk <= 'Z')
-        {
-            bool caps = Native.IsToggled(Native.VK_CAPITAL);
-            return KeyInput.Word((char)('a' + (vk - 'A')), shifted: shift || caps);
-        }
-
-        char oem = vk switch
-        {
-            0xBA => ';',
-            0xDE => '\'',
-            0xBC => ',',
-            0xBE => '.',
-            0xBF => '/',
-            _ => '\0',
-        };
-        if (oem != '\0' && !shift) return KeyInput.Word(oem);
-        return KeyInput.Other;
+        bool caps = Native.IsToggled(Native.VK_CAPITAL);
+        return KeyInput.Word(key, shifted: shift || caps);
     }
 }

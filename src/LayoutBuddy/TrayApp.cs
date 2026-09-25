@@ -18,6 +18,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private readonly AppSettings _settings;
     private readonly NeverFixList _neverFix;
     private readonly TypingSession _session;
+    private readonly WrongLayoutDetector _detector;
     private readonly KeyboardMonitor _monitor;
     private readonly FocusTracker _focus = new();
     private readonly VoiceAnnouncer _voice = new();
@@ -33,6 +34,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private IntPtr _lastWindow;
     private IntPtr _trayIconHandle;
     private MainWindow? _main;
+    private IReadOnlyList<Lang> _installedLanguages = [];
+    private int _tickCount;
 
     public TrayApp(WrongLayoutDetector detector, bool showWindow)
     {
@@ -43,7 +46,9 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         // Force the indicator's handle so we can marshal calls to the UI thread through it.
         _ = _indicator.Handle;
 
+        _detector = detector;
         _session = new TypingSession(detector, _neverFix) { LearnFromUndos = _settings.LearnFromUndos };
+        RefreshLanguages();
         _monitor = new KeyboardMonitor(_session, () => _context);
         _monitor.Fixed += fix =>
         {
@@ -132,10 +137,23 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             undosToBlock = _neverFix.UndosToBlock,
             neverFix = _neverFix.BlockedWords(),
             excludedApps = _settings.ExcludedApps,
-            layout = layout == Lang.Hebrew ? "he" : layout == Lang.English ? "en" : null,
+            layout = layout is Lang l ? LanguageJson(Languages.Get(l)) : null,
+            languages = Languages.All.Select(info => new
+            {
+                code = info.Code,
+                name = info.Name,
+                nativeName = info.NativeName,
+                badge = info.Badge,
+                color = info.Color,
+                enabled = _settings.EnabledLanguages(_installedLanguages).Contains(info.Lang),
+                installed = _installedLanguages.Contains(info.Lang),
+                locked = info.Lang == Lang.English,
+            }),
             fixesToday = _settings.FixesToday(now),
             fixesTotal = _settings.TotalFixes,
-            hebrewVoice = VoiceAnnouncer.HebrewVoice != null,
+            nativeVoices = _session.Languages
+                .Where(l => l != Lang.English && VoiceAnnouncer.VoiceFor(l) == null)
+                .Select(l => Languages.Get(l).Name),
             recent = _recent.Select(r => new { time = r.Time.ToString("HH:mm"), typed = r.Typed, @fixed = r.Fixed, app = r.App }),
         };
     }
@@ -174,6 +192,12 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             case "testVoice":
                 _ = _voice.SpeakAsync(_focus.Snapshot.Layout ?? _lastLayout ?? Lang.English);
                 return;
+            case "language.set":
+                SetLanguage(msg.GetProperty("code").GetString(), msg.GetProperty("on").GetBoolean());
+                break;
+            case "openLanguageSettings":
+                OpenUrl("ms-settings:regionlanguage");
+                return;
             case "openAppsSettings":
                 OpenUrl("ms-settings:appsfeatures");
                 return;
@@ -209,8 +233,44 @@ internal sealed class TrayApp : ApplicationContext, IAppController
 
     // ---------------- events ----------------
 
+    private static object LanguageJson(LanguageInfo info) =>
+        new { code = info.Code, name = info.Name, badge = info.Badge, color = info.Color };
+
+    /// <summary>Re-reads installed keyboards and the user's chosen languages; loads word lists in the background.</summary>
+    private void RefreshLanguages()
+    {
+        _installedLanguages = LayoutService.InstalledLanguages();
+        LayoutService.LoadInstalledKeyboards();
+        // Only languages whose keyboard is installed can be switched to.
+        var enabled = _settings.EnabledLanguages(_installedLanguages).Where(_installedLanguages.Contains).ToList();
+        _session.Languages = enabled;
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            try { _detector.Preload(enabled); }
+            catch (Exception ex) { Log.Write("Loading word lists failed: " + ex.Message); }
+        });
+    }
+
+    private void SetLanguage(string? code, bool on)
+    {
+        var info = Languages.FromCode(code);
+        if (info == null || info.Lang == Lang.English) return;
+        var list = _settings.EnabledLanguages(_installedLanguages).Select(l => Languages.Get(l).Code).ToList();
+        list.Remove(info.Code);
+        if (on) list.Add(info.Code);
+        _settings.Languages = list;
+        RefreshLanguages();
+    }
+
     private void OnTick()
     {
+        // Notice keyboards added or removed in Windows (every ~5 seconds).
+        if (++_tickCount % 80 == 0 && !LayoutService.InstalledLanguages().SequenceEqual(_installedLanguages))
+        {
+            RefreshLanguages();
+            PushState();
+        }
+
         var snap = _focus.Snapshot;
         bool ownApp = string.Equals(snap.Process, AppInfo.Id, StringComparison.OrdinalIgnoreCase);
         bool blocked = ownApp || snap.IsPassword || _settings.IsExcluded(snap.Process);
@@ -318,7 +378,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         {
             g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
             g.Clear(Color.Transparent);
-            using var bg = new SolidBrush(lang == Lang.Hebrew ? IndicatorForm.HebrewColor : IndicatorForm.EnglishColor);
+            using var bg = new SolidBrush(IndicatorForm.ColorOf(lang));
             using var path = new System.Drawing.Drawing2D.GraphicsPath();
             path.AddArc(0, 1, 10, 10, 180, 90);
             path.AddArc(22, 1, 10, 10, 270, 90);
@@ -329,14 +389,14 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             g.FillPath(bg, path);
             using var font = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
             var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(lang == Lang.Hebrew ? "עב" : "EN", font, Brushes.White, new RectangleF(0, 0, 32, 32), fmt);
+            g.DrawString(Languages.Get(lang).Badge, font, Brushes.White, new RectangleF(0, 0, 32, 32), fmt);
         }
         var handle = bmp.GetHicon();
         var old = _trayIconHandle;
         _tray.Icon = Icon.FromHandle(handle);
         _trayIconHandle = handle;
         if (old != IntPtr.Zero) Native.DestroyIcon(old);
-        _tray.Text = AppInfo.Name + (lang == Lang.Hebrew ? " – Hebrew" : " – English");
+        _tray.Text = AppInfo.Name + " – " + Languages.Get(lang).Name;
     }
 
     protected override void ExitThreadCore()

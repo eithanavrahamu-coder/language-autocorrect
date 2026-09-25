@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using LayoutBuddy.Engine;
 using System.Drawing;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -30,13 +33,34 @@ internal sealed class SetupWindow : WebWindow
         switch (type)
         {
             case "ready":
-                Post(new { type = "init", mode = _mode, version = Installer.CurrentVersion, installedVersion = Installer.InstalledVersion });
+                var installed = LayoutService.InstalledLanguages();
+                Post(new
+                {
+                    type = "init",
+                    mode = _mode,
+                    version = Installer.CurrentVersion,
+                    installedVersion = Installer.InstalledVersion,
+                    languages = Languages.All.Select(l => new
+                    {
+                        code = l.Code,
+                        name = l.Name,
+                        nativeName = l.NativeName,
+                        badge = l.Badge,
+                        color = l.Color,
+                        installed = installed.Contains(l.Lang),
+                        selected = l.Lang == Lang.English || installed.Contains(l.Lang),
+                        locked = l.Lang == Lang.English,
+                    }),
+                });
                 break;
 
             case "install":
                 bool startup = msg.TryGetProperty("startWithWindows", out var s) && s.GetBoolean();
                 bool desktop = msg.TryGetProperty("desktopShortcut", out var d) && d.GetBoolean();
-                RunWork(p => Installer.Install(_mode == "install" ? startup : null, desktop && _mode == "install", p),
+                List<string>? langs = msg.TryGetProperty("languages", out var ls) && ls.ValueKind == JsonValueKind.Array
+                    ? ls.EnumerateArray().Select(x => x.GetString()).OfType<string>().ToList()
+                    : null;
+                RunWork(p => Installer.Install(_mode == "install" ? startup : null, desktop && _mode == "install", langs, p),
                     SetupResult.Installed);
                 break;
 
@@ -53,6 +77,11 @@ internal sealed class SetupWindow : WebWindow
             case "open":
                 Installer.SignalShow();
                 Close();
+                break;
+
+            case "openLanguageSettings":
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:regionlanguage") { UseShellExecute = true }); }
+                catch (Exception ex) { Log.Write("Open settings failed: " + ex.Message); }
                 break;
 
             case "close":

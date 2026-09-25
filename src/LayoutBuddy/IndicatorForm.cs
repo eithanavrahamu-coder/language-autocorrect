@@ -12,8 +12,7 @@ internal sealed class IndicatorForm : Form
     private const int WS_EX_TOPMOST = 0x8, WS_EX_TRANSPARENT = 0x20, WS_EX_TOOLWINDOW = 0x80,
         WS_EX_NOACTIVATE = 0x8000000;
 
-    public static readonly Color EnglishColor = Color.FromArgb(37, 99, 235);
-    public static readonly Color HebrewColor = Color.FromArgb(22, 163, 74);
+    public static Color ColorOf(Lang lang) => ColorTranslator.FromHtml(Languages.Get(lang).Color);
 
     private Lang _lang = Lang.English;
 
@@ -25,7 +24,7 @@ internal sealed class IndicatorForm : Form
         TopMost = true;
         Opacity = 0.92;
         DoubleBuffered = true;
-        BackColor = EnglishColor;
+        BackColor = ColorOf(Lang.English);
         Size = ScaledSize();
     }
 
@@ -46,7 +45,7 @@ internal sealed class IndicatorForm : Form
         if (lang != _lang)
         {
             _lang = lang;
-            BackColor = lang == Lang.Hebrew ? HebrewColor : EnglishColor;
+            BackColor = ColorOf(lang);
             Invalidate();
         }
         var size = ScaledSize();
@@ -84,7 +83,7 @@ internal sealed class IndicatorForm : Form
     {
         var g = e.Graphics;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-        string text = _lang == Lang.Hebrew ? "עב" : "EN";
+        string text = Languages.Get(_lang).Badge;
         using var bigFont = new Font("Segoe UI", 11f * DeviceDpi / 96f, FontStyle.Bold, GraphicsUnit.Pixel);
         TextRenderer.DrawText(g, text, bigFont, ClientRectangle, Color.White,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);

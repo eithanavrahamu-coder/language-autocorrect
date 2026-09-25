@@ -23,11 +23,11 @@ internal sealed class VoiceAnnouncer : IDisposable
         _debounce = new Timer(_ => _ = SpeakAsync(_pending), null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public static VoiceInformation? HebrewVoice =>
-        SafeVoices().FirstOrDefault(v => v.Language.StartsWith("he", StringComparison.OrdinalIgnoreCase));
+    public static VoiceInformation? VoiceFor(Lang lang) =>
+        SafeVoices().FirstOrDefault(v => v.Language.StartsWith(Languages.Get(lang).Code, StringComparison.OrdinalIgnoreCase));
 
-    public static VoiceInformation? EnglishVoice =>
-        SafeVoices().FirstOrDefault(v => v.Language.StartsWith("en", StringComparison.OrdinalIgnoreCase));
+    public static VoiceInformation? HebrewVoice => VoiceFor(Lang.Hebrew);
+    public static VoiceInformation? EnglishVoice => VoiceFor(Lang.English);
 
     private static VoiceInformation[] SafeVoices()
     {
@@ -46,18 +46,18 @@ internal sealed class VoiceAnnouncer : IDisposable
         try
         {
             using var synth = new SpeechSynthesizer();
+            // The language's own name in its own voice ("Русский"), or its English name if no such voice is installed.
+            var info = Languages.Get(lang);
             string text;
-            var he = HebrewVoice;
-            var en = EnglishVoice;
-            if (lang == Lang.Hebrew && he != null)
+            if (VoiceFor(lang) is { } native)
             {
-                synth.Voice = he;
-                text = "עברית";
+                synth.Voice = native;
+                text = info.NativeName;
             }
             else
             {
-                if (en != null) synth.Voice = en;
-                text = lang == Lang.Hebrew ? "Hebrew" : "English";
+                if (EnglishVoice is { } en) synth.Voice = en;
+                text = info.Name;
             }
 
             using var stream = await synth.SynthesizeTextToStreamAsync(text);

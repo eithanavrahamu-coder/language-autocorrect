@@ -94,13 +94,14 @@ internal static class Program
         var sb = new StringBuilder();
         void Line(bool ok, string text) => sb.AppendLine((ok ? "✔ " : "✘ ") + text);
 
-        Line(LayoutService.FindInstalled(Lang.English) != null, "English keyboard layout installed");
-        Line(LayoutService.FindInstalled(Lang.Hebrew) != null, "Hebrew keyboard layout installed");
+        var installed = LayoutService.InstalledLanguages();
+        Line(installed.Count >= 2, "Keyboards installed: " + string.Join(", ", installed.Select(l => Languages.Get(l).Name)));
         sb.AppendLine("   Switch shortcut: " + LayoutService.DescribeSwitchMethod());
         var d = detector.Evaluate("akuo", Lang.English, Sensitivity.Medium);
         Line(d.ShouldFix && d.Replacement == "שלום", $"Detection: akuo → {d.Replacement}");
         Line(VoiceAnnouncer.EnglishVoice != null, "English voice available");
-        Line(VoiceAnnouncer.HebrewVoice != null, "Hebrew voice available (optional – otherwise says \"Hebrew\" in English)");
+        foreach (var l in installed.Where(l => l != Lang.English))
+            Line(VoiceAnnouncer.VoiceFor(l) != null, $"{Languages.Get(l).Name} voice (optional – otherwise its name is said in English)");
         Line(WebWindow.RuntimeAvailable, "WebView2 runtime (for the app window)");
         Line(Installer.IsInstalled, "Installed in " + Installer.InstallDir);
         sb.AppendLine();

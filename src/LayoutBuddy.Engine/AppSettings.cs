@@ -14,6 +14,21 @@ public sealed class AppSettings
 
     public bool StartWithWindows { get; set; }
 
+    /// <summary>
+    /// Language codes the user types in (see <see cref="Languages"/>); null = every supported language
+    /// with a keyboard installed in Windows. English is always included.
+    /// </summary>
+    public List<string>? Languages { get; set; }
+
+    /// <summary>The languages to check, given the ones with keyboards installed.</summary>
+    public List<Lang> EnabledLanguages(IEnumerable<Lang> installed)
+    {
+        var chosen = Languages == null
+            ? installed
+            : Languages.Select(LayoutBuddy.Engine.Languages.FromCode).OfType<LanguageInfo>().Select(l => l.Lang);
+        return chosen.Prepend(Lang.English).Distinct().ToList();
+    }
+
     public List<string> ExcludedApps { get; set; } = ["mstsc", "KeePass", "KeePassXC", "1Password", "Bitwarden"];
 
     /// <summary>Add a word to the never-fix list automatically after it is undone enough times. Off by default.</summary>

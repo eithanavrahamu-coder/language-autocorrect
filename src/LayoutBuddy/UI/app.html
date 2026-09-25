@@ -115,7 +115,6 @@
     font-weight: 700; font-size: 22px; background: var(--en);
     transition: background .25s;
   }
-  .layout-badge.he { background: var(--he); }
   .layout-badge.none { background: var(--faint); font-size: 16px; }
   .hero-text { flex: 1; min-width: 0; }
   .hero-title { font-size: 17px; font-weight: 600; margin-bottom: 3px; }
@@ -182,6 +181,18 @@
   .setting-title { font-weight: 600; margin-bottom: 2px; }
   .setting-desc { color: var(--muted); font-size: 13px; line-height: 1.45; }
   .setting.disabled .setting-title, .setting.disabled .setting-desc { opacity: .5; }
+
+  /* Languages */
+  .lang-badge {
+    width: 34px; height: 26px; border-radius: 8px; flex-shrink: 0;
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12.5px;
+  }
+  .lang-native { font-weight: 600; }
+  .lang-name { color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .lang-warn { color: #B45309; font-size: 12.5px; margin-top: 2px; }
+  @media (prefers-color-scheme: dark) { .lang-warn { color: #FBBF24; } }
+  .setting .toggle input:disabled { cursor: default; }
+  .setting .toggle input:disabled + span { opacity: .5; }
 
   /* Segmented */
   .seg { display: inline-flex; background: var(--hover); border-radius: 10px; padding: 3px; gap: 2px; flex-shrink: 0; }
@@ -268,7 +279,7 @@
   <!-- ================= HOME ================= -->
   <section class="page active" id="page-home">
     <h1 id="greeting">Welcome back</h1>
-    <p class="lede">Type in either language. Words typed in the wrong layout are fixed the moment you press Space.</p>
+    <p class="lede">Type in any of your languages. Words typed on the wrong keyboard are fixed the moment you press Space.</p>
 
     <div class="card hero">
       <div class="layout-badge" id="layoutBadge">EN</div>
@@ -335,6 +346,10 @@
     <h1>Settings</h1>
     <p class="lede">Changes are saved right away.</p>
 
+    <h2>Languages</h2>
+    <div class="card" id="languages"></div>
+    <p class="note">Pick the languages you type in. Each one also needs its keyboard added in Windows.</p>
+
     <h2>Auto-correct</h2>
     <div class="card">
       <div class="setting">
@@ -360,14 +375,14 @@
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">Indicator next to the cursor</div>
-          <div class="setting-desc">A small <b style="color:var(--en)">EN</b> / <b style="color:var(--he)">עב</b> badge follows the text cursor.</div>
+          <div class="setting-desc">A small badge like <b style="color:var(--en)">EN</b> follows the text cursor, colored by language.</div>
         </div>
         <label class="toggle"><input type="checkbox" data-set="showIndicator"><span></span></label>
       </div>
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">Say the language out loud</div>
-          <div class="setting-desc" id="voiceDesc">Speaks "English" or "עברית" when the keyboard changes.</div>
+          <div class="setting-desc" id="voiceDesc">Says the language's name when the keyboard changes.</div>
         </div>
         <button class="btn small" id="testVoice">Test</button>
         <label class="toggle"><input type="checkbox" data-set="voice"><span></span></label>
@@ -476,10 +491,11 @@
     $('#greeting').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 
     const badge = $('#layoutBadge');
-    badge.className = 'layout-badge' + (s.layout === 'he' ? ' he' : s.layout ? '' : ' none');
-    badge.textContent = s.layout === 'he' ? 'עב' : s.layout === 'en' ? 'EN' : '—';
+    badge.className = 'layout-badge' + (s.layout ? '' : ' none');
+    badge.style.background = s.layout ? s.layout.color : '';
+    badge.textContent = s.layout ? s.layout.badge : '—';
     $('#heroTitle').textContent = s.autoCorrect ? 'Auto-correct is on' : 'Auto-correct is paused';
-    $('#heroSub').textContent = 'Current keyboard: ' + (s.layout === 'he' ? 'Hebrew' : s.layout === 'en' ? 'English' : 'other');
+    $('#heroSub').textContent = 'Current keyboard: ' + (s.layout ? s.layout.name : 'not a supported language');
 
     $('#statToday').textContent = fmt(s.fixesToday);
     $('#statTotal').textContent = fmt(s.fixesTotal);
@@ -498,9 +514,45 @@
 
     renderChips($('#apps'), s.excludedApps, a => send({ type: 'excluded.remove', app: a }), 'Auto-correct works in every app.');
 
-    $('#voiceDesc').textContent = s.hebrewVoice
-      ? 'Speaks "English" or "עברית" when the keyboard changes.'
-      : 'Speaks "English" or "Hebrew" when the keyboard changes. Install the Hebrew speech pack in Windows for a Hebrew voice.';
+    $('#voiceDesc').textContent = 'Says the language\'s name when the keyboard changes.' + (s.nativeVoices.length
+      ? ` No ${s.nativeVoices.join(', ')} voice is installed in Windows, so ${s.nativeVoices.length > 1 ? 'those are' : 'it is'} said in English.`
+      : '');
+
+    renderLanguages(s.languages);
+  }
+
+  function renderLanguages(langs) {
+    const box = $('#languages');
+    box.innerHTML = '';
+    langs.forEach(l => {
+      const row = document.createElement('div');
+      row.className = 'setting';
+      row.innerHTML = `<div class="lang-badge"></div>
+        <div class="setting-text"><div><span class="lang-native"></span><span class="lang-name"></span></div></div>
+        <label class="toggle"><input type="checkbox"><span></span></label>`;
+      const badge = $('.lang-badge', row);
+      badge.textContent = l.badge;
+      badge.style.background = l.color;
+      $('.lang-native', row).textContent = l.nativeName;
+      if (l.nativeName !== l.name) $('.lang-name', row).textContent = l.name;
+      if (l.enabled && !l.installed) {
+        const warn = document.createElement('div');
+        warn.className = 'lang-warn';
+        warn.textContent = 'Keyboard not added in Windows yet. ';
+        const link = document.createElement('button');
+        link.className = 'btn ghost small';
+        link.textContent = 'Add keyboard';
+        link.addEventListener('click', () => send({ type: 'openLanguageSettings' }));
+        warn.appendChild(link);
+        $('.setting-text', row).appendChild(warn);
+      }
+      const input = $('input', row);
+      input.checked = l.enabled;
+      input.disabled = l.locked;
+      if (l.locked) $('.toggle', row).title = 'English is always on';
+      input.addEventListener('change', () => send({ type: 'language.set', code: l.code, on: input.checked }));
+      box.appendChild(row);
+    });
   }
 
   function renderRecent(items) {
@@ -568,7 +620,20 @@
     // Browser preview with sample data.
     window.__mockState = {
       version: '2.2.0', autoCorrect: true, showIndicator: true, voice: true, sensitivity: 'Medium',
-      startWithWindows: true, learnFromUndos: false, undosToBlock: 3, layout: 'he', hebrewVoice: false,
+      startWithWindows: true, learnFromUndos: false, undosToBlock: 3, nativeVoices: ['Hebrew'],
+      layout: { code: 'he', name: 'Hebrew', badge: 'עב', color: '#16A34A' },
+      languages: [
+        ['en', 'English', 'English', 'EN', '#2563EB', true, true],
+        ['he', 'Hebrew', 'עברית', 'עב', '#16A34A', true, true],
+        ['ru', 'Russian', 'Русский', 'РУ', '#DC2626', true, false],
+        ['ar', 'Arabic', 'العربية', 'ع', '#0D9488', false, false],
+        ['uk', 'Ukrainian', 'Українська', 'УК', '#CA8A04', false, false],
+        ['fa', 'Persian', 'فارسی', 'فا', '#9333EA', false, false],
+        ['el', 'Greek', 'Ελληνικά', 'ΕΛ', '#0284C7', false, false],
+        ['fr', 'French', 'Français', 'FR', '#4F46E5', false, true],
+        ['de', 'German', 'Deutsch', 'DE', '#EA580C', false, false],
+      ].map(([code, name, nativeName, badge, color, enabled, installed]) =>
+        ({ code, name, nativeName, badge, color, enabled, installed, locked: code === 'en' })),
       neverFix: ['akuo', 'lol', 'ok', 'vbh'], excludedApps: ['mstsc', 'KeePass'],
       fixesToday: 23, fixesTotal: 1287,
       recent: [
@@ -589,6 +654,7 @@
     if (msg.type === 'neverFix.remove') s.neverFix = s.neverFix.filter(w => w !== msg.word);
     if (msg.type === 'neverFix.clear') s.neverFix = [];
     if (msg.type === 'excluded.add') s.excludedApps.push(msg.app);
+    if (msg.type === 'language.set') s.languages.find(l => l.code === msg.code).enabled = msg.on;
     if (msg.type === 'excluded.remove') s.excludedApps = s.excludedApps.filter(a => a !== msg.app);
     render(s);
   }

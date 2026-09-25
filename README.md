@@ -2,15 +2,22 @@
 
 *Made by Eithan Avraham*
 
-A Windows app for people who type in Hebrew and English:
+A Windows app for people who type in more than one language. It notices words typed on the wrong keyboard
+and fixes them.
 
-- **Auto-correct** – notices words typed in the wrong layout (e.g. `akuo` → `שלום`, `יקךךם` → `hello`) and fixes them when you
-  press Space or Enter, then switches the keyboard for you. Words just before it that were typed in the same wrong layout
+**Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY) and German (QWERTZ).
+Pick yours once in setup (languages whose keyboard is already in Windows are pre-selected) and change them any time in
+Settings → Languages. The app reads your actual Windows keyboards, so variants like Canadian French or Swiss German
+work too.
+
+- **Auto-correct** – notices words typed in the wrong layout (e.g. `ghbdtn` → `привет`, `akuo` → `שלום`, `zhqt` → `what`)
+  and fixes them when you press Space or Enter, then switches the keyboard for you. With several languages on, the one
+  where the word makes the most sense wins. Words just before it that were typed in the same wrong layout
   are fixed too (`ha jh akuo` → `יש חי שלום`). When both readings are real words, the words before it decide:
   `הוא אוכל far` → `הוא אוכל כשר`, while `it is not far` stays as typed. For the first word of a line, the much more
-  common reading wins.
-- **Language indicator** – a small `EN` / `עב` badge next to the text cursor.
-- **Voice** – says "English" / "עברית" when the keyboard changes.
+  common reading wins. A capital first letter is kept (`Yeit` → `Zeit`).
+- **Language indicator** – a small colored badge (`EN`, `עב`, `РУ`, `ΕΛ`...) next to the text cursor.
+- **Voice** – says the language's name when the keyboard changes (in that language if Windows has a voice for it).
 
 Click the tray icon (or open it from the Start menu) for the app window: Home (recent fixes and stats),
 Never fix (your word list), and Settings.
