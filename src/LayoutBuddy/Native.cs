@@ -22,13 +22,16 @@ internal static class Native
         VK_LSHIFT = 0xA0, VK_RSHIFT = 0xA1, VK_LCONTROL = 0xA2, VK_RCONTROL = 0xA3, VK_LMENU = 0xA4, VK_RMENU = 0xA5;
 
     public const uint INPUT_KEYBOARD = 1;
+    public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint KEYEVENTF_UNICODE = 0x0004;
+    public const uint KEYEVENTF_SCANCODE = 0x0008;
 
     /// <summary>Marks input we inject ourselves.</summary>
     public static readonly IntPtr InjectedMarker = new(0x4C425544); // "LBUD"
 
     public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+    public delegate void TimerProc(IntPtr hWnd, uint msg, IntPtr idEvent, uint time);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct KBDLLHOOKSTRUCT
@@ -132,6 +135,12 @@ internal static class Native
 
     [DllImport("user32.dll")]
     public static extern bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetTimer(IntPtr hWnd, IntPtr nIDEvent, uint uElapse, TimerProc lpTimerFunc);
+
+    [DllImport("user32.dll")]
+    public static extern bool KillTimer(IntPtr hWnd, IntPtr uIDEvent);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);

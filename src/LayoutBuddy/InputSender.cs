@@ -46,12 +46,37 @@ internal sealed class InputSender
         return this;
     }
 
-    public void Send()
+    /// <summary>
+    /// Presses (without releasing) the key at this physical position, so whichever keyboard is in use then
+    /// decides what it types. The user's own key release follows.
+    /// </summary>
+    public InputSender KeyDown(int vk, int scanCode, bool extended)
     {
-        if (_inputs.Count == 0) return;
+        _inputs.Add(new Native.INPUT
+        {
+            type = Native.INPUT_KEYBOARD,
+            U = new Native.InputUnion
+            {
+                ki = new Native.KEYBDINPUT
+                {
+                    wVk = scanCode == 0 ? (ushort)vk : (ushort)0,
+                    wScan = (ushort)scanCode,
+                    dwFlags = (scanCode == 0 ? 0 : Native.KEYEVENTF_SCANCODE) | (extended ? Native.KEYEVENTF_EXTENDEDKEY : 0),
+                    dwExtraInfo = Native.InjectedMarker,
+                },
+            },
+        });
+        return this;
+    }
+
+    /// <summary>Sends everything added so far and returns how many key events that was.</summary>
+    public int Send()
+    {
+        if (_inputs.Count == 0) return 0;
         var arr = _inputs.ToArray();
         _inputs.Clear();
         Native.SendInput((uint)arr.Length, arr, Marshal.SizeOf<Native.INPUT>());
+        return arr.Length;
     }
 
     private void Vk(int vk, bool up) => _inputs.Add(new Native.INPUT

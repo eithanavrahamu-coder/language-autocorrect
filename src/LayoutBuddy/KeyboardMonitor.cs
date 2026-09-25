@@ -24,6 +24,11 @@ internal sealed class KeyboardMonitor : IDisposable
     private IntPtr _kbHook, _mouseHook;
     private volatile bool _resetRequested;
 
+    // The keyboard switch after a fix waits a moment (see ScheduleSwitch). Only used on the hook thread.
+    private readonly Native.TimerProc _switchTimerProc;
+    private (Lang Target, IntPtr Window)? _pendingSwitch;
+    private IntPtr _switchTimer;
+
     public event Action<FixWord>? Fixed;
     public event Action<UndoFix>? Undone;
 
@@ -35,6 +40,7 @@ internal sealed class KeyboardMonitor : IDisposable
         _context = context;
         _kbProc = KeyboardProc;
         _mouseProc = MouseProc;
+        _switchTimerProc = OnSwitchTimer;
     }
 
     public void Start()
@@ -128,7 +134,11 @@ internal sealed class KeyboardMonitor : IDisposable
             _session.ResetAll();
         }
 
-        var layout = LayoutService.Current();
+        // A keyboard switch still waiting after a fix happens before this key, so the key is typed in the new language.
+        if (_pendingSwitch is { } waiting && waiting.Window != Native.GetForegroundWindow()) CancelSwitch();
+        var switching = _pendingSwitch?.Target;
+
+        var layout = switching ?? LayoutService.Current();
         if (layout == null)
         {
             _session.ResetAll();
@@ -144,32 +154,82 @@ internal sealed class KeyboardMonitor : IDisposable
             case FixWord fix:
             {
                 var send = new InputSender();
+                TakeSwitch(send);
                 // The Korean IME may still be putting the last syllable together: pressing Hangul/English twice
                 // finishes it (keeping the mode), so each Backspace deletes a whole syllable.
                 if (layout == Lang.Korean) send.Tap(Native.VK_HANGUL, 2);
                 send.Tap(Native.VK_BACK, fix.Backspaces)
                     .Text(fix.Text)
                     .Tap(fix.Boundary == KeyKind.Enter ? Native.VK_RETURN : Native.VK_SPACE);
-                LayoutService.AppendSwitch(send, fix.Layout);
-                send.Send();
+                ScheduleSwitch(fix.Layout, send.Send());
                 Fixed?.Invoke(fix);
                 return true;
             }
 
             case UndoFix undo:
             {
+                // If the fix hasn't switched the keyboard yet, it simply doesn't.
+                CancelSwitch();
                 var send = new InputSender()
                     .ReleaseModifiers()
                     .Tap(Native.VK_BACK, undo.Backspaces)
                     .Text(undo.Text);
-                LayoutService.AppendSwitch(send, undo.Layout);
-                send.Send();
+                ScheduleSwitch(undo.Layout, send.Send());
                 Undone?.Invoke(undo);
                 return true;
             }
 
             default:
-                return false;
+            {
+                if (switching == null) return false;
+                // Switch first, then type this key: the user's key would otherwise arrive before the switch.
+                var send = new InputSender();
+                TakeSwitch(send);
+                send.KeyDown(vk, scanCode, extended).Send();
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Switches the keyboard to <paramref name="target"/> shortly after a fix was typed. Some apps (WhatsApp and other
+    /// apps built on web pages) handle a keyboard switch before the keystrokes still waiting for them, and lose the
+    /// last letters of the fix when both are sent together. Longer fixes get a little more time.
+    /// </summary>
+    private void ScheduleSwitch(Lang target, int keyEvents)
+    {
+        CancelSwitch();
+        _pendingSwitch = (target, Native.GetForegroundWindow());
+        _switchTimer = Native.SetTimer(IntPtr.Zero, IntPtr.Zero, (uint)Math.Min(150, 40 + keyEvents), _switchTimerProc);
+    }
+
+    /// <summary>Adds the waiting keyboard switch, if any, to <paramref name="send"/>.</summary>
+    private void TakeSwitch(InputSender send)
+    {
+        if (_pendingSwitch is not { } pending) return;
+        CancelSwitch();
+        // The user went to another window meanwhile: leave its keyboard alone.
+        if (Native.GetForegroundWindow() == pending.Window) LayoutService.AppendSwitch(send, pending.Target);
+    }
+
+    private void CancelSwitch()
+    {
+        _pendingSwitch = null;
+        if (_switchTimer != IntPtr.Zero) Native.KillTimer(IntPtr.Zero, _switchTimer);
+        _switchTimer = IntPtr.Zero;
+    }
+
+    private void OnSwitchTimer(IntPtr hWnd, uint msg, IntPtr idEvent, uint time)
+    {
+        try
+        {
+            var send = new InputSender();
+            TakeSwitch(send);
+            send.Send();
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Keyboard switch error: " + ex);
         }
     }
 
