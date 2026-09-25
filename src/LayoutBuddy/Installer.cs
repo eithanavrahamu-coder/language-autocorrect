@@ -10,7 +10,7 @@ using Microsoft.Win32;
 namespace LayoutBuddy;
 
 /// <summary>
-/// Per-user install (no admin needed): copies the exe to %LocalAppData%\Programs\Type Language Corrector 4000,
+/// Per-user install (no admin needed): copies the exe to %LocalAppData%\Programs\Language Autocorrect,
 /// adds shortcuts, and registers an entry under Settings → Apps with an Uninstall button.
 /// </summary>
 internal static class Installer
@@ -51,9 +51,12 @@ internal static class Installer
         {
             try
             {
-                using var k = Registry.CurrentUser.OpenSubKey(UninstallKey)
-                              ?? Registry.CurrentUser.OpenSubKey(UninstallRoot + AppInfo.LegacyId);
-                return k?.GetValue("DisplayVersion") as string;
+                foreach (var id in AppInfo.Legacy.Select(l => l.Id).Prepend(AppId))
+                {
+                    using var k = Registry.CurrentUser.OpenSubKey(UninstallRoot + id);
+                    if (k?.GetValue("DisplayVersion") is string v) return v;
+                }
+                return null;
             }
             catch { return null; }
         }
@@ -65,38 +68,43 @@ internal static class Installer
 
     public static bool IsInstalled => File.Exists(InstalledExe) || LegacyInstalled;
 
-    // ---- The app's previous name (LayoutBuddy) ----
+    // ---- The app's earlier names (LayoutBuddy, Type Language Corrector 4000) ----
 
-    private static string LegacyInstallDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", AppInfo.LegacyId);
+    private static string LegacyInstallDir((string Id, string Name) legacy) => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", legacy.Name);
 
-    private static bool LegacyInstalled => File.Exists(Path.Combine(LegacyInstallDir, AppInfo.LegacyId + ".exe"));
+    private static bool LegacyInstalled => AppInfo.Legacy.Any(l =>
+        File.Exists(Path.Combine(LegacyInstallDir(l), l.Id + ".exe")));
 
-    /// <summary>Removes an install made under the old name: its shortcuts, Settings → Apps entry and files.</summary>
-    private static void RemoveLegacyInstall()
+    /// <summary>Removes installs made under earlier names: shortcuts, Settings → Apps entries, startup entries and files.</summary>
+    private static void RemoveLegacyInstalls()
     {
-        string legacy = AppInfo.LegacyId;
-        TryDo(() => Registry.CurrentUser.DeleteSubKeyTree(UninstallRoot + legacy, throwOnMissingSubKey: false));
-        TryDo(() =>
+        foreach (var legacy in AppInfo.Legacy)
         {
-            using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (run?.GetValue(legacy) != null) run.DeleteValue(legacy);
-        });
-        foreach (var folder in new[] { Environment.SpecialFolder.Programs, Environment.SpecialFolder.DesktopDirectory })
-        {
-            var lnk = Path.Combine(Environment.GetFolderPath(folder), legacy + ".lnk");
-            TryDo(() => { if (File.Exists(lnk)) File.Delete(lnk); });
+            var (id, name) = legacy;
+            TryDo(() => Registry.CurrentUser.DeleteSubKeyTree(UninstallRoot + id, throwOnMissingSubKey: false));
+            TryDo(() =>
+            {
+                using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+                if (run?.GetValue(id) != null) run.DeleteValue(id);
+            });
+            foreach (var folder in new[] { Environment.SpecialFolder.Programs, Environment.SpecialFolder.DesktopDirectory })
+            {
+                var lnk = Path.Combine(Environment.GetFolderPath(folder), name + ".lnk");
+                TryDo(() => { if (File.Exists(lnk)) File.Delete(lnk); });
+            }
+            var dir = LegacyInstallDir(legacy);
+            TryDo(() => { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); });
+            var local = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), id);
+            TryDo(() => { if (Directory.Exists(local)) Directory.Delete(local, recursive: true); });
+            // Settings were already copied to the new folder by AppSettings.MigrateLegacy().
+            var roaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), id);
+            TryDo(() =>
+            {
+                if (Directory.Exists(roaming) && File.Exists(AppSettings.DefaultPath))
+                    Directory.Delete(roaming, recursive: true);
+            });
         }
-        TryDo(() => { if (Directory.Exists(LegacyInstallDir)) Directory.Delete(LegacyInstallDir, recursive: true); });
-        var legacyLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), legacy);
-        TryDo(() => { if (Directory.Exists(legacyLocal)) Directory.Delete(legacyLocal, recursive: true); });
-        // Settings were already copied to the new folder by AppSettings.MigrateLegacy().
-        var legacyRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), legacy);
-        TryDo(() =>
-        {
-            if (Directory.Exists(legacyRoaming) && File.Exists(AppSettings.DefaultPath))
-                Directory.Delete(legacyRoaming, recursive: true);
-        });
     }
 
     /// <summary>Installs or updates. <paramref name="startWithWindows"/> null keeps the current setting.</summary>
@@ -119,7 +127,7 @@ internal static class Installer
         progress(0.7, "Adding to Settings → Apps");
         Register();
         AppSettings.MigrateLegacy();
-        RemoveLegacyInstall();
+        RemoveLegacyInstalls();
         if (startWithWindows is bool startup)
         {
             var settings = AppSettings.Load(AppSettings.DefaultPath);
@@ -192,12 +200,12 @@ internal static class Installer
     /// <summary>Asks running copies to exit (and closes them if they don't).</summary>
     private static void StopRunningInstances()
     {
-        foreach (var name in new[] { ExitEventName, @"Local\" + AppInfo.LegacyId + ".Exit" })
+        foreach (var name in AppInfo.Legacy.Select(l => @"Local\" + l.Id + ".Exit").Prepend(ExitEventName))
             if (EventWaitHandle.TryOpenExisting(name, out var ev))
                 using (ev) ev.Set();
 
         int self = Environment.ProcessId;
-        var running = Process.GetProcessesByName(AppId).Concat(Process.GetProcessesByName(AppInfo.LegacyId));
+        var running = AppInfo.Legacy.Select(l => l.Id).Prepend(AppId).SelectMany(Process.GetProcessesByName);
         foreach (var p in running.Where(p => p.Id != self))
         {
             using (p)

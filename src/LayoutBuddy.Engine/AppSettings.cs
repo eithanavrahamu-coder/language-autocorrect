@@ -46,24 +46,28 @@ public sealed class AppSettings
 
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
-    public const string FolderName = "TypeLanguageCorrector4000";
-    public const string LegacyFolderName = "LayoutBuddy";
+    public const string FolderName = "LanguageAutocorrect";
+
+    /// <summary>Folders used under the app's earlier names, newest first.</summary>
+    public static readonly string[] LegacyFolderNames = ["TypeLanguageCorrector4000", "LayoutBuddy"];
 
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), FolderName, "settings.json");
 
-    private static string LegacyPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), LegacyFolderName, "settings.json");
-
-    /// <summary>Copies settings from the app's old name (LayoutBuddy) the first time the new name runs.</summary>
+    /// <summary>Copies settings from the app's most recent earlier name the first time the new name runs.</summary>
     public static void MigrateLegacy()
     {
         try
         {
-            if (!File.Exists(DefaultPath) && File.Exists(LegacyPath))
+            if (File.Exists(DefaultPath)) return;
+            foreach (var folder in LegacyFolderNames)
             {
+                var legacy = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), folder, "settings.json");
+                if (!File.Exists(legacy)) continue;
                 Directory.CreateDirectory(Path.GetDirectoryName(DefaultPath)!);
-                File.Copy(LegacyPath, DefaultPath);
+                File.Copy(legacy, DefaultPath);
+                return;
             }
         }
         catch (Exception)

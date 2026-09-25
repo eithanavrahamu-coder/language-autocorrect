@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Type Language Corrector 4000</title>
+<title>Language Autocorrect</title>
 <style>
   :root {
     --bg: #FBFAF8;
@@ -240,7 +240,7 @@
 <aside>
   <div class="brand">
     <div class="logo">אA</div>
-    <div class="brand-name">Type Language<br>Corrector 4000</div>
+    <div class="brand-name">Language<br>Autocorrect</div>
   </div>
   <nav>
     <button data-page="home" class="active">
@@ -396,7 +396,7 @@
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">About</div>
-          <div class="setting-desc"><span id="aboutVersion">Type Language Corrector 4000</span> · Made by Eithan Avraham</div>
+          <div class="setting-desc"><span id="aboutVersion">Language Autocorrect</span> · Made by Eithan Avraham</div>
         </div>
       </div>
       <div class="setting">
@@ -468,7 +468,7 @@
     $$('#sensitivity button').forEach(b => b.classList.toggle('on', b.dataset.v === s.sensitivity));
 
     $('#version').textContent = 'Version ' + s.version;
-    $('#aboutVersion').textContent = 'Type Language Corrector 4000 · version ' + s.version;
+    $('#aboutVersion').textContent = 'Language Autocorrect · version ' + s.version;
     $('#statusDot').classList.toggle('off', !s.autoCorrect);
     $('#statusText').textContent = s.autoCorrect ? 'Auto-correct on' : 'Auto-correct paused';
 

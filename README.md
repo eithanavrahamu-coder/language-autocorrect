@@ -1,4 +1,4 @@
-# Type Language Corrector 4000
+# Language Autocorrect
 
 *Made by Eithan Avraham*
 
@@ -30,19 +30,19 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 ## Installing and uninstalling
 
-Download `TypeLanguageCorrector4000.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
+Download `LanguageAutocorrect.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
 The setup window offers:
 
-- **Install** – copies the app to `%LocalAppData%\Programs\Type Language Corrector 4000`, adds Start menu (and optionally desktop)
+- **Install** – copies the app to `%LocalAppData%\Programs\Language Autocorrect`, adds Start menu (and optionally desktop)
   shortcuts, and registers it in **Settings → Apps → Installed apps**. No administrator rights needed.
   Running a newer version later offers **Update** and keeps your settings.
-- **Run without installing** – runs it from where it is. `TypeLanguageCorrector4000.exe --portable` skips the setup window.
+- **Run without installing** – runs it from where it is. `LanguageAutocorrect.exe --portable` skips the setup window.
 
-Uninstall from **Settings → Apps → Installed apps → Type Language Corrector 4000 → Uninstall** (you can choose to keep your settings).
+Uninstall from **Settings → Apps → Installed apps → Language Autocorrect → Uninstall** (you can choose to keep your settings).
 
 The app window and setup use the Microsoft Edge WebView2 Runtime, which comes with Windows 11 and current Windows 10.
-Run `TypeLanguageCorrector4000.exe --selfcheck` to check keyboard layouts, voices and detection.
-Settings and log: `%AppData%\TypeLanguageCorrector4000\`.
+Run `LanguageAutocorrect.exe --selfcheck` to check keyboard layouts, voices and detection.
+Settings and log: `%AppData%\LanguageAutocorrect\`.
 
 ## Building
 
@@ -53,8 +53,8 @@ dotnet test tests/LayoutBuddy.Engine.Tests
 dotnet publish src/LayoutBuddy -c Release -p:PublishSingleFile=true -o publish
 ```
 
-The app was previously called LayoutBuddy; installing this version replaces an old LayoutBuddy install and keeps its
-settings. The code still uses `LayoutBuddy` as its internal project name.
+The app was previously called LayoutBuddy and then Type Language Corrector 4000; installing this version replaces
+installs under those names and keeps their settings. The code still uses `LayoutBuddy` as its internal project name.
 
 - `src/LayoutBuddy.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
 - `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).

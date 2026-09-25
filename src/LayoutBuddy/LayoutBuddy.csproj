@@ -11,14 +11,14 @@
     <Nullable>enable</Nullable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <AssemblyName>TypeLanguageCorrector4000</AssemblyName>
+    <AssemblyName>LanguageAutocorrect</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>3.0.0</Version>
-    <Product>Type Language Corrector 4000</Product>
+    <Version>3.1.0</Version>
+    <Product>Language Autocorrect</Product>
     <Company>Eithan Avraham</Company>
     <Authors>Eithan Avraham</Authors>
     <Copyright>© Eithan Avraham</Copyright>
-    <AssemblyTitle>Type Language Corrector 4000</AssemblyTitle>
+    <AssemblyTitle>Language Autocorrect</AssemblyTitle>
     <ApplicationIcon>Assets\LayoutBuddy.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

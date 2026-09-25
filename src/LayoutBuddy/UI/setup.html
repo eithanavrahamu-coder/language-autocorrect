@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Type Language Corrector 4000 Setup</title>
+<title>Language Autocorrect Setup</title>
 <style>
   :root {
     --bg: #FBFAF8; --card: #FFFFFF; --text: #1B1A18; --muted: #75706A; --faint: #A7A29B;
@@ -103,7 +103,7 @@
 <!-- Install / update -->
 <section class="screen" id="s-welcome">
   <div class="logo">אA</div>
-  <h1 id="welcomeTitle">Install Type Language Corrector 4000</h1>
+  <h1 id="welcomeTitle">Install Language Autocorrect</h1>
   <p class="sub" id="welcomeSub">Type Hebrew and English without watching the keyboard.</p>
   <div class="version"><span id="welcomeVersion"></span> · Made by Eithan Avraham</div>
 
@@ -136,7 +136,7 @@
 <section class="screen" id="s-uninstall">
   <div class="center">
     <div class="logo">אA</div>
-    <h1>Uninstall Type Language Corrector 4000?</h1>
+    <h1>Uninstall Language Autocorrect?</h1>
     <p class="sub">It will be closed and removed from this computer.</p>
     <div class="version">Made by Eithan Avraham</div>
   </div>
@@ -188,7 +188,7 @@
     mode = m.mode;
     if (mode === 'uninstall') { screen('uninstall'); return; }
     if (mode === 'update') {
-      $('#welcomeTitle').textContent = 'Update Type Language Corrector 4000';
+      $('#welcomeTitle').textContent = 'Update Language Autocorrect';
       $('#welcomeSub').textContent = 'Your settings and word list are kept.';
       $('#welcomeVersion').textContent = (m.installedVersion ? 'Version ' + m.installedVersion + ' → ' : 'Version ') + m.version;
       $('#installBtn').textContent = 'Update';
