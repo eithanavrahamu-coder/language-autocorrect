@@ -1,0 +1,119 @@
+# Handoff: add the next wave of languages to Language Autocorrect
+
+You are continuing work on **Language Autocorrect** (made by Eithan Avraham), a Windows tray app that notices
+words typed on the wrong keyboard layout (e.g. `ghbdtn` → `привет`, `akuo` → `שלום`) and fixes them when the
+user presses Space or Enter, then switches the keyboard.
+
+Repository: `eithanavrahamu-coder/language-auto` (branch `main`). Clone it, read `README.md`, then this file.
+
+## Your task
+
+Add these languages, in this order. Commit and push after each language (or each small group) so work is never lost.
+
+1. **Bulgarian** (`bg`), **Serbian Cyrillic** (`sr`), **Macedonian** (`mk`), **Kazakh** (`kk`) – Cyrillic, same approach as Russian.
+2. **Georgian** (`ka`), **Armenian** (`hy`) – own alphabets, same approach.
+3. **Korean** (`ko`) – needs extra work, see "Special cases".
+4. **Thai** (`th`) – needs extra work, see "Special cases".
+
+Belarusian has no word list in the source below; skip it.
+
+## How the code is organized
+
+- `src/LayoutBuddy.Engine/` – plain .NET 10 library, no Windows calls, fully unit tested. **Most of your work is here.**
+  - `Languages.cs` – **the language registry.** One `LanguageInfo` per language: enum value, ISO code, English and
+    native name, 2-letter badge, badge color, Windows primary language id, alphabet (lowercase letters), whether it
+    has upper/lower case, right-to-left flag, and `Keyboard`: what each of the 47 physical keys types, in the order
+    ``` ` 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p [ ] \ a s d f g h j k l ; ' z x c v b n m , . / ```
+    (US key names). A token `~` + combining accent + spacing accent marks a dead key (see Greek/French/German).
+  - `KeyMap.cs` – renders physical keys in a language (handles dead keys, multi-letter keys like Arabic `لا`,
+    capital first letter), and `ToUsKeys` (text → keys, used by tests).
+  - `LanguageModel.cs` – loads `Data/<code>.txt` (word + count per line, most frequent first), word ranks and a
+    character trigram model.
+  - `WrongLayoutDetector.cs` – decides if keys typed in language A are really a word in language B.
+  - `TypingSession.cs` – the typing state machine (current word, earlier words, sentence context, undo).
+- `src/LayoutBuddy/` – the Windows app (WinForms + WebView2 pages in `UI/`). It builds on Linux
+  (`EnableWindowsTargeting`) but can only run on Windows. `LayoutService.cs` maps Windows keyboards to languages
+  (`FromHkl` → `Languages.FromWindowsLangId`) and also reads the user's real layouts with `ToUnicodeEx` at runtime,
+  overriding the static `Keyboard` strings – so a slightly wrong static map is survivable, but get it right anyway
+  because the tests use it.
+- `src/LayoutBuddy/UI/app.html` and `setup.html` – the app window and installer. They list languages from the
+  registry automatically; you only need to update the **sample data** at the bottom of each file (used for browser
+  previews) if you want the new languages to show in previews.
+- `tests/LayoutBuddy.Engine.Tests/` – xUnit. `MultiLanguageTests.cs` is the template for new languages.
+
+## Recipe for a "simple" language (all of wave 1 and 2)
+
+1. **Word list.** Download from FrequencyWords (Hermit Dave, CC BY-SA 4.0 – already credited in the README):
+   `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/<code>/<code>_50k.txt`
+   (for `kk` and `hy` only `<code>_full.txt` exists – keep the top 50,000 lines).
+   Filter to words made only of the language's alphabet, lowercase, NFC-normalized, deduplicated, format `word count`,
+   and save as `src/LayoutBuddy.Engine/Data/<code>.txt`. (All `Data/*.txt` files are embedded automatically.)
+   **Serbian:** the subtitle corpus is largely in Latin script. Keep Cyrillic words; you may also transliterate Latin
+   Serbian words to Cyrillic (the mapping is 1:1: lj→љ, nj→њ, dž→џ, etc.) to get a bigger list. Check the result.
+2. **Registry entry** in `Languages.cs`: add the enum value to `Lang` and a `LanguageInfo`. Pick a distinct badge color.
+   Keyboard maps to use (standard Windows layouts):
+   - Bulgarian: Windows' default "Bulgarian" is the old BDS/typewriter layout; there is also "Bulgarian (Phonetic)".
+     Use the default one for the static map (runtime reading handles the others).
+   - Serbian Cyrillic, Macedonian, Kazakh, Georgian, Armenian: the standard Windows layout for each.
+     Look each one up carefully (e.g. Microsoft's keyboard layout pages at
+     `learn.microsoft.com/globalization/windows-keyboard-layouts`) – verify every key.
+3. **Windows language id.** `Languages.FromWindowsLangId` matches the *primary* language id only.
+   **Serbian and Croatian/Bosnian share primary id `0x1A`** – Serbian Cyrillic must be told apart from Latin layouts
+   by the full LANGID / keyboard layout id. Extend `LanguageInfo` (e.g. an optional set of full LANGIDs or layout ids)
+   and `LayoutService.FromHkl` accordingly, and make sure Croatian keyboards are *not* treated as Serbian Cyrillic.
+   Macedonian `0x2F`, Bulgarian `0x02`, Kazakh `0x3F`, Georgian `0x37`, Armenian `0x2B`.
+4. **Tests** in `MultiLanguageTests.cs`: add 2+ words to `FixesWordTypedOnEnglishKeyboard`, 1 to
+   `FixesEnglishTypedOnOtherKeyboard`, and the language to `NewLanguages` (the accuracy test). Required per language:
+   **wrongly changed < 2 %** and **caught > 80 %** (current languages get ~0.1 % and ~97 %). Print the numbers with
+   `dotnet test --logger "console;verbosity=detailed"`. If a language falls short, tune only in ways that keep every
+   other language's numbers where they are.
+5. **Closely related languages together:** Russian/Ukrainian/Bulgarian/Serbian/Macedonian/Kazakh share most keys and
+   many words. Check that with several Cyrillic languages enabled at once, the right one wins
+   (`TypingSession.BestFix` picks the highest `Detection.Score`). Add a test like `PicksTheRightLanguageAmongSeveral`.
+6. `README.md`: add the language to the **Languages** line.
+
+## Special cases
+
+**Korean.** Two differences from everything else:
+- Letters (jamo) combine into syllable blocks as you type (`ㅇ+ㅏ+ㄴ` → `안`). `KeyMap.Render` must compose jamo into
+  syllables (standard 2-set/Dubeolsik rules: initial/medial/final, double finals, a final moving to the next syllable
+  when a vowel follows). `안녕` is typed with keys `dkssud`. Backspace deletes one jamo, not one key's worth of text –
+  `TypingSession` already stops tracking a word on Backspace when keys aren't "simple"; make sure Korean is treated
+  that way. The number of characters to delete when fixing is the rendered length (syllables), which the code already
+  uses.
+- On Windows, Korean is an **IME**: the keyboard layout stays Korean while the user toggles Hangul/English mode
+  (Right Alt / 한/영 key). So "typed in the wrong mode" is an IME conversion-mode question, not a layout switch.
+  You will need: detection of the Korean IME's current mode (`ImmGetConversionStatus` via `ImmGetContext` /
+  `ImmGetDefaultIMEWnd` + `WM_IME_CONTROL`), treating "Korean layout + English mode" as English, and switching by
+  toggling the mode (send `VK_HANGUL`, or set the conversion status) instead of the layout. Keep this behind clean
+  functions in `LayoutService`.
+
+**Thai.** Thai doesn't put spaces between words, so "check the word on Space" sees a whole phrase. Evaluate the
+phrase by splitting it into dictionary words (longest-match segmentation over the Thai word list) and score how much
+of it is covered by real words, versus how much of the English reading is real words. Thai also has characters on
+Shift that are common – check how `TypingSession` treats Shift (it currently only allows Shift on the first letter
+of languages with case) and adapt for Thai.
+
+Do Korean and Thai **after** wave 1 and 2 are merged and pushed. If either turns out much bigger than expected,
+stop, push what works (behind the language being off by default), and write down what's left.
+
+## Rules
+
+- **Don't break existing languages.** All existing tests must keep passing – especially the Hebrew tests and the
+  accuracy numbers. Run `dotnet test tests/LayoutBuddy.Engine.Tests` before every commit.
+- Build the Windows app too: `dotnet build src/LayoutBuddy` must succeed with no warnings.
+- The .NET 10 SDK may not be installed: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0`.
+- Settings must stay backward compatible (`AppSettings` is loaded from users' existing JSON files).
+- Voice is off by default; don't change defaults.
+- Bump `<Version>` in `src/LayoutBuddy/LayoutBuddy.csproj` (currently 3.2.2) when you're done – e.g. 3.3.0.
+- Every push to `main` triggers GitHub Actions (`.github/workflows/build.yml`), which runs the tests on Windows and
+  produces the `.exe` as an artifact named **LanguageAutocorrect**. Check that the run succeeds and give the owner
+  the run's link (Actions → Build → the run → Artifacts).
+- Keep code in the existing style: small focused classes, comments only where the *why* isn't obvious.
+
+## Talking to the owner
+
+The owner, Eithan, is not a programmer. Explain results in plain language: what now works, how to get it
+(the Actions link), and what to try (e.g. "add the Bulgarian keyboard in Windows, type `ghbdtn`..."). Be honest
+about anything you couldn't verify – nobody can run the app on Windows from the build environment; only the unit
+tests and the Windows CI build verify it.
