@@ -57,10 +57,12 @@ internal sealed class SetupWindow : WebWindow
             case "install":
                 bool startup = msg.TryGetProperty("startWithWindows", out var s) && s.GetBoolean();
                 bool desktop = msg.TryGetProperty("desktopShortcut", out var d) && d.GetBoolean();
+                bool voice = msg.TryGetProperty("voice", out var v) && v.GetBoolean();
                 List<string>? langs = msg.TryGetProperty("languages", out var ls) && ls.ValueKind == JsonValueKind.Array
                     ? ls.EnumerateArray().Select(x => x.GetString()).OfType<string>().ToList()
                     : null;
-                RunWork(p => Installer.Install(_mode == "install" ? startup : null, desktop && _mode == "install", langs, p),
+                bool fresh = _mode == "install";
+                RunWork(p => Installer.Install(fresh ? startup : null, desktop && fresh, langs, fresh ? voice : null, p),
                     SetupResult.Installed);
                 break;
 

@@ -17,7 +17,8 @@ work too.
   `הוא אוכל far` → `הוא אוכל כשר`, while `it is not far` stays as typed. For the first word of a line, the much more
   common reading wins. A capital first letter is kept (`Yeit` → `Zeit`).
 - **Language indicator** – a small colored badge (`EN`, `עב`, `РУ`, `ΕΛ`...) next to the text cursor.
-- **Voice** – says the language's name when the keyboard changes (in that language if Windows has a voice for it).
+- **Voice** (off by default; offered in setup, or turn it on in Settings) – says the language's name when the keyboard
+  changes (in that language if Windows has a voice for it).
 
 Click the tray icon (or open it from the Start menu) for the app window: Home (recent fixes and stats),
 Never fix (your word list), and Settings.

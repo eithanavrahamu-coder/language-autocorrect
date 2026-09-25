@@ -141,13 +141,14 @@
     </div>
     <div class="feature">
       <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
-      <div><div class="f-title">Says the language out loud</div><div class="f-desc">Hear when the keyboard switches.</div></div>
+      <div><div class="f-title">Says the language out loud</div><div class="f-desc">Optional: hear when the keyboard switches.</div></div>
     </div>
   </div>
 
   <div class="options" id="options">
     <label class="option"><span>Start with Windows</span><span class="toggle"><input type="checkbox" id="optStartup" checked><i></i></span></label>
     <label class="option"><span>Desktop shortcut</span><span class="toggle"><input type="checkbox" id="optDesktop" checked><i></i></span></label>
+    <label class="option"><span>Say the language out loud when it changes</span><span class="toggle"><input type="checkbox" id="optVoice"><i></i></span></label>
   </div>
   <div class="actions">
     <button class="btn primary" id="installBtn">Next</button>
@@ -246,6 +247,7 @@
       type: 'install',
       startWithWindows: $('#optStartup').checked,
       desktopShortcut: $('#optDesktop').checked,
+      voice: $('#optVoice').checked,
       languages: mode === 'update' ? null : languages.filter(l => l.selected).map(l => l.code),
     });
   }

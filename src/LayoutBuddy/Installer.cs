@@ -110,7 +110,9 @@ internal static class Installer
 
     /// <summary>Installs or updates. <paramref name="startWithWindows"/> null keeps the current setting.</summary>
     /// <param name="languages">Language codes chosen in setup; null keeps the current choice.</param>
-    public static void Install(bool? startWithWindows, bool desktopShortcut, List<string>? languages, Action<double, string> progress)
+    /// <param name="voice">Say the language out loud; null keeps the current setting.</param>
+    public static void Install(bool? startWithWindows, bool desktopShortcut, List<string>? languages, bool? voice,
+        Action<double, string> progress)
     {
         progress(0.1, "Closing " + AppName);
         StopRunningInstances();
@@ -130,11 +132,12 @@ internal static class Installer
         Register();
         RemoveLegacyInstalls();
         AppSettings.MigrateLegacy();
-        if (startWithWindows is bool || languages != null)
+        if (startWithWindows is bool || languages != null || voice is bool)
         {
             var settings = AppSettings.Load(AppSettings.DefaultPath);
             if (startWithWindows is bool startup) settings.StartWithWindows = startup;
             if (languages != null) settings.Languages = languages;
+            if (voice is bool speak) settings.VoiceEnabled = speak;
             settings.Save(AppSettings.DefaultPath);
         }
         // Point "start with Windows" at the installed copy (the app re-applies this on start too).
@@ -307,7 +310,7 @@ internal static class Installer
             return SetupResult.Portable;
         try
         {
-            Install(IsInstalled ? null : true, false, null, (_, _) => { });
+            Install(IsInstalled ? null : true, false, null, IsInstalled ? null : false, (_, _) => { });
             return SetupResult.Installed;
         }
         catch (Exception ex)

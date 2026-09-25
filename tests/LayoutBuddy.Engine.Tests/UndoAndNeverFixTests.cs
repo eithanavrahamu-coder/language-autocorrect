@@ -368,3 +368,27 @@ public class AppSettingsTests
     public void Exclusions(string proc, bool excluded) =>
         Assert.Equal(excluded, new AppSettings().IsExcluded(proc));
 }
+
+public class VoiceSettingTests
+{
+    [Fact]
+    public void VoiceIsOffByDefault() => Assert.False(new AppSettings().VoiceEnabled);
+
+    [Fact]
+    public void OldSettingsTurnVoiceOffOnce()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        try
+        {
+            File.WriteAllText(path, "{ \"VoiceEnabled\": true }");
+            var s = AppSettings.Load(path);
+            Assert.False(s.VoiceEnabled);
+
+            // Turned back on by the user: stays on.
+            s.VoiceEnabled = true;
+            s.Save(path);
+            Assert.True(AppSettings.Load(path).VoiceEnabled);
+        }
+        finally { File.Delete(path); }
+    }
+}

@@ -6,7 +6,13 @@ namespace LayoutBuddy.Engine;
 public sealed class AppSettings
 {
     public bool ShowIndicator { get; set; } = true;
-    public bool VoiceEnabled { get; set; } = true;
+    /// <summary>Say the language out loud when the keyboard changes. Off by default (offered in setup).</summary>
+    public bool VoiceEnabled { get; set; }
+
+    /// <summary>Version of the settings file, for one-time changes to existing users' settings.</summary>
+    public int SettingsVersion { get; set; }
+
+    private const int CurrentSettingsVersion = 2;
     public bool AutoCorrectEnabled { get; set; } = true;
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -104,6 +110,8 @@ public sealed class AppSettings
                     s.ExcludedApps ??= [];
                     s.NeverFixUndoCounts ??= new();
                     s.UndosToBlock = Math.Clamp(s.UndosToBlock, 1, 10);
+                    if (s.SettingsVersion < 2) s.VoiceEnabled = false; // voice became opt-in
+                    s.SettingsVersion = CurrentSettingsVersion;
                     return s;
                 }
             }
@@ -117,6 +125,7 @@ public sealed class AppSettings
 
     public void Save(string path)
     {
+        SettingsVersion = CurrentSettingsVersion;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this, Options));
