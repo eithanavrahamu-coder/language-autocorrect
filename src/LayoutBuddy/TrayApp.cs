@@ -1,32 +1,40 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Text;
+using System.Linq;
+using System.Text.Json;
 using System.Windows.Forms;
 using LayoutBuddy.Engine;
 
 namespace LayoutBuddy;
 
-internal sealed class TrayApp : ApplicationContext
+internal sealed class TrayApp : ApplicationContext, IAppController
 {
+    private sealed record RecentFix(DateTime Time, string Typed, string Fixed, string? App);
+
     private readonly string _settingsPath = AppSettings.DefaultPath;
     private readonly AppSettings _settings;
     private readonly NeverFixList _neverFix;
+    private readonly TypingSession _session;
     private readonly KeyboardMonitor _monitor;
     private readonly FocusTracker _focus = new();
     private readonly VoiceAnnouncer _voice = new();
     private readonly IndicatorForm _indicator = new();
     private readonly NotifyIcon _tray;
     private readonly Timer _uiTimer = new() { Interval = 60 };
-    private readonly ToolStripMenuItem _autoItem, _indicatorItem, _voiceItem;
+    private readonly ToolStripMenuItem _autoItem;
+    private readonly List<RecentFix> _recent = new();
+    private readonly System.Threading.EventWaitHandle _exitEvent, _showEvent;
+    private readonly System.Threading.RegisteredWaitHandle _exitWait, _showWait;
     private volatile MonitorContext _context;
     private Lang? _lastLayout;
     private IntPtr _lastWindow;
     private IntPtr _trayIconHandle;
-    private SettingsForm? _settingsForm;
-    private readonly System.Threading.EventWaitHandle _exitEvent;
-    private readonly System.Threading.RegisteredWaitHandle _exitWait;
+    private MainWindow? _main;
 
-    public TrayApp(WrongLayoutDetector detector)
+    public TrayApp(WrongLayoutDetector detector, bool showWindow)
     {
         _settings = AppSettings.Load(_settingsPath);
         _neverFix = new NeverFixList(_settings.NeverFixUndoCounts, _settings.UndosToBlock);
@@ -35,22 +43,28 @@ internal sealed class TrayApp : ApplicationContext
         // Force the indicator's handle so we can marshal calls to the UI thread through it.
         _ = _indicator.Handle;
 
-        _monitor = new KeyboardMonitor(new TypingSession(detector, _neverFix), () => _context);
+        _session = new TypingSession(detector, _neverFix) { LearnFromUndos = _settings.LearnFromUndos };
+        _monitor = new KeyboardMonitor(_session, () => _context);
+        _monitor.Fixed += fix =>
+        {
+            var app = _focus.Snapshot.Process;
+            _indicator.BeginInvoke(() => OnFixed(fix, app));
+        };
         _monitor.Undone += undo => _indicator.BeginInvoke(() => OnUndone(undo));
 
-        _autoItem = new ToolStripMenuItem("Auto-correct", null, (_, _) => Toggle(s => s.AutoCorrectEnabled = !s.AutoCorrectEnabled));
-        _indicatorItem = new ToolStripMenuItem("Show indicator", null, (_, _) => Toggle(s => s.ShowIndicator = !s.ShowIndicator));
-        _voiceItem = new ToolStripMenuItem("Voice", null, (_, _) => Toggle(s => s.VoiceEnabled = !s.VoiceEnabled));
+        _autoItem = new ToolStripMenuItem("Auto-correct", null, (_, _) => Change(() => _settings.AutoCorrectEnabled = !_settings.AutoCorrectEnabled));
+        var open = new ToolStripMenuItem("Open LayoutBuddy", null, (_, _) => ShowMain()) { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
         var menu = new ContextMenuStrip();
         menu.Items.AddRange([
-            _autoItem, _indicatorItem, _voiceItem,
+            open,
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Settings…", null, (_, _) => ShowSettings()),
+            _autoItem,
+            new ToolStripSeparator(),
             new ToolStripMenuItem("Exit", null, (_, _) => ExitThread()),
         ]);
 
         _tray = new NotifyIcon { Text = "LayoutBuddy", ContextMenuStrip = menu, Visible = true };
-        _tray.DoubleClick += (_, _) => ShowSettings();
+        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowMain(); };
         UpdateTrayIcon(LayoutService.Current() ?? Lang.English);
         SyncMenu();
 
@@ -60,20 +74,146 @@ internal sealed class TrayApp : ApplicationContext
         if (!_monitor.IsRunning)
             MessageBox.Show("LayoutBuddy could not install its keyboard hook. Auto-correct will not work.", "LayoutBuddy");
 
-        // The installer/uninstaller signals this to close us.
+        // Other processes (installer, a second launch) signal these.
         _exitEvent = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Installer.ExitEventName);
         _exitWait = System.Threading.ThreadPool.RegisterWaitForSingleObject(_exitEvent,
             (_, _) => _indicator.BeginInvoke(ExitThread), null, -1, executeOnlyOnce: true);
+        _showEvent = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Installer.ShowEventName);
+        _showWait = System.Threading.ThreadPool.RegisterWaitForSingleObject(_showEvent,
+            (_, _) => _indicator.BeginInvoke(ShowMain), null, -1, executeOnlyOnce: false);
 
         _uiTimer.Tick += (_, _) => OnTick();
         _uiTimer.Start();
         StartupRegistration.Apply(_settings.StartWithWindows);
+
+        if (showWindow) _indicator.BeginInvoke(ShowMain);
     }
+
+    // ---------------- main window ----------------
+
+    private void ShowMain()
+    {
+        if (!WebWindow.RuntimeAvailable)
+        {
+            if (MessageBox.Show("LayoutBuddy's window needs the Microsoft Edge WebView2 Runtime, which isn't installed.\n\n" +
+                                "Open the download page?", "LayoutBuddy", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                OpenUrl("https://go.microsoft.com/fwlink/p/?LinkId=2124703");
+            return;
+        }
+        if (_main == null || _main.IsDisposed)
+        {
+            _main = new MainWindow(this);
+            _main.FormClosed += (_, _) => _main = null;
+            _main.Show();
+        }
+        else
+        {
+            if (_main.WindowState == FormWindowState.Minimized) _main.WindowState = FormWindowState.Normal;
+            _main.Show();
+        }
+        _main.Activate();
+    }
+
+    private void PushState() => _main?.PushState();
+
+    public object BuildState()
+    {
+        var now = DateTime.Now;
+        var layout = _focus.Snapshot.Layout ?? _lastLayout;
+        return new
+        {
+            version = Installer.CurrentVersion,
+            autoCorrect = _settings.AutoCorrectEnabled,
+            showIndicator = _settings.ShowIndicator,
+            voice = _settings.VoiceEnabled,
+            sensitivity = _settings.Sensitivity.ToString(),
+            startWithWindows = _settings.StartWithWindows,
+            learnFromUndos = _settings.LearnFromUndos,
+            undosToBlock = _neverFix.UndosToBlock,
+            neverFix = _neverFix.BlockedWords(),
+            excludedApps = _settings.ExcludedApps,
+            layout = layout == Lang.Hebrew ? "he" : layout == Lang.English ? "en" : null,
+            fixesToday = _settings.FixesToday(now),
+            fixesTotal = _settings.TotalFixes,
+            hebrewVoice = VoiceAnnouncer.HebrewVoice != null,
+            recent = _recent.Select(r => new { time = r.Time.ToString("HH:mm"), typed = r.Typed, @fixed = r.Fixed, app = r.App }),
+        };
+    }
+
+    public void HandleAction(string type, JsonElement msg)
+    {
+        switch (type)
+        {
+            case "set":
+                ApplySetting(msg.GetProperty("key").GetString() ?? "", msg.GetProperty("value"));
+                break;
+            case "neverFix.add":
+                var word = msg.GetProperty("word").GetString()?.Trim();
+                if (!string.IsNullOrEmpty(word)) _neverFix.Block(word);
+                break;
+            case "neverFix.remove":
+                _neverFix.Remove(msg.GetProperty("word").GetString() ?? "");
+                break;
+            case "neverFix.clear":
+                _neverFix.Clear();
+                break;
+            case "recent.neverFix":
+                int i = msg.GetProperty("index").GetInt32();
+                if (i >= 0 && i < _recent.Count)
+                    foreach (var w in _recent[i].Typed.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        _neverFix.Block(w);
+                break;
+            case "excluded.add":
+                var app = msg.GetProperty("app").GetString()?.Trim();
+                if (!string.IsNullOrEmpty(app) && !_settings.IsExcluded(app)) _settings.ExcludedApps.Add(app);
+                break;
+            case "excluded.remove":
+                var name = msg.GetProperty("app").GetString();
+                _settings.ExcludedApps.RemoveAll(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
+                break;
+            case "testVoice":
+                _ = _voice.SpeakAsync(_focus.Snapshot.Layout ?? _lastLayout ?? Lang.English);
+                return;
+            case "openAppsSettings":
+                OpenUrl("ms-settings:appsfeatures");
+                return;
+        }
+        SyncMenu();
+        Save();
+    }
+
+    private void ApplySetting(string key, JsonElement value)
+    {
+        switch (key)
+        {
+            case "autoCorrect": _settings.AutoCorrectEnabled = value.GetBoolean(); break;
+            case "showIndicator": _settings.ShowIndicator = value.GetBoolean(); break;
+            case "voice": _settings.VoiceEnabled = value.GetBoolean(); break;
+            case "learnFromUndos":
+                _settings.LearnFromUndos = value.GetBoolean();
+                _session.LearnFromUndos = _settings.LearnFromUndos;
+                break;
+            case "undosToBlock":
+                _settings.UndosToBlock = Math.Clamp(value.GetInt32(), 1, 10);
+                _neverFix.UndosToBlock = _settings.UndosToBlock;
+                break;
+            case "sensitivity":
+                if (Enum.TryParse<Sensitivity>(value.GetString(), out var s)) _settings.Sensitivity = s;
+                break;
+            case "startWithWindows":
+                _settings.StartWithWindows = value.GetBoolean();
+                StartupRegistration.Apply(_settings.StartWithWindows);
+                break;
+        }
+    }
+
+    // ---------------- events ----------------
 
     private void OnTick()
     {
         var snap = _focus.Snapshot;
-        bool blocked = snap.IsPassword || _settings.IsExcluded(snap.Process);
+        bool ownApp = string.Equals(snap.Process, "LayoutBuddy", StringComparison.OrdinalIgnoreCase);
+        bool blocked = ownApp || snap.IsPassword || _settings.IsExcluded(snap.Process);
         var ctx = new MonitorContext(_settings.AutoCorrectEnabled, _settings.Sensitivity, blocked);
         if (ctx != _context) _context = ctx;
 
@@ -81,77 +221,76 @@ internal sealed class TrayApp : ApplicationContext
         if (layout != null && layout != _lastLayout)
         {
             // Speak only when the layout changes inside the same window (not when switching apps).
-            if (_lastLayout != null && snap.Window == _lastWindow && _settings.VoiceEnabled)
+            if (_lastLayout != null && snap.Window == _lastWindow && _settings.VoiceEnabled && !ownApp)
                 _voice.Announce(layout.Value);
             _lastLayout = layout;
             UpdateTrayIcon(layout.Value);
+            PushState();
         }
         _lastWindow = snap.Window;
 
-        bool ownWindow = _settingsForm != null && snap.Window == _settingsForm.Handle;
-        if (_settings.ShowIndicator && layout != null && snap.Caret is { } caret && !ownWindow)
+        if (_settings.ShowIndicator && layout != null && snap.Caret is { } caret && !ownApp)
             _indicator.ShowAt(caret, layout.Value);
         else if (_indicator.Visible)
             _indicator.Hide();
     }
 
+    private void OnFixed(FixWord fix, string? app)
+    {
+        _settings.CountFix(DateTime.Now, fix.Correction.WordCount);
+        _recent.Insert(0, new RecentFix(DateTime.Now, fix.Correction.Typed, fix.Correction.Replacement, FriendlyAppName(app)));
+        if (_recent.Count > 12) _recent.RemoveAt(_recent.Count - 1);
+        Save();
+        PushState();
+    }
+
     private void OnUndone(UndoFix undo)
     {
-        _settings.NeverFixUndoCounts = _neverFix.Snapshot();
+        // An undone fix doesn't count and leaves the recent list.
+        _settings.TotalFixes = Math.Max(0, _settings.TotalFixes - undo.Correction.WordCount);
+        _settings.TodayFixes = Math.Max(0, _settings.TodayFixes - undo.Correction.WordCount);
+        if (_recent.Count > 0 && _recent[0].Fixed == undo.Correction.Replacement) _recent.RemoveAt(0);
         Save();
+        PushState();
         if (undo.NowBlocked)
         {
             _tray.ShowBalloonTip(4000, "LayoutBuddy",
-                $"\"{undo.Correction.Typed}\" won't be auto-corrected anymore (you undid it {_neverFix.UndosToBlock} times). " +
-                "You can change this in Settings.", ToolTipIcon.Info);
+                $"\"{undo.Correction.TriggerTyped}\" won't be auto-corrected anymore. You can change this in the Never fix list.",
+                ToolTipIcon.Info);
         }
     }
 
-    private void Toggle(Action<AppSettings> change)
+    private static string? FriendlyAppName(string? process)
     {
-        change(_settings);
+        if (string.IsNullOrEmpty(process)) return null;
+        return process.ToLowerInvariant() switch
+        {
+            "chrome" => "Chrome",
+            "msedge" => "Edge",
+            "firefox" => "Firefox",
+            "winword" => "Word",
+            "excel" => "Excel",
+            "powerpnt" => "PowerPoint",
+            "outlook" or "olk" => "Outlook",
+            "ms-teams" or "teams" => "Teams",
+            "notepad" => "Notepad",
+            "whatsapp" or "whatsapp.root" => "WhatsApp",
+            "code" => "VS Code",
+            _ => char.ToUpperInvariant(process[0]) + process[1..],
+        };
+    }
+
+    // ---------------- helpers ----------------
+
+    private void Change(Action change)
+    {
+        change();
         SyncMenu();
         Save();
+        PushState();
     }
 
-    private void SyncMenu()
-    {
-        _autoItem.Checked = _settings.AutoCorrectEnabled;
-        _indicatorItem.Checked = _settings.ShowIndicator;
-        _voiceItem.Checked = _settings.VoiceEnabled;
-    }
-
-    private void ShowSettings()
-    {
-        if (_settingsForm != null)
-        {
-            _settingsForm.Activate();
-            return;
-        }
-        var backup = _neverFix.Snapshot();
-        int backupUndos = _neverFix.UndosToBlock;
-        using var form = new SettingsForm(_settings, _neverFix);
-        _settingsForm = form;
-        try
-        {
-            if (form.ShowDialog() == DialogResult.OK)
-            {
-                form.ApplyTo(_settings);
-                _neverFix.UndosToBlock = _settings.UndosToBlock;
-                StartupRegistration.Apply(_settings.StartWithWindows);
-                SyncMenu();
-                Save();
-            }
-            else
-            {
-                _neverFix.Restore(backup, backupUndos);
-            }
-        }
-        finally
-        {
-            _settingsForm = null;
-        }
-    }
+    private void SyncMenu() => _autoItem.Checked = _settings.AutoCorrectEnabled;
 
     private void Save()
     {
@@ -166,6 +305,12 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
+    private static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Write("Open failed: " + ex.Message); }
+    }
+
     private void UpdateTrayIcon(Lang lang)
     {
         using var bmp = new Bitmap(32, 32);
@@ -174,7 +319,14 @@ internal sealed class TrayApp : ApplicationContext
             g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
             g.Clear(Color.Transparent);
             using var bg = new SolidBrush(lang == Lang.Hebrew ? IndicatorForm.HebrewColor : IndicatorForm.EnglishColor);
-            g.FillRectangle(bg, 0, 2, 32, 28);
+            using var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(0, 1, 10, 10, 180, 90);
+            path.AddArc(22, 1, 10, 10, 270, 90);
+            path.AddArc(22, 21, 10, 10, 0, 90);
+            path.AddArc(0, 21, 10, 10, 90, 90);
+            path.CloseFigure();
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.FillPath(bg, path);
             using var font = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
             var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
             g.DrawString(lang == Lang.Hebrew ? "עב" : "EN", font, Brushes.White, new RectangleF(0, 0, 32, 32), fmt);
@@ -191,7 +343,10 @@ internal sealed class TrayApp : ApplicationContext
     {
         _uiTimer.Stop();
         _exitWait.Unregister(null);
+        _showWait.Unregister(null);
         _exitEvent.Dispose();
+        _showEvent.Dispose();
+        _main?.Close();
         _monitor.Dispose();
         _focus.Dispose();
         _voice.Dispose();

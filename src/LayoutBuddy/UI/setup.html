@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LayoutBuddy Setup</title>
+<style>
+  :root {
+    --bg: #FBFAF8; --card: #FFFFFF; --text: #1B1A18; --muted: #75706A; --faint: #A7A29B;
+    --line: #E9E5DF; --hover: #EDEAE5; --accent: #5847E0; --en: #2563EB; --he: #16A34A; --danger: #D64545;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --card: #222220; --text: #F2F0EC; --muted: #A29E97; --faint: #6E6A64;
+      --line: #2F2E2B; --hover: #2A2927; --accent: #8B7CFF; --en: #5B8DEF; --he: #34C06A;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-size: 14px;
+    color: var(--text); background: var(--bg); overflow: hidden; user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .glow {
+    position: fixed; inset: -40% -20% auto; height: 70%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 18%, transparent), transparent),
+                radial-gradient(closest-side at 20% 60%, color-mix(in srgb, var(--en) 12%, transparent), transparent),
+                radial-gradient(closest-side at 80% 60%, color-mix(in srgb, var(--he) 12%, transparent), transparent);
+    pointer-events: none; filter: blur(10px);
+  }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; padding: 44px 44px 32px; animation: fade .25s ease; }
+  .screen.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .logo {
+    width: 76px; height: 76px; border-radius: 22px;
+    background: linear-gradient(135deg, var(--en), var(--accent) 55%, var(--he));
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 28px; letter-spacing: -.02em;
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  h1 {
+    font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+    font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin: 20px 0 6px; text-align: center;
+  }
+  .sub { color: var(--muted); text-align: center; line-height: 1.5; margin: 0; max-width: 360px; }
+  .version { color: var(--faint); font-size: 12.5px; margin-top: 6px; }
+
+  .features { width: 100%; margin: 26px 0 0; display: flex; flex-direction: column; gap: 14px; }
+  .feature { display: flex; gap: 14px; align-items: flex-start; }
+  .f-icon { width: 34px; height: 34px; border-radius: 10px; background: var(--hover); display: grid; place-items: center; flex-shrink: 0; font-weight: 700; font-size: 13px; }
+  .f-icon svg { width: 18px; height: 18px; }
+  .f-title { font-weight: 600; margin-bottom: 1px; }
+  .f-desc { color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+  .options { width: 100%; margin-top: auto; border: 1px solid var(--line); background: var(--card); border-radius: 14px; }
+  .option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+  .option:first-child { border-top: 0; }
+  .option > span:first-child { flex: 1; }
+
+  .toggle { position: relative; width: 40px; height: 24px; flex-shrink: 0; }
+  .toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .toggle i { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .18s; pointer-events: none; }
+  .toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s; }
+  .toggle input:checked + i { background: var(--accent); }
+  .toggle input:checked + i::after { transform: translateX(16px); }
+
+  .actions { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 18px; }
+  .btn {
+    width: 100%; border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 12px 18px; border-radius: 12px; font: inherit; font-weight: 600; font-size: 14.5px; cursor: pointer;
+    transition: opacity .12s, background .12s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn.primary:hover { opacity: .88; }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.danger:hover { opacity: .9; }
+  .link { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .link:hover { color: var(--text); background: var(--hover); }
+
+  /* progress */
+  .center { margin: auto 0; display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .bar { width: 100%; max-width: 320px; height: 6px; border-radius: 99px; background: var(--hover); overflow: hidden; margin-top: 26px; }
+  .bar div { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--en), var(--accent), var(--he)); transition: width .35s ease; }
+  .step { color: var(--muted); margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .check {
+    width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--he) 14%, transparent); color: var(--he);
+    animation: pop .35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .check svg { width: 36px; height: 36px; }
+  .check.bad { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  .error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 10px; max-width: 380px; line-height: 1.45; user-select: text; }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<!-- Install / update -->
+<section class="screen" id="s-welcome">
+  <div class="logo">אA</div>
+  <h1 id="welcomeTitle">Install LayoutBuddy</h1>
+  <p class="sub" id="welcomeSub">Type Hebrew and English without watching the keyboard.</p>
+  <div class="version" id="welcomeVersion"></div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h7M4 17h9"/><path d="m15 15 2 2 4-4"/></svg></div>
+      <div><div class="f-title">Fixes wrong-layout typing</div><div class="f-desc">akuo becomes שלום the moment you press Space.</div></div>
+    </div>
+    <div class="feature">
+      <div class="f-icon" style="color:var(--en)">EN</div>
+      <div><div class="f-title">Shows your language at the cursor</div><div class="f-desc">A small badge follows your text cursor.</div></div>
+    </div>
+    <div class="feature">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
+      <div><div class="f-title">Says the language out loud</div><div class="f-desc">Hear when the keyboard switches.</div></div>
+    </div>
+  </div>
+
+  <div class="options" id="options">
+    <label class="option"><span>Start with Windows</span><span class="toggle"><input type="checkbox" id="optStartup" checked><i></i></span></label>
+    <label class="option"><span>Desktop shortcut</span><span class="toggle"><input type="checkbox" id="optDesktop" checked><i></i></span></label>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="installBtn">Install</button>
+    <button class="link" id="portableBtn">Run without installing</button>
+  </div>
+</section>
+
+<!-- Uninstall -->
+<section class="screen" id="s-uninstall">
+  <div class="center">
+    <div class="logo">אA</div>
+    <h1>Uninstall LayoutBuddy?</h1>
+    <p class="sub">LayoutBuddy will be closed and removed from this computer.</p>
+  </div>
+  <div class="options">
+    <label class="option"><span>Keep my settings and word list</span><span class="toggle"><input type="checkbox" id="optKeep"><i></i></span></label>
+  </div>
+  <div class="actions">
+    <button class="btn danger" id="uninstallBtn">Uninstall</button>
+    <button class="link" id="cancelBtn">Cancel</button>
+  </div>
+</section>
+
+<!-- Working -->
+<section class="screen" id="s-working">
+  <div class="center">
+    <div class="logo">אA</div>
+    <h1 id="workingTitle">Installing…</h1>
+    <div class="bar"><div id="bar"></div></div>
+    <div class="step" id="step"></div>
+  </div>
+</section>
+
+<!-- Done -->
+<section class="screen" id="s-done">
+  <div class="center">
+    <div class="check" id="doneIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+    <h1 id="doneTitle">You're all set</h1>
+    <p class="sub" id="doneSub">LayoutBuddy is running. Find it in the Start menu or near the clock.</p>
+    <div class="error" id="doneError"></div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="doneBtn">Open LayoutBuddy</button>
+    <button class="link" id="closeBtn">Close</button>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const host = window.chrome && window.chrome.webview;
+  const send = m => host ? host.postMessage(m) : console.log('send', m);
+  let mode = 'install';
+
+  function screen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + id));
+  }
+
+  function init(m) {
+    mode = m.mode;
+    if (mode === 'uninstall') { screen('uninstall'); return; }
+    if (mode === 'update') {
+      $('#welcomeTitle').textContent = 'Update LayoutBuddy';
+      $('#welcomeSub').textContent = 'Your settings and word list are kept.';
+      $('#welcomeVersion').textContent = (m.installedVersion ? 'Version ' + m.installedVersion + ' → ' : 'Version ') + m.version;
+      $('#installBtn').textContent = 'Update';
+      $('#options').style.display = 'none';
+    } else {
+      $('#welcomeVersion').textContent = 'Version ' + m.version;
+    }
+    screen('welcome');
+  }
+
+  $('#installBtn').addEventListener('click', () => {
+    $('#workingTitle').textContent = mode === 'update' ? 'Updating…' : 'Installing…';
+    screen('working');
+    send({ type: 'install', startWithWindows: $('#optStartup').checked, desktopShortcut: $('#optDesktop').checked });
+  });
+  $('#portableBtn').addEventListener('click', () => send({ type: 'runPortable' }));
+  $('#uninstallBtn').addEventListener('click', () => {
+    $('#workingTitle').textContent = 'Uninstalling…';
+    screen('working');
+    send({ type: 'uninstall', keepSettings: $('#optKeep').checked });
+  });
+  $('#cancelBtn').addEventListener('click', () => send({ type: 'close' }));
+  $('#closeBtn').addEventListener('click', () => send({ type: 'close' }));
+  $('#doneBtn').addEventListener('click', () => send({ type: mode === 'uninstall' ? 'close' : 'open' }));
+
+  function progress(m) {
+    $('#bar').style.width = Math.round(m.value * 100) + '%';
+    $('#step').textContent = m.step || '';
+  }
+
+  function done(m) {
+    const ok = !m.error;
+    $('#doneIcon').classList.toggle('bad', !ok);
+    $('#doneIcon').innerHTML = ok
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 7v6M12 17h0"/></svg>';
+    $('#doneError').textContent = m.error || '';
+    if (mode === 'uninstall') {
+      $('#doneTitle').textContent = ok ? 'LayoutBuddy was removed' : 'Something went wrong';
+      $('#doneSub').textContent = ok ? 'Thanks for trying it.' : '';
+      $('#doneBtn').textContent = 'Close';
+      $('#closeBtn').style.display = 'none';
+    } else {
+      $('#doneTitle').textContent = ok ? (mode === 'update' ? 'Updated' : "You're all set") : 'Something went wrong';
+      $('#doneSub').textContent = ok ? 'Try it: type akuo and press Space.' : 'If LayoutBuddy is running, exit it from the tray icon and try again.';
+      $('#doneBtn').textContent = ok ? 'Open LayoutBuddy' : 'Close';
+      if (!ok) $('#doneBtn').onclick = () => send({ type: 'close' });
+    }
+    screen('done');
+  }
+
+  if (host) {
+    host.addEventListener('message', e => {
+      const m = e.data;
+      if (m.type === 'init') init(m);
+      else if (m.type === 'progress') progress(m);
+      else if (m.type === 'done') done(m);
+    });
+    send({ type: 'ready' });
+  } else {
+    const q = new URLSearchParams(location.search);
+    init({ mode: q.get('mode') || 'install', version: '2.2.0', installedVersion: '2.1.0' });
+    if (q.get('screen') === 'working') { screen('working'); progress({ value: .6, step: 'Adding to Settings → Apps' }); }
+    if (q.get('screen') === 'done') done({});
+  }
+})();
+</script>
+</body>
+</html>

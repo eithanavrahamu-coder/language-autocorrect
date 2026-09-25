@@ -25,6 +25,16 @@ internal sealed class InputSender
         return this;
     }
 
+    /// <summary>Presses <paramref name="modifier"/>, taps <paramref name="key"/>, releases both.</summary>
+    public InputSender Chord(int modifier, int key)
+    {
+        Vk(modifier, up: false);
+        Vk(key, up: false);
+        Vk(key, up: true);
+        Vk(modifier, up: true);
+        return this;
+    }
+
     public InputSender Text(string text)
     {
         foreach (char c in text)

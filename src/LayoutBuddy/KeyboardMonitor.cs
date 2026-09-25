@@ -139,24 +139,28 @@ internal sealed class KeyboardMonitor : IDisposable
         switch (action)
         {
             case FixWord fix:
-                LayoutService.Switch(fix.Layout);
-                new InputSender()
+            {
+                var send = new InputSender()
                     .Tap(Native.VK_BACK, fix.Backspaces)
                     .Text(fix.Text)
-                    .Tap(fix.Boundary == KeyKind.Enter ? Native.VK_RETURN : Native.VK_SPACE)
-                    .Send();
+                    .Tap(fix.Boundary == KeyKind.Enter ? Native.VK_RETURN : Native.VK_SPACE);
+                LayoutService.AppendSwitch(send, fix.Layout);
+                send.Send();
                 Fixed?.Invoke(fix);
                 return true;
+            }
 
             case UndoFix undo:
-                LayoutService.Switch(undo.Layout);
-                new InputSender()
+            {
+                var send = new InputSender()
                     .ReleaseModifiers()
                     .Tap(Native.VK_BACK, undo.Backspaces)
-                    .Text(undo.Text)
-                    .Send();
+                    .Text(undo.Text);
+                LayoutService.AppendSwitch(send, undo.Layout);
+                send.Send();
                 Undone?.Invoke(undo);
                 return true;
+            }
 
             default:
                 return false;

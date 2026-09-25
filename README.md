@@ -1,35 +1,43 @@
 # LayoutBuddy
 
-A small Windows tray app for people who type in Hebrew and English:
+A Windows app for people who type in Hebrew and English:
 
+- **Auto-correct** – notices words typed in the wrong layout (e.g. `akuo` → `שלום`, `יקךךם` → `hello`) and fixes them when you
+  press Space or Enter, then switches the keyboard for you. Words just before it that were typed in the same wrong layout
+  are fixed too (`ha jh akuo` → `יש חי שלום`). When both readings are real words, the much more common one wins.
 - **Language indicator** – a small `EN` / `עב` badge next to the text cursor.
-- **Voice** – says "English" / "עברית" when the layout changes.
-- **Auto-correct** – notices a word typed in the wrong layout (e.g. `akuo` → `שלום`, `יקךךם` → `hello`) and fixes it when you press Space or Enter, switching the layout for you.
+- **Voice** – says "English" / "עברית" when the keyboard changes.
 
-## Undo and "words never to fix"
+Click the tray icon (or open LayoutBuddy from the Start menu) for the app window: Home (recent fixes and stats),
+Never fix (your word list), and Settings.
 
-- To undo a correction, press **Backspace right after it** (within about 1.5 seconds, before typing anything else), or **Ctrl+Z** within 5 seconds.
-- Backspace pressed later, or after typing something else, is treated as normal editing and is **not** an undo.
-- A word goes on the "never fix" list only after you undo it **3 times** (changeable in Settings, 1–10). A notification tells you when that happens.
-- Settings → "Words never to fix" shows the list; you can remove words, clear it, or add words by hand.
+LayoutBuddy switches the keyboard by pressing your own language shortcut (Alt+Shift, Ctrl+Shift or Win+Space), so
+Windows stays in sync and your shortcut keeps working normally.
 
-Auto-correct is always off in password boxes and in the apps listed in Settings.
+## Undo and "Never fix"
+
+- To undo a correction, press **Backspace right after it** (within about 1.5 seconds, before typing anything else), or
+  **Ctrl+Z** within 5 seconds. Backspace later, or after typing something else, is normal editing.
+- **Never fix** is a list of words that are never auto-corrected. Add words in the app window, or hover a recent fix
+  and choose *Never fix*.
+- **Learn from undos** (off by default): when on, a word you undo several times (1–10, default 3) is added to the list.
+
+Auto-correct is always off in password boxes, in LayoutBuddy's own window, and in the apps listed in Settings.
 
 ## Installing and uninstalling
 
 Download `LayoutBuddy.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
-It asks whether to install:
+The setup window offers:
 
-- **Yes** – copies itself to `%LocalAppData%\Programs\LayoutBuddy`, adds a Start menu shortcut, and appears in
-  **Settings → Apps → Installed apps**, where you can uninstall it. No administrator rights needed.
-  Running a newer downloaded version later replaces the installed one and keeps your settings.
-- **No** – just runs it from where it is (portable). `LayoutBuddy.exe --portable` skips the question.
+- **Install** – copies LayoutBuddy to `%LocalAppData%\Programs\LayoutBuddy`, adds Start menu (and optionally desktop)
+  shortcuts, and registers it in **Settings → Apps → Installed apps**. No administrator rights needed.
+  Running a newer version later offers **Update** and keeps your settings.
+- **Run without installing** – runs it from where it is. `LayoutBuddy.exe --portable` skips the setup window.
 
-Uninstalling removes the program, its shortcut, the "start with Windows" entry and its settings.
+Uninstall from **Settings → Apps → Installed apps → LayoutBuddy → Uninstall** (you can choose to keep your settings).
 
-It lives in the tray near the clock; right-click for options, double-click for Settings.
+The app window and setup use the Microsoft Edge WebView2 Runtime, which comes with Windows 11 and current Windows 10.
 Run `LayoutBuddy.exe --selfcheck` to check keyboard layouts, voices and detection.
-
 Settings and log: `%AppData%\LayoutBuddy\`.
 
 ## Building
@@ -42,7 +50,9 @@ dotnet publish src/LayoutBuddy -c Release -p:PublishSingleFile=true -o publish
 ```
 
 - `src/LayoutBuddy.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
-- `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, settings).
+- `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
+- `src/LayoutBuddy/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
+  browser to preview with sample data (`app.html?page=words`, `setup.html?mode=uninstall`).
 
 ## Credits
 

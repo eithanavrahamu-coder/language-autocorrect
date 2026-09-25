@@ -169,6 +169,10 @@ internal static class Native
     [DllImport("user32.dll")]
     public static extern bool DestroyIcon(IntPtr hIcon);
 
+    /// <summary>Lets another process (the running app) bring its window to the front.</summary>
+    [DllImport("user32.dll")]
+    public static extern bool AllowSetForegroundWindow(int dwProcessId);
+
     [DllImport("oleacc.dll")]
     public static extern int AccessibleObjectFromWindow(IntPtr hwnd, uint dwObjectId, ref Guid riid,
         [MarshalAs(UnmanagedType.IUnknown)] out object? ppvObject);

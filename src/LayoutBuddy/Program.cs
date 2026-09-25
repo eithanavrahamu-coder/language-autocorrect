@@ -15,26 +15,30 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        Application.ThreadException += (_, e) => Log.Write("UI error: " + e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("Fatal: " + e.ExceptionObject);
 
         if (args.Contains("--uninstall"))
         {
-            Installer.Uninstall(quiet: args.Contains("--quiet"));
+            RunUninstall(quiet: args.Contains("--quiet"));
             return;
         }
 
         bool selfCheck = args.Contains("--selfcheck");
-        if (!selfCheck && !args.Contains("--portable") && !Installer.IsRunningInstalledCopy && Installer.OfferInstall())
-            return;
+        if (!selfCheck && !args.Contains("--portable") && !Installer.IsRunningInstalledCopy)
+        {
+            var result = RunSetup(Installer.IsInstalled ? "update" : "install");
+            if (result != SetupResult.Portable) return;
+        }
 
         using var mutex = new Mutex(true, @"Local\LayoutBuddy.SingleInstance", out bool isFirst);
         if (!isFirst && !selfCheck)
         {
-            MessageBox.Show("LayoutBuddy is already running (look for its icon near the clock).", "LayoutBuddy");
+            // Already running (e.g. opened again from the Start menu): bring its window up.
+            if (!Installer.SignalShow())
+                MessageBox.Show("LayoutBuddy is already running (look for its icon near the clock).", "LayoutBuddy");
             return;
         }
-
-        Application.ThreadException += (_, e) => Log.Write("UI error: " + e.Exception);
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("Fatal: " + e.ExceptionObject);
 
         WrongLayoutDetector detector;
         try
@@ -54,8 +58,34 @@ internal static class Program
             return;
         }
 
-        Log.Write("Started v" + Application.ProductVersion);
-        Application.Run(new TrayApp(detector));
+        Log.Write("Started v" + Installer.CurrentVersion);
+        // Open the window on a manual launch; stay in the tray when started with Windows.
+        bool showWindow = !args.Contains("--background");
+        Application.Run(new TrayApp(detector, showWindow));
+    }
+
+    private static SetupResult RunSetup(string mode)
+    {
+        if (!WebWindow.RuntimeAvailable) return Installer.InstallWithMessageBoxes();
+        using var window = new SetupWindow(mode);
+        Application.Run(window);
+        return window.Result;
+    }
+
+    private static void RunUninstall(bool quiet)
+    {
+        SetupResult result;
+        if (quiet || !WebWindow.RuntimeAvailable)
+        {
+            result = Installer.UninstallWithMessageBoxes(quiet);
+        }
+        else
+        {
+            using var window = new SetupWindow("uninstall");
+            Application.Run(window);
+            result = window.Result;
+        }
+        if (result == SetupResult.Uninstalled) Installer.ScheduleSelfDelete();
     }
 
     private static string SelfCheck(WrongLayoutDetector detector)
@@ -65,14 +95,15 @@ internal static class Program
 
         Line(LayoutService.FindInstalled(Lang.English) != null, "English keyboard layout installed");
         Line(LayoutService.FindInstalled(Lang.Hebrew) != null, "Hebrew keyboard layout installed");
+        sb.AppendLine("   Switch shortcut: " + LayoutService.DescribeSwitchMethod());
         var d = detector.Evaluate("akuo", Lang.English, Sensitivity.Medium);
         Line(d.ShouldFix && d.Replacement == "שלום", $"Detection: akuo → {d.Replacement}");
         Line(VoiceAnnouncer.EnglishVoice != null, "English voice available");
         Line(VoiceAnnouncer.HebrewVoice != null, "Hebrew voice available (optional – otherwise says \"Hebrew\" in English)");
-        var s = AppSettings.Load(AppSettings.DefaultPath);
+        Line(WebWindow.RuntimeAvailable, "WebView2 runtime (for the app window)");
+        Line(Installer.IsInstalled, "Installed in " + Installer.InstallDir);
         sb.AppendLine();
         sb.AppendLine($"Settings: {AppSettings.DefaultPath}");
-        sb.AppendLine($"Words never fixed: {new NeverFixList(s.NeverFixUndoCounts, s.UndosToBlock).BlockedWords().Count}");
         return sb.ToString();
     }
 }

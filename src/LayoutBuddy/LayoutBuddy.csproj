@@ -13,7 +13,8 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>LayoutBuddy</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
+    <ApplicationIcon>Assets\LayoutBuddy.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -24,6 +25,15 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="UI\app.html" LogicalName="LayoutBuddy.UI.app.html" />
+    <EmbeddedResource Include="UI\setup.html" LogicalName="LayoutBuddy.UI.setup.html" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LayoutBuddy.Engine\LayoutBuddy.Engine.csproj" />

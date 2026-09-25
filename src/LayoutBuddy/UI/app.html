@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LayoutBuddy</title>
+<style>
+  :root {
+    --bg: #FBFAF8;
+    --side: #F4F2EE;
+    --card: #FFFFFF;
+    --text: #1B1A18;
+    --muted: #75706A;
+    --faint: #A7A29B;
+    --line: #E9E5DF;
+    --hover: #EDEAE5;
+    --accent: #5847E0;
+    --accent-soft: #EEEBFF;
+    --en: #2563EB;
+    --he: #16A34A;
+    --danger: #D64545;
+    --shadow: 0 1px 2px rgba(20, 18, 15, .04), 0 4px 16px rgba(20, 18, 15, .04);
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615;
+      --side: #1D1D1B;
+      --card: #222220;
+      --text: #F2F0EC;
+      --muted: #A29E97;
+      --faint: #6E6A64;
+      --line: #2F2E2B;
+      --hover: #2A2927;
+      --accent: #8B7CFF;
+      --accent-soft: #2B2746;
+      --en: #5B8DEF;
+      --he: #34C06A;
+      --shadow: none;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    display: flex;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  button, input { font: inherit; color: inherit; }
+
+  /* ---------- Sidebar ---------- */
+  aside {
+    width: 224px;
+    flex-shrink: 0;
+    background: var(--side);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
+  .logo {
+    width: 32px; height: 32px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--en), var(--accent) 55%, var(--he));
+    display: grid; place-items: center; color: #fff;
+    font-weight: 700; font-size: 13px; letter-spacing: -.02em;
+  }
+  .brand-name { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-weight: 650; font-size: 16px; letter-spacing: -.01em; }
+  nav { display: flex; flex-direction: column; gap: 2px; }
+  nav button {
+    display: flex; align-items: center; gap: 11px;
+    border: 0; background: transparent; cursor: pointer;
+    padding: 9px 10px; border-radius: 9px; text-align: left;
+    color: var(--muted); font-weight: 500;
+  }
+  nav button:hover { background: var(--hover); color: var(--text); }
+  nav button.active { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  nav svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-count { margin-left: auto; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .side-foot { margin-top: auto; padding: 0 8px; display: flex; flex-direction: column; gap: 10px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--he); box-shadow: 0 0 0 3px color-mix(in srgb, var(--he) 20%, transparent); }
+  .dot.off { background: var(--faint); box-shadow: none; }
+  .version { font-size: 12px; color: var(--faint); }
+
+  /* ---------- Main ---------- */
+  main { flex: 1; overflow-y: auto; padding: 36px 44px 48px; }
+  .page { display: none; max-width: 720px; animation: fade .18s ease; }
+  .page.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  h1 {
+    font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+    font-size: 28px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 6px;
+  }
+  .lede { color: var(--muted); margin: 0 0 28px; font-size: 14.5px; line-height: 1.5; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 32px 0 10px; letter-spacing: .01em; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+  /* Hero */
+  .hero { display: flex; align-items: center; gap: 20px; padding: 22px 24px; }
+  .layout-badge {
+    width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0;
+    display: grid; place-items: center; color: #fff;
+    font-weight: 700; font-size: 22px; background: var(--en);
+    transition: background .25s;
+  }
+  .layout-badge.he { background: var(--he); }
+  .layout-badge.none { background: var(--faint); font-size: 16px; }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero-title { font-size: 17px; font-weight: 600; margin-bottom: 3px; }
+  .hero-sub { color: var(--muted); font-size: 13.5px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+  .stat { padding: 16px 18px; }
+  .stat-num { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-size: 28px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat-label { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+  /* Recent */
+  .list { overflow: hidden; }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 18px; border-top: 1px solid var(--line);
+  }
+  .row:first-child { border-top: 0; }
+  .row .time { color: var(--faint); font-size: 12.5px; width: 44px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .fix { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+  .fix .from { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fix .arrow { color: var(--faint); flex-shrink: 0; }
+  .fix .to { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; unicode-bidi: plaintext; }
+  .app-tag { font-size: 12px; color: var(--muted); background: var(--hover); padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
+  .row-action { opacity: 0; transition: opacity .12s; }
+  .row:hover .row-action { opacity: 1; }
+  .empty { padding: 36px 20px; text-align: center; color: var(--muted); line-height: 1.6; }
+  .empty kbd { font-family: inherit; background: var(--hover); border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+
+  /* Buttons */
+  .btn {
+    border: 1px solid var(--line); background: var(--card); cursor: pointer;
+    padding: 7px 14px; border-radius: 9px; font-weight: 500; font-size: 13.5px;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn.primary:hover { opacity: .88; }
+  .btn.small { padding: 4px 10px; font-size: 12.5px; border-radius: 7px; }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: var(--hover); color: var(--text); }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .45; cursor: default; }
+
+  /* Toggle */
+  .toggle { position: relative; width: 40px; height: 24px; flex-shrink: 0; cursor: pointer; }
+  .toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .toggle span {
+    position: absolute; inset: 0; border-radius: 999px; background: var(--line);
+    transition: background .18s; pointer-events: none;
+  }
+  .toggle span::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s;
+  }
+  .toggle input:checked + span { background: var(--accent); }
+  .toggle input:checked + span::after { transform: translateX(16px); }
+  .toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Settings rows */
+  .setting { display: flex; align-items: center; gap: 18px; padding: 16px 20px; border-top: 1px solid var(--line); }
+  .setting:first-child { border-top: 0; }
+  .setting-text { flex: 1; min-width: 0; }
+  .setting-title { font-weight: 600; margin-bottom: 2px; }
+  .setting-desc { color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .setting.disabled .setting-title, .setting.disabled .setting-desc { opacity: .5; }
+
+  /* Segmented */
+  .seg { display: inline-flex; background: var(--hover); border-radius: 10px; padding: 3px; gap: 2px; flex-shrink: 0; }
+  .seg button {
+    border: 0; background: transparent; padding: 6px 13px; border-radius: 8px; cursor: pointer;
+    color: var(--muted); font-weight: 500; font-size: 13px;
+  }
+  .seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+
+  /* Stepper */
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; flex-shrink: 0; }
+  .stepper button { border: 0; background: transparent; width: 30px; height: 30px; cursor: pointer; font-size: 16px; color: var(--muted); }
+  .stepper button:hover { background: var(--hover); color: var(--text); }
+  .stepper output { width: 28px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Word list */
+  .add-row { display: flex; gap: 10px; padding: 14px; border-bottom: 1px solid var(--line); }
+  .input {
+    flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg);
+    border-radius: 10px; padding: 9px 13px; outline: none; transition: border-color .12s, box-shadow .12s;
+    user-select: text;
+  }
+  .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .input::placeholder { color: var(--faint); }
+  .words { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; min-height: 64px; align-content: flex-start; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--hover); border-radius: 8px; padding: 5px 6px 5px 11px;
+    font-weight: 500; unicode-bidi: plaintext;
+  }
+  .chip button {
+    border: 0; background: transparent; cursor: pointer; color: var(--faint);
+    width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; padding: 0;
+  }
+  .chip button:hover { background: var(--line); color: var(--text); }
+  .chip button svg { width: 12px; height: 12px; }
+  .words-empty { color: var(--faint); padding: 6px 2px; }
+  .list-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 12px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+
+  .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+  .note b { color: var(--text); font-weight: 600; }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 20px);
+    background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; border: 3px solid var(--bg); }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="logo">אA</div>
+    <div class="brand-name">LayoutBuddy</div>
+  </div>
+  <nav>
+    <button data-page="home" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+      Home
+    </button>
+    <button data-page="words">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H19"/><path d="m9 8 6 6M15 8l-6 6"/></svg>
+      Never fix
+      <span class="nav-count" id="navCount"></span>
+    </button>
+    <button data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      Settings
+    </button>
+  </nav>
+  <div class="side-foot">
+    <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">Running</span></div>
+    <div class="version" id="version"></div>
+  </div>
+</aside>
+
+<main>
+  <!-- ================= HOME ================= -->
+  <section class="page active" id="page-home">
+    <h1 id="greeting">Welcome back</h1>
+    <p class="lede">Type in either language. LayoutBuddy fixes words typed in the wrong layout the moment you press Space.</p>
+
+    <div class="card hero">
+      <div class="layout-badge" id="layoutBadge">EN</div>
+      <div class="hero-text">
+        <div class="hero-title" id="heroTitle">Auto-correct is on</div>
+        <div class="hero-sub" id="heroSub">Current keyboard: English</div>
+      </div>
+      <label class="toggle" title="Auto-correct"><input type="checkbox" data-set="autoCorrect"><span></span></label>
+    </div>
+
+    <div class="stats">
+      <div class="card stat"><div class="stat-num" id="statToday">0</div><div class="stat-label">Words fixed today</div></div>
+      <div class="card stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Words fixed in total</div></div>
+      <div class="card stat"><div class="stat-num" id="statNever">0</div><div class="stat-label">Words never fixed</div></div>
+    </div>
+
+    <h2>Recent fixes</h2>
+    <div class="card list" id="recent"></div>
+    <p class="note">Wrong fix? Press <b>Backspace</b> right after it (or <b>Ctrl+Z</b>) to undo, or hover a fix above and choose <b>Never fix</b>.</p>
+  </section>
+
+  <!-- ================= NEVER FIX ================= -->
+  <section class="page" id="page-words">
+    <h1>Never fix</h1>
+    <p class="lede">Words on this list are never auto-corrected. Add names, slang or codes you type on purpose.</p>
+
+    <div class="card">
+      <div class="add-row">
+        <input class="input" id="wordInput" placeholder="Add a word, e.g. akuo or יקךךם" maxlength="40" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="wordAdd">Add</button>
+      </div>
+      <div class="words" id="words"></div>
+      <div class="list-foot">
+        <span id="wordsCount"></span>
+        <button class="btn ghost small danger" id="wordsClear">Clear all</button>
+      </div>
+    </div>
+
+    <h2>Learning</h2>
+    <div class="card">
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Learn from undos</div>
+          <div class="setting-desc">Add a word to this list automatically when you undo its fix several times.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="learnFromUndos"><span></span></label>
+      </div>
+      <div class="setting" id="undosRow">
+        <div class="setting-text">
+          <div class="setting-title">Undos before a word is added</div>
+          <div class="setting-desc">Undo the same word this many times and it won't be fixed again.</div>
+        </div>
+        <div class="stepper">
+          <button id="undosMinus" aria-label="Fewer">−</button>
+          <output id="undosValue">3</output>
+          <button id="undosPlus" aria-label="More">+</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="page" id="page-settings">
+    <h1>Settings</h1>
+    <p class="lede">Changes are saved right away.</p>
+
+    <h2>Auto-correct</h2>
+    <div class="card">
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Fix wrong-layout typing</div>
+          <div class="setting-desc">When you press Space or Enter, words typed in the wrong layout are rewritten and the keyboard switches for you.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="autoCorrect"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Sensitivity</div>
+          <div class="setting-desc">Higher fixes more words but may occasionally fix one you meant.</div>
+        </div>
+        <div class="seg" id="sensitivity">
+          <button data-v="Low">Low</button><button data-v="Medium">Medium</button><button data-v="High">High</button>
+        </div>
+      </div>
+    </div>
+
+    <h2>Language cues</h2>
+    <div class="card">
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Indicator next to the cursor</div>
+          <div class="setting-desc">A small <b style="color:var(--en)">EN</b> / <b style="color:var(--he)">עב</b> badge follows the text cursor.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="showIndicator"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Say the language out loud</div>
+          <div class="setting-desc" id="voiceDesc">Speaks "English" or "עברית" when the keyboard changes.</div>
+        </div>
+        <button class="btn small" id="testVoice">Test</button>
+        <label class="toggle"><input type="checkbox" data-set="voice"><span></span></label>
+      </div>
+    </div>
+
+    <h2>Apps where auto-correct is off</h2>
+    <div class="card">
+      <div class="add-row">
+        <input class="input" id="appInput" placeholder="Program name, e.g. notepad" maxlength="60" spellcheck="false" autocomplete="off">
+        <button class="btn" id="appAdd">Add</button>
+      </div>
+      <div class="words" id="apps"></div>
+    </div>
+    <p class="note">Auto-correct is always off in password boxes.</p>
+
+    <h2>General</h2>
+    <div class="card">
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Start with Windows</div>
+          <div class="setting-desc">Open LayoutBuddy in the background when you sign in.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="startWithWindows"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Uninstall</div>
+          <div class="setting-desc">Remove LayoutBuddy from Settings → Apps → Installed apps.</div>
+        </div>
+        <button class="btn small" id="openApps">Open Windows Settings</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const X_ICON = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>';
+
+  const host = window.chrome && window.chrome.webview;
+  const send = (msg) => host ? host.postMessage(msg) : mock(msg);
+  let state = null;
+
+  // ---------- navigation ----------
+  $$('nav button').forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
+  function show(page) {
+    $$('nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+    $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+    if (page === 'words') setTimeout(() => $('#wordInput').focus(), 50);
+  }
+
+  // ---------- controls ----------
+  $$('[data-set]').forEach(el => el.addEventListener('change', () => send({ type: 'set', key: el.dataset.set, value: el.checked })));
+  $$('#sensitivity button').forEach(b => b.addEventListener('click', () => send({ type: 'set', key: 'sensitivity', value: b.dataset.v })));
+  $('#undosMinus').addEventListener('click', () => send({ type: 'set', key: 'undosToBlock', value: Math.max(1, state.undosToBlock - 1) }));
+  $('#undosPlus').addEventListener('click', () => send({ type: 'set', key: 'undosToBlock', value: Math.min(10, state.undosToBlock + 1) }));
+
+  const addWord = () => {
+    const w = $('#wordInput').value.trim();
+    if (!w) return;
+    send({ type: 'neverFix.add', word: w });
+    $('#wordInput').value = '';
+    toast(`“${w}” won't be fixed`);
+  };
+  $('#wordAdd').addEventListener('click', addWord);
+  $('#wordInput').addEventListener('keydown', e => { if (e.key === 'Enter') addWord(); });
+  $('#wordsClear').addEventListener('click', () => {
+    if (confirm('Remove all words from the list?')) send({ type: 'neverFix.clear' });
+  });
+
+  const addApp = () => {
+    const a = $('#appInput').value.trim().replace(/\.exe$/i, '');
+    if (!a) return;
+    send({ type: 'excluded.add', app: a });
+    $('#appInput').value = '';
+  };
+  $('#appAdd').addEventListener('click', addApp);
+  $('#appInput').addEventListener('keydown', e => { if (e.key === 'Enter') addApp(); });
+
+  $('#testVoice').addEventListener('click', () => send({ type: 'testVoice' }));
+  $('#openApps').addEventListener('click', () => send({ type: 'openAppsSettings' }));
+
+  // ---------- rendering ----------
+  function render(s) {
+    state = s;
+    $$('[data-set]').forEach(el => { el.checked = !!s[el.dataset.set]; });
+    $$('#sensitivity button').forEach(b => b.classList.toggle('on', b.dataset.v === s.sensitivity));
+
+    $('#version').textContent = 'Version ' + s.version;
+    $('#statusDot').classList.toggle('off', !s.autoCorrect);
+    $('#statusText').textContent = s.autoCorrect ? 'Auto-correct on' : 'Auto-correct paused';
+
+    const h = new Date().getHours();
+    $('#greeting').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+
+    const badge = $('#layoutBadge');
+    badge.className = 'layout-badge' + (s.layout === 'he' ? ' he' : s.layout ? '' : ' none');
+    badge.textContent = s.layout === 'he' ? 'עב' : s.layout === 'en' ? 'EN' : '—';
+    $('#heroTitle').textContent = s.autoCorrect ? 'Auto-correct is on' : 'Auto-correct is paused';
+    $('#heroSub').textContent = 'Current keyboard: ' + (s.layout === 'he' ? 'Hebrew' : s.layout === 'en' ? 'English' : 'other');
+
+    $('#statToday').textContent = fmt(s.fixesToday);
+    $('#statTotal').textContent = fmt(s.fixesTotal);
+    $('#statNever').textContent = fmt(s.neverFix.length);
+    $('#navCount').textContent = s.neverFix.length || '';
+
+    renderRecent(s.recent);
+    renderChips($('#words'), s.neverFix, w => send({ type: 'neverFix.remove', word: w }),
+      'No words yet. Words you add here are never auto-corrected.');
+    $('#wordsCount').textContent = s.neverFix.length === 1 ? '1 word' : s.neverFix.length + ' words';
+    $('#wordsClear').disabled = s.neverFix.length === 0;
+
+    $('#undosValue').textContent = s.undosToBlock;
+    $('#undosRow').classList.toggle('disabled', !s.learnFromUndos);
+    $$('#undosRow .stepper button').forEach(b => b.disabled = !s.learnFromUndos);
+
+    renderChips($('#apps'), s.excludedApps, a => send({ type: 'excluded.remove', app: a }), 'Auto-correct works in every app.');
+
+    $('#voiceDesc').textContent = s.hebrewVoice
+      ? 'Speaks "English" or "עברית" when the keyboard changes.'
+      : 'Speaks "English" or "Hebrew" when the keyboard changes. Install the Hebrew speech pack in Windows for a Hebrew voice.';
+  }
+
+  function renderRecent(items) {
+    const box = $('#recent');
+    if (!items.length) {
+      box.innerHTML = '<div class="empty">Nothing fixed yet.<br>Try typing <kbd>akuo</kbd> and pressing Space.</div>';
+      return;
+    }
+    box.innerHTML = '';
+    items.forEach((r, i) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<span class="time"></span><div class="fix"><span class="from"></span><span class="arrow">→</span><span class="to"></span></div>`
+        + (r.app ? '<span class="app-tag"></span>' : '')
+        + `<button class="btn small row-action">Never fix</button>`;
+      $('.time', row).textContent = r.time;
+      $('.from', row).textContent = r.typed;
+      $('.to', row).textContent = r.fixed;
+      if (r.app) $('.app-tag', row).textContent = r.app;
+      $('.row-action', row).addEventListener('click', () => {
+        send({ type: 'recent.neverFix', index: i });
+        toast(`“${r.typed}” won't be fixed`);
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function renderChips(box, items, onRemove, emptyText) {
+    box.innerHTML = '';
+    if (!items.length) {
+      box.innerHTML = `<span class="words-empty"></span>`;
+      box.firstChild.textContent = emptyText;
+      return;
+    }
+    items.forEach(w => {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.innerHTML = `<span></span><button title="Remove">${X_ICON}</button>`;
+      c.firstChild.textContent = w;
+      c.lastChild.addEventListener('click', () => onRemove(w));
+      box.appendChild(c);
+    });
+  }
+
+  const fmt = n => Number(n || 0).toLocaleString('en-US');
+  let toastTimer;
+  function toast(text) {
+    const t = $('#toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---------- host bridge ----------
+  if (host) {
+    host.addEventListener('message', e => {
+      const m = e.data;
+      if (m.type === 'state') render(m.state);
+      else if (m.type === 'show') show(m.page);
+      else if (m.type === 'toast') toast(m.text);
+    });
+    send({ type: 'ready' });
+  } else {
+    // Browser preview with sample data.
+    window.__mockState = {
+      version: '2.2.0', autoCorrect: true, showIndicator: true, voice: true, sensitivity: 'Medium',
+      startWithWindows: true, learnFromUndos: false, undosToBlock: 3, layout: 'he', hebrewVoice: false,
+      neverFix: ['akuo', 'lol', 'ok', 'vbh'], excludedApps: ['mstsc', 'KeePass'],
+      fixesToday: 23, fixesTotal: 1287,
+      recent: [
+        { time: '14:32', typed: 'ha jh akuo', fixed: 'יש חי שלום', app: 'WhatsApp' },
+        { time: '14:30', typed: 'יקךךם', fixed: 'hello', app: 'Chrome' },
+        { time: '14:12', typed: 't,v', fixed: 'אתה', app: 'Outlook' },
+        { time: '13:58', typed: 'rcv', fixed: 'רבה', app: 'Word' },
+      ],
+    };
+    render(window.__mockState);
+    const p = new URLSearchParams(location.search).get('page');
+    if (p) show(p);
+  }
+  function mock(msg) {
+    const s = window.__mockState;
+    if (msg.type === 'set') s[msg.key] = msg.value;
+    if (msg.type === 'neverFix.add' && !s.neverFix.includes(msg.word)) s.neverFix.push(msg.word);
+    if (msg.type === 'neverFix.remove') s.neverFix = s.neverFix.filter(w => w !== msg.word);
+    if (msg.type === 'neverFix.clear') s.neverFix = [];
+    if (msg.type === 'excluded.add') s.excludedApps.push(msg.app);
+    if (msg.type === 'excluded.remove') s.excludedApps = s.excludedApps.filter(a => a !== msg.app);
+    render(s);
+  }
+})();
+</script>
+</body>
+</html>
