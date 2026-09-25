@@ -27,6 +27,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Bulgarian, "благодаря")]
     [InlineData(Lang.Serbian, "здраво")]
     [InlineData(Lang.Serbian, "хвала")]
+    [InlineData(Lang.Macedonian, "здраво")]
+    [InlineData(Lang.Macedonian, "благодарам")]
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -44,6 +46,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.German, "yes")]
     [InlineData(Lang.Bulgarian, "hello")]
     [InlineData(Lang.Serbian, "thanks")]
+    [InlineData(Lang.Macedonian, "computer")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -87,13 +90,14 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [Theory]
     [InlineData("благодаря", Lang.Bulgarian)]
     [InlineData("хвала", Lang.Serbian)]
+    [InlineData("благодарам", Lang.Macedonian)]
     [InlineData("спасибо", Lang.Russian)]
     [InlineData("дякую", Lang.Ukrainian)]
     public void PicksTheRightCyrillicLanguage(string word, Lang lang)
     {
         var s = new TypingSession(D, new NeverFixList())
         {
-            Languages = [Lang.English, Lang.Russian, Lang.Ukrainian, Lang.Bulgarian, Lang.Serbian],
+            Languages = [Lang.English, Lang.Russian, Lang.Ukrainian, Lang.Bulgarian, Lang.Serbian, Lang.Macedonian],
         };
         var a = Assert.IsType<FixWord>(Type(s, KeyMap.ToUsKeys(word, lang) + " ", Lang.English));
         Assert.Equal(word, a.Text);
@@ -102,6 +106,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     [Theory]
     [InlineData(0x0402, Lang.Bulgarian)]
+    [InlineData(0x042F, Lang.Macedonian)]
     [InlineData(0x0C1A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia and Montenegro (former)
     [InlineData(0x281A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia
     [InlineData(0x1C1A, Lang.Serbian)]   // Serbian (Cyrillic), Bosnia and Herzegovina
@@ -156,7 +161,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]
