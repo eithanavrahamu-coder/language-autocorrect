@@ -5,7 +5,8 @@
 A Windows app for people who type in more than one language. It notices words typed on the wrong keyboard
 and fixes them.
 
-**Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY) and German (QWERTZ).
+**Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY), German (QWERTZ)
+and Bulgarian.
 Pick yours once in setup (languages whose keyboard is already in Windows are pre-selected) and change them any time in
 Settings → Languages. The app reads your actual Windows keyboards, so variants like Canadian French or Swiss German
 work too.

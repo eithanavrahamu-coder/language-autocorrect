@@ -23,6 +23,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.French, "été")]
     [InlineData(Lang.German, "schön")]
     [InlineData(Lang.German, "zeit")]
+    [InlineData(Lang.Bulgarian, "здравей")]
+    [InlineData(Lang.Bulgarian, "благодаря")]
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -38,6 +40,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Greek, "computer")]
     [InlineData(Lang.French, "what")]
     [InlineData(Lang.German, "yes")]
+    [InlineData(Lang.Bulgarian, "hello")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -78,6 +81,21 @@ public class MultiLanguageTests(ITestOutputHelper output)
         Assert.Equal("שלום", he.Text);
     }
 
+    [Theory]
+    [InlineData("благодаря", Lang.Bulgarian)]
+    [InlineData("спасибо", Lang.Russian)]
+    [InlineData("дякую", Lang.Ukrainian)]
+    public void PicksTheRightCyrillicLanguage(string word, Lang lang)
+    {
+        var s = new TypingSession(D, new NeverFixList())
+        {
+            Languages = [Lang.English, Lang.Russian, Lang.Ukrainian, Lang.Bulgarian],
+        };
+        var a = Assert.IsType<FixWord>(Type(s, KeyMap.ToUsKeys(word, lang) + " ", Lang.English));
+        Assert.Equal(word, a.Text);
+        Assert.Equal(lang, a.Layout);
+    }
+
     [Fact]
     public void CapitalizedGermanNounKeepsItsCapital()
     {
@@ -116,7 +134,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     }
 
     public static TheoryData<Lang> NewLanguages =>
-        [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German];
+        [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
+         Lang.Bulgarian];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

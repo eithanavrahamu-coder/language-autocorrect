@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -67,6 +67,11 @@ public static class Languages
         new(Lang.German, "de", "German", "Deutsch", "DE", "#EA580C", 0x07,
             "abcdefghijklmnopqrstuvwxyzäöüß", true, false,
             $"{Circumflex} 1 2 3 4 5 6 7 8 9 0 ß {Acute} q w e r t z u i o p ü + # a s d f g h j k l ö ä y x c v b n m , . -"),
+
+        // Windows' default "Bulgarian" layout (BDS); Phonetic and Typewriter are read from Windows at runtime.
+        new(Lang.Bulgarian, "bg", "Bulgarian", "Български", "БГ", "#047857", 0x02,
+            "абвгдежзийклмнопрстуфхцчшщъьюяѝ", true, false,
+            "( 1 2 3 4 5 6 7 8 9 0 - . , у е и ш щ к с д з ц ; „ ь я а о ж г т н в м ч ю й ъ э ф х п р л б"),
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);
