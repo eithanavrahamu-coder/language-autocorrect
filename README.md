@@ -6,7 +6,7 @@ A Windows app for people who type in more than one language. It notices words ty
 and fixes them.
 
 **Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY), German (QWERTZ),
-Bulgarian, Serbian (Cyrillic) and Macedonian.
+Bulgarian, Serbian (Cyrillic), Macedonian and Kazakh.
 Pick yours once in setup (languages whose keyboard is already in Windows are pre-selected) and change them any time in
 Settings → Languages. The app reads your actual Windows keyboards, so variants like Canadian French or Swiss German
 work too.

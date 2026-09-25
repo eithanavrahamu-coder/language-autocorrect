@@ -29,6 +29,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Serbian, "хвала")]
     [InlineData(Lang.Macedonian, "здраво")]
     [InlineData(Lang.Macedonian, "благодарам")]
+    [InlineData(Lang.Kazakh, "рахмет")]
+    [InlineData(Lang.Kazakh, "сәлем")]
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -47,6 +49,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Bulgarian, "hello")]
     [InlineData(Lang.Serbian, "thanks")]
     [InlineData(Lang.Macedonian, "computer")]
+    [InlineData(Lang.Kazakh, "world")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -91,13 +94,14 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData("благодаря", Lang.Bulgarian)]
     [InlineData("хвала", Lang.Serbian)]
     [InlineData("благодарам", Lang.Macedonian)]
+    [InlineData("рахмет", Lang.Kazakh)]
     [InlineData("спасибо", Lang.Russian)]
     [InlineData("дякую", Lang.Ukrainian)]
     public void PicksTheRightCyrillicLanguage(string word, Lang lang)
     {
         var s = new TypingSession(D, new NeverFixList())
         {
-            Languages = [Lang.English, Lang.Russian, Lang.Ukrainian, Lang.Bulgarian, Lang.Serbian, Lang.Macedonian],
+            Languages = [Lang.English, Lang.Russian, Lang.Ukrainian, Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh],
         };
         var a = Assert.IsType<FixWord>(Type(s, KeyMap.ToUsKeys(word, lang) + " ", Lang.English));
         Assert.Equal(word, a.Text);
@@ -107,6 +111,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [Theory]
     [InlineData(0x0402, Lang.Bulgarian)]
     [InlineData(0x042F, Lang.Macedonian)]
+    [InlineData(0x043F, Lang.Kazakh)]
     [InlineData(0x0C1A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia and Montenegro (former)
     [InlineData(0x281A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia
     [InlineData(0x1C1A, Lang.Serbian)]   // Serbian (Cyrillic), Bosnia and Herzegovina
@@ -121,6 +126,13 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x141A)]   // Bosnian (Latin)
     public void LatinKeyboardsSharingSerbiansIdAreNotSerbianCyrillic(int langId) =>
         Assert.Null(Languages.FromWindowsLangId(langId));
+
+    [Theory]
+    [InlineData("0900")]
+    [InlineData("2345")]
+    [InlineData("1990")]
+    public void NumbersAreLeftAlone(string keys) =>
+        Assert.False(D.Evaluate(keys, Lang.English, Lang.Kazakh, Sensitivity.High).ShouldFix);   // Kazakh types letters on the number row
 
     [Fact]
     public void CapitalizedGermanNounKeepsItsCapital()
@@ -161,7 +173,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

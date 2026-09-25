@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -90,6 +90,10 @@ public static class Languages
         new(Lang.Macedonian, "mk", "Macedonian", "Македонски", "МК", "#B45309", 0x2F,
             "абвгдѓежзѕијклљмнњопрстќуфхцчџшѝѐ", true, false,
             "ѝ 1 2 3 4 5 6 7 8 9 0 - = љ њ е р т ѕ у и о п ш ѓ ж а с д ф г х ј к л ч ќ з џ ц в б н м , . /"),
+
+        new(Lang.Kazakh, "kk", "Kazakh", "Қазақша", "ҚЗ", "#0E7490", 0x3F,
+            "аәбвгғдеёжзийкқлмнңоөпрстуұүфхһцчшщъыіьэюя", true, false,
+            "( \" ә і ң ғ , . ү ұ қ ө һ й ц у к е н г ш щ з х ъ \\ ф ы в а п р о л д ж э я ч с м и т ь б ю №"),
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);

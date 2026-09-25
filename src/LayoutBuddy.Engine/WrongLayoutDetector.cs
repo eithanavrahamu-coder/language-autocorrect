@@ -106,6 +106,7 @@ public sealed class WrongLayoutDetector
 
         // Keyboards that share most letters (English/French/German) often type the same thing.
         if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return No("same text");
+        if (IsNumber(a.Typed, current)) return No("number");
 
         // The sentence so far is in the typed language: only fix clear mistakes.
         if (context < 0 && sensitivity != Sensitivity.Low) sensitivity = Sensitivity.Low;
@@ -148,6 +149,13 @@ public sealed class WrongLayoutDetector
     }
 
     /// <summary>
+    /// Numbers (times, prices) are typed on purpose, even where the other keyboard types letters on the
+    /// number row (Kazakh, French).
+    /// </summary>
+    private bool IsNumber(string typed, Lang typedIn) =>
+        typed.Any(char.IsDigit) && !typed.Any(Model(typedIn).IsLetter);
+
+    /// <summary>
     /// Which language a finished word is in: the typed layout if it is a word there and not in the other,
     /// the other language if the reverse, otherwise null (ambiguous or unknown).
     /// </summary>
@@ -183,7 +191,7 @@ public sealed class WrongLayoutDetector
     {
         var a = Analyze(usKeys, current, target);
         if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return false;
-        if (a.AltCore == null) return false;
+        if (a.AltCore == null || IsNumber(a.Typed, current)) return false;
         if (a.TypedKnown)
             return a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar && tr >= ar * 3;
         if (a.AltKnown) return true;
