@@ -15,9 +15,19 @@ A small Windows tray app for people who type in Hebrew and English:
 
 Auto-correct is always off in password boxes and in the apps listed in Settings.
 
-## Running
+## Installing and uninstalling
 
-Download `LayoutBuddy.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it. It lives in the tray near the clock; right-click for options, double-click for Settings.
+Download `LayoutBuddy.exe` (from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
+It asks whether to install:
+
+- **Yes** – copies itself to `%LocalAppData%\Programs\LayoutBuddy`, adds a Start menu shortcut, and appears in
+  **Settings → Apps → Installed apps**, where you can uninstall it. No administrator rights needed.
+  Running a newer downloaded version later replaces the installed one and keeps your settings.
+- **No** – just runs it from where it is (portable). `LayoutBuddy.exe --portable` skips the question.
+
+Uninstalling removes the program, its shortcut, the "start with Windows" entry and its settings.
+
+It lives in the tray near the clock; right-click for options, double-click for Settings.
 Run `LayoutBuddy.exe --selfcheck` to check keyboard layouts, voices and detection.
 
 Settings and log: `%AppData%\LayoutBuddy\`.

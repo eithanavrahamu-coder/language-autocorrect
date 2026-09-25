@@ -13,7 +13,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>LayoutBuddy</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

@@ -12,16 +12,27 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
+        if (args.Contains("--uninstall"))
+        {
+            Installer.Uninstall(quiet: args.Contains("--quiet"));
+            return;
+        }
+
+        bool selfCheck = args.Contains("--selfcheck");
+        if (!selfCheck && !args.Contains("--portable") && !Installer.IsRunningInstalledCopy && Installer.OfferInstall())
+            return;
+
         using var mutex = new Mutex(true, @"Local\LayoutBuddy.SingleInstance", out bool isFirst);
-        if (!isFirst && !args.Contains("--selfcheck"))
+        if (!isFirst && !selfCheck)
         {
             MessageBox.Show("LayoutBuddy is already running (look for its icon near the clock).", "LayoutBuddy");
             return;
         }
 
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
         Application.ThreadException += (_, e) => Log.Write("UI error: " + e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("Fatal: " + e.ExceptionObject);
 
@@ -37,7 +48,7 @@ internal static class Program
             return;
         }
 
-        if (args.Contains("--selfcheck"))
+        if (selfCheck)
         {
             MessageBox.Show(SelfCheck(detector), "LayoutBuddy self-check");
             return;

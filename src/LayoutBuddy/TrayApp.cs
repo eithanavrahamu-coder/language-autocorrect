@@ -23,6 +23,8 @@ internal sealed class TrayApp : ApplicationContext
     private IntPtr _lastWindow;
     private IntPtr _trayIconHandle;
     private SettingsForm? _settingsForm;
+    private readonly System.Threading.EventWaitHandle _exitEvent;
+    private readonly System.Threading.RegisteredWaitHandle _exitWait;
 
     public TrayApp(WrongLayoutDetector detector)
     {
@@ -57,6 +59,11 @@ internal sealed class TrayApp : ApplicationContext
         _monitor.Start();
         if (!_monitor.IsRunning)
             MessageBox.Show("LayoutBuddy could not install its keyboard hook. Auto-correct will not work.", "LayoutBuddy");
+
+        // The installer/uninstaller signals this to close us.
+        _exitEvent = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Installer.ExitEventName);
+        _exitWait = System.Threading.ThreadPool.RegisterWaitForSingleObject(_exitEvent,
+            (_, _) => _indicator.BeginInvoke(ExitThread), null, -1, executeOnlyOnce: true);
 
         _uiTimer.Tick += (_, _) => OnTick();
         _uiTimer.Start();
@@ -183,6 +190,8 @@ internal sealed class TrayApp : ApplicationContext
     protected override void ExitThreadCore()
     {
         _uiTimer.Stop();
+        _exitWait.Unregister(null);
+        _exitEvent.Dispose();
         _monitor.Dispose();
         _focus.Dispose();
         _voice.Dispose();
