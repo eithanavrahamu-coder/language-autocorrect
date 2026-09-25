@@ -71,6 +71,17 @@ public sealed class NeverFixList
         lock (_lock) _counts.Clear();
     }
 
+    /// <summary>Replaces all counts (used to roll back a cancelled settings dialog).</summary>
+    public void Restore(IDictionary<string, int> counts, int undosToBlock)
+    {
+        lock (_lock)
+        {
+            _counts.Clear();
+            foreach (var (k, v) in counts) _counts[k] = v;
+            _undosToBlock = Math.Max(1, undosToBlock);
+        }
+    }
+
     /// <summary>Words that are currently blocked, sorted.</summary>
     public IReadOnlyList<string> BlockedWords()
     {
