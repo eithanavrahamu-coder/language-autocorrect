@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Data\en.txt" LogicalName="LayoutBuddy.Data.en.txt" />
+    <EmbeddedResource Include="Data\he.txt" LogicalName="LayoutBuddy.Data.he.txt" />
+  </ItemGroup>
+
+</Project>
