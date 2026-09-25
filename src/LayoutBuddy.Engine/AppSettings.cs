@@ -46,8 +46,31 @@ public sealed class AppSettings
 
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
+    public const string FolderName = "TypeLanguageCorrector4000";
+    public const string LegacyFolderName = "LayoutBuddy";
+
     public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LayoutBuddy", "settings.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), FolderName, "settings.json");
+
+    private static string LegacyPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), LegacyFolderName, "settings.json");
+
+    /// <summary>Copies settings from the app's old name (LayoutBuddy) the first time the new name runs.</summary>
+    public static void MigrateLegacy()
+    {
+        try
+        {
+            if (!File.Exists(DefaultPath) && File.Exists(LegacyPath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(DefaultPath)!);
+                File.Copy(LegacyPath, DefaultPath);
+            }
+        }
+        catch (Exception)
+        {
+            // Not worth failing over; the user just starts with defaults.
+        }
+    }
 
     /// <summary>Loads settings; falls back to defaults if the file is missing or unreadable.</summary>
     public static AppSettings Load(string path)

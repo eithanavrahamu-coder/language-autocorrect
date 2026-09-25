@@ -53,7 +53,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _monitor.Undone += undo => _indicator.BeginInvoke(() => OnUndone(undo));
 
         _autoItem = new ToolStripMenuItem("Auto-correct", null, (_, _) => Change(() => _settings.AutoCorrectEnabled = !_settings.AutoCorrectEnabled));
-        var open = new ToolStripMenuItem("Open LayoutBuddy", null, (_, _) => ShowMain()) { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
+        var open = new ToolStripMenuItem("Open " + AppInfo.Name, null, (_, _) => ShowMain()) { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
         var menu = new ContextMenuStrip();
         menu.Items.AddRange([
             open,
@@ -63,7 +63,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             new ToolStripMenuItem("Exit", null, (_, _) => ExitThread()),
         ]);
 
-        _tray = new NotifyIcon { Text = "LayoutBuddy", ContextMenuStrip = menu, Visible = true };
+        _tray = new NotifyIcon { Text = AppInfo.Name, ContextMenuStrip = menu, Visible = true };
         _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowMain(); };
         UpdateTrayIcon(LayoutService.Current() ?? Lang.English);
         SyncMenu();
@@ -72,7 +72,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _focus.Start();
         _monitor.Start();
         if (!_monitor.IsRunning)
-            MessageBox.Show("LayoutBuddy could not install its keyboard hook. Auto-correct will not work.", "LayoutBuddy");
+            MessageBox.Show(AppInfo.Name + " could not install its keyboard hook. Auto-correct will not work.", AppInfo.Name);
 
         // Other processes (installer, a second launch) signal these.
         _exitEvent = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Installer.ExitEventName);
@@ -95,8 +95,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     {
         if (!WebWindow.RuntimeAvailable)
         {
-            if (MessageBox.Show("LayoutBuddy's window needs the Microsoft Edge WebView2 Runtime, which isn't installed.\n\n" +
-                                "Open the download page?", "LayoutBuddy", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show(AppInfo.Name + "'s window needs the Microsoft Edge WebView2 Runtime, which isn't installed.\n\n" +
+                                "Open the download page?", AppInfo.Name, MessageBoxButtons.YesNo) == DialogResult.Yes)
                 OpenUrl("https://go.microsoft.com/fwlink/p/?LinkId=2124703");
             return;
         }
@@ -212,7 +212,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private void OnTick()
     {
         var snap = _focus.Snapshot;
-        bool ownApp = string.Equals(snap.Process, "LayoutBuddy", StringComparison.OrdinalIgnoreCase);
+        bool ownApp = string.Equals(snap.Process, AppInfo.Id, StringComparison.OrdinalIgnoreCase);
         bool blocked = ownApp || snap.IsPassword || _settings.IsExcluded(snap.Process);
         var ctx = new MonitorContext(_settings.AutoCorrectEnabled, _settings.Sensitivity, blocked);
         if (ctx != _context) _context = ctx;
@@ -254,7 +254,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         PushState();
         if (undo.NowBlocked)
         {
-            _tray.ShowBalloonTip(4000, "LayoutBuddy",
+            _tray.ShowBalloonTip(4000, AppInfo.Name,
                 $"\"{undo.Correction.TriggerTyped}\" won't be auto-corrected anymore. You can change this in the Never fix list.",
                 ToolTipIcon.Info);
         }
@@ -336,7 +336,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _tray.Icon = Icon.FromHandle(handle);
         _trayIconHandle = handle;
         if (old != IntPtr.Zero) Native.DestroyIcon(old);
-        _tray.Text = lang == Lang.Hebrew ? "LayoutBuddy – Hebrew" : "LayoutBuddy – English";
+        _tray.Text = AppInfo.Name + (lang == Lang.Hebrew ? " – Hebrew" : " – English");
     }
 
     protected override void ExitThreadCore()

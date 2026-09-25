@@ -26,7 +26,7 @@ internal abstract class WebWindow : Form
     {
         _page = page;
         _userDataFolder = userDataFolder;
-        Text = "LayoutBuddy";
+        Text = AppInfo.Name;
         StartPosition = FormStartPosition.CenterScreen;
         AutoScaleMode = AutoScaleMode.None;
         BackColor = IsDarkMode ? Color.FromArgb(0x16, 0x16, 0x15) : Color.FromArgb(0xFB, 0xFA, 0xF8);
@@ -92,7 +92,7 @@ internal abstract class WebWindow : Form
         catch (Exception ex)
         {
             Log.Write("WebView2 failed: " + ex);
-            MessageBox.Show(this, "LayoutBuddy couldn't open its window:\n" + ex.Message, "LayoutBuddy");
+            MessageBox.Show(this, AppInfo.Name + " couldn't open its window:\n" + ex.Message, AppInfo.Name);
             Close();
         }
     }

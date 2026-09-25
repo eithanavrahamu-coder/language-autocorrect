@@ -10,24 +10,26 @@ using Microsoft.Win32;
 namespace LayoutBuddy;
 
 /// <summary>
-/// Per-user install (no admin needed): copies the exe to %LocalAppData%\Programs\LayoutBuddy,
+/// Per-user install (no admin needed): copies the exe to %LocalAppData%\Programs\Type Language Corrector 4000,
 /// adds shortcuts, and registers an entry under Settings → Apps with an Uninstall button.
 /// </summary>
 internal static class Installer
 {
-    private const string AppName = "LayoutBuddy";
-    private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\LayoutBuddy";
+    private const string AppName = AppInfo.Name;
+    private const string AppId = AppInfo.Id;
+    private const string UninstallRoot = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\";
+    private const string UninstallKey = UninstallRoot + AppId;
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    public const string ExitEventName = @"Local\LayoutBuddy.Exit";
-    public const string ShowEventName = @"Local\LayoutBuddy.Show";
+    public const string ExitEventName = @"Local\" + AppId + ".Exit";
+    public const string ShowEventName = @"Local\" + AppId + ".Show";
 
     public static string InstallDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", AppName);
 
-    public static string InstalledExe => Path.Combine(InstallDir, AppName + ".exe");
+    public static string InstalledExe => Path.Combine(InstallDir, AppId + ".exe");
 
     /// <summary>WebView2 data for the setup window, kept out of the install folder so it can be deleted.</summary>
-    public static string SetupUiDataDir => Path.Combine(Path.GetTempPath(), "LayoutBuddySetup");
+    public static string SetupUiDataDir => Path.Combine(Path.GetTempPath(), AppId + "Setup");
 
     private static string StartMenuShortcut => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.Programs), AppName + ".lnk");
@@ -36,10 +38,10 @@ internal static class Installer
         Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), AppName + ".lnk");
 
     private static string RoamingDataDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName);
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppId);
 
     private static string LocalDataDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName);
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppId);
 
     public static string CurrentVersion => Application.ProductVersion.Split('+')[0];
 
@@ -49,7 +51,8 @@ internal static class Installer
         {
             try
             {
-                using var k = Registry.CurrentUser.OpenSubKey(UninstallKey);
+                using var k = Registry.CurrentUser.OpenSubKey(UninstallKey)
+                              ?? Registry.CurrentUser.OpenSubKey(UninstallRoot + AppInfo.LegacyId);
                 return k?.GetValue("DisplayVersion") as string;
             }
             catch { return null; }
@@ -60,12 +63,46 @@ internal static class Installer
         Environment.ProcessPath is { } p &&
         string.Equals(Path.GetFullPath(p), Path.GetFullPath(InstalledExe), StringComparison.OrdinalIgnoreCase);
 
-    public static bool IsInstalled => File.Exists(InstalledExe);
+    public static bool IsInstalled => File.Exists(InstalledExe) || LegacyInstalled;
+
+    // ---- The app's previous name (LayoutBuddy) ----
+
+    private static string LegacyInstallDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", AppInfo.LegacyId);
+
+    private static bool LegacyInstalled => File.Exists(Path.Combine(LegacyInstallDir, AppInfo.LegacyId + ".exe"));
+
+    /// <summary>Removes an install made under the old name: its shortcuts, Settings → Apps entry and files.</summary>
+    private static void RemoveLegacyInstall()
+    {
+        string legacy = AppInfo.LegacyId;
+        TryDo(() => Registry.CurrentUser.DeleteSubKeyTree(UninstallRoot + legacy, throwOnMissingSubKey: false));
+        TryDo(() =>
+        {
+            using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (run?.GetValue(legacy) != null) run.DeleteValue(legacy);
+        });
+        foreach (var folder in new[] { Environment.SpecialFolder.Programs, Environment.SpecialFolder.DesktopDirectory })
+        {
+            var lnk = Path.Combine(Environment.GetFolderPath(folder), legacy + ".lnk");
+            TryDo(() => { if (File.Exists(lnk)) File.Delete(lnk); });
+        }
+        TryDo(() => { if (Directory.Exists(LegacyInstallDir)) Directory.Delete(LegacyInstallDir, recursive: true); });
+        var legacyLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), legacy);
+        TryDo(() => { if (Directory.Exists(legacyLocal)) Directory.Delete(legacyLocal, recursive: true); });
+        // Settings were already copied to the new folder by AppSettings.MigrateLegacy().
+        var legacyRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), legacy);
+        TryDo(() =>
+        {
+            if (Directory.Exists(legacyRoaming) && File.Exists(AppSettings.DefaultPath))
+                Directory.Delete(legacyRoaming, recursive: true);
+        });
+    }
 
     /// <summary>Installs or updates. <paramref name="startWithWindows"/> null keeps the current setting.</summary>
     public static void Install(bool? startWithWindows, bool desktopShortcut, Action<double, string> progress)
     {
-        progress(0.1, "Closing LayoutBuddy");
+        progress(0.1, "Closing " + AppName);
         StopRunningInstances();
         Pause();
 
@@ -81,6 +118,8 @@ internal static class Installer
 
         progress(0.7, "Adding to Settings → Apps");
         Register();
+        AppSettings.MigrateLegacy();
+        RemoveLegacyInstall();
         if (startWithWindows is bool startup)
         {
             var settings = AppSettings.Load(AppSettings.DefaultPath);
@@ -91,7 +130,7 @@ internal static class Installer
         if (AppSettings.Load(AppSettings.DefaultPath).StartWithWindows) SetRunKey(InstalledExe);
         Pause();
 
-        progress(0.9, "Starting LayoutBuddy");
+        progress(0.9, "Starting " + AppName);
         Process.Start(new ProcessStartInfo(InstalledExe, "--background") { UseShellExecute = true, WorkingDirectory = InstallDir });
         Pause();
         progress(1, "Done");
@@ -99,7 +138,7 @@ internal static class Installer
 
     public static void Uninstall(bool keepSettings, Action<double, string> progress)
     {
-        progress(0.15, "Closing LayoutBuddy");
+        progress(0.15, "Closing " + AppName);
         StopRunningInstances();
         Pause();
 
@@ -107,7 +146,7 @@ internal static class Installer
         TryDo(() =>
         {
             using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (run?.GetValue(AppName) != null) run.DeleteValue(AppName);
+            if (run?.GetValue(AppId) != null) run.DeleteValue(AppId);
         });
         TryDo(() => File.Delete(StartMenuShortcut));
         TryDo(() => { if (File.Exists(DesktopShortcut)) File.Delete(DesktopShortcut); });
@@ -131,7 +170,7 @@ internal static class Installer
     /// </summary>
     public static void ScheduleSelfDelete()
     {
-        var extractDir = Path.Combine(Path.GetTempPath(), ".net", AppName);
+        var extractDir = Path.Combine(Path.GetTempPath(), ".net", AppId);
         TryDo(() => Process.Start(new ProcessStartInfo("cmd.exe",
             $"/c ping 127.0.0.1 -n 4 > nul & rmdir /s /q \"{InstallDir}\" & rmdir /s /q \"{extractDir}\" & rmdir /s /q \"{SetupUiDataDir}\"")
         {
@@ -153,11 +192,13 @@ internal static class Installer
     /// <summary>Asks running copies to exit (and closes them if they don't).</summary>
     private static void StopRunningInstances()
     {
-        if (EventWaitHandle.TryOpenExisting(ExitEventName, out var ev))
-            using (ev) ev.Set();
+        foreach (var name in new[] { ExitEventName, @"Local\" + AppInfo.LegacyId + ".Exit" })
+            if (EventWaitHandle.TryOpenExisting(name, out var ev))
+                using (ev) ev.Set();
 
         int self = Environment.ProcessId;
-        foreach (var p in Process.GetProcessesByName(AppName).Where(p => p.Id != self))
+        var running = Process.GetProcessesByName(AppId).Concat(Process.GetProcessesByName(AppInfo.LegacyId));
+        foreach (var p in running.Where(p => p.Id != self))
         {
             using (p)
             {
@@ -215,7 +256,7 @@ internal static class Installer
         TryDo(() =>
         {
             using var run = Registry.CurrentUser.CreateSubKey(RunKey);
-            run.SetValue(AppName, $"\"{exe}\" --background");
+            run.SetValue(AppId, $"\"{exe}\" --background");
         });
     }
 
@@ -248,8 +289,8 @@ internal static class Installer
     public static SetupResult InstallWithMessageBoxes()
     {
         string question = IsInstalled
-            ? "Update the installed LayoutBuddy to this version?\n\n(Your settings are kept.)"
-            : "Install LayoutBuddy on this computer?\n\nIt will be added to the Start menu and to Settings → Apps.\n\n" +
+            ? "Update the installed " + AppName + " to this version?\n\n(Your settings are kept.)"
+            : "Install " + AppName + " on this computer?\n\nIt will be added to the Start menu and to Settings → Apps.\n\n" +
               "Choose No to just run it without installing.";
         if (MessageBox.Show(question, AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return SetupResult.Portable;
@@ -267,7 +308,7 @@ internal static class Installer
 
     public static SetupResult UninstallWithMessageBoxes(bool quiet)
     {
-        if (!quiet && MessageBox.Show("Remove LayoutBuddy and its settings from this computer?", AppName,
+        if (!quiet && MessageBox.Show("Remove " + AppName + " and its settings from this computer?", AppName,
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return SetupResult.Cancelled;
         Uninstall(false, (_, _) => { });

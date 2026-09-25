@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>LayoutBuddy Setup</title>
+<title>Type Language Corrector 4000 Setup</title>
 <style>
   :root {
     --bg: #FBFAF8; --card: #FFFFFF; --text: #1B1A18; --muted: #75706A; --faint: #A7A29B;
@@ -30,24 +30,25 @@
                 radial-gradient(closest-side at 80% 60%, color-mix(in srgb, var(--he) 12%, transparent), transparent);
     pointer-events: none; filter: blur(10px);
   }
-  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; padding: 44px 44px 32px; animation: fade .25s ease; }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; padding: 36px 44px 28px; animation: fade .25s ease; }
   .screen.active { display: flex; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .logo {
-    width: 76px; height: 76px; border-radius: 22px;
+    width: 68px; height: 68px; border-radius: 20px;
     background: linear-gradient(135deg, var(--en), var(--accent) 55%, var(--he));
     display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 28px; letter-spacing: -.02em;
     box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 30%, transparent);
   }
   h1 {
     font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
-    font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin: 20px 0 6px; text-align: center;
+    font-size: 25px; font-weight: 650; letter-spacing: -.02em; margin: 18px 0 6px; text-align: center;
+    text-wrap: balance; line-height: 1.2;
   }
   .sub { color: var(--muted); text-align: center; line-height: 1.5; margin: 0; max-width: 360px; }
   .version { color: var(--faint); font-size: 12.5px; margin-top: 6px; }
 
-  .features { width: 100%; margin: 26px 0 0; display: flex; flex-direction: column; gap: 14px; }
+  .features { width: 100%; margin: 22px 0 20px; display: flex; flex-direction: column; gap: 12px; }
   .feature { display: flex; gap: 14px; align-items: flex-start; }
   .f-icon { width: 34px; height: 34px; border-radius: 10px; background: var(--hover); display: grid; place-items: center; flex-shrink: 0; font-weight: 700; font-size: 13px; }
   .f-icon svg { width: 18px; height: 18px; }
@@ -102,7 +103,7 @@
 <!-- Install / update -->
 <section class="screen" id="s-welcome">
   <div class="logo">אA</div>
-  <h1 id="welcomeTitle">Install LayoutBuddy</h1>
+  <h1 id="welcomeTitle">Install Type Language Corrector 4000</h1>
   <p class="sub" id="welcomeSub">Type Hebrew and English without watching the keyboard.</p>
   <div class="version"><span id="welcomeVersion"></span> · Made by Eithan Avraham</div>
 
@@ -135,8 +136,8 @@
 <section class="screen" id="s-uninstall">
   <div class="center">
     <div class="logo">אA</div>
-    <h1>Uninstall LayoutBuddy?</h1>
-    <p class="sub">LayoutBuddy will be closed and removed from this computer.</p>
+    <h1>Uninstall Type Language Corrector 4000?</h1>
+    <p class="sub">It will be closed and removed from this computer.</p>
     <div class="version">Made by Eithan Avraham</div>
   </div>
   <div class="options">
@@ -163,11 +164,11 @@
   <div class="center">
     <div class="check" id="doneIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
     <h1 id="doneTitle">You're all set</h1>
-    <p class="sub" id="doneSub">LayoutBuddy is running. Find it in the Start menu or near the clock.</p>
+    <p class="sub" id="doneSub">It's running. Find it in the Start menu or near the clock.</p>
     <div class="error" id="doneError"></div>
   </div>
   <div class="actions">
-    <button class="btn primary" id="doneBtn">Open LayoutBuddy</button>
+    <button class="btn primary" id="doneBtn">Open</button>
     <button class="link" id="closeBtn">Close</button>
   </div>
 </section>
@@ -187,7 +188,7 @@
     mode = m.mode;
     if (mode === 'uninstall') { screen('uninstall'); return; }
     if (mode === 'update') {
-      $('#welcomeTitle').textContent = 'Update LayoutBuddy';
+      $('#welcomeTitle').textContent = 'Update Type Language Corrector 4000';
       $('#welcomeSub').textContent = 'Your settings and word list are kept.';
       $('#welcomeVersion').textContent = (m.installedVersion ? 'Version ' + m.installedVersion + ' → ' : 'Version ') + m.version;
       $('#installBtn').textContent = 'Update';
@@ -226,14 +227,14 @@
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 7v6M12 17h0"/></svg>';
     $('#doneError').textContent = m.error || '';
     if (mode === 'uninstall') {
-      $('#doneTitle').textContent = ok ? 'LayoutBuddy was removed' : 'Something went wrong';
+      $('#doneTitle').textContent = ok ? 'Removed' : 'Something went wrong';
       $('#doneSub').textContent = ok ? 'Thanks for trying it.' : '';
       $('#doneBtn').textContent = 'Close';
       $('#closeBtn').style.display = 'none';
     } else {
       $('#doneTitle').textContent = ok ? (mode === 'update' ? 'Updated' : "You're all set") : 'Something went wrong';
-      $('#doneSub').textContent = ok ? 'Try it: type akuo and press Space.' : 'If LayoutBuddy is running, exit it from the tray icon and try again.';
-      $('#doneBtn').textContent = ok ? 'Open LayoutBuddy' : 'Close';
+      $('#doneSub').textContent = ok ? 'Try it: type akuo and press Space.' : 'If the app is running, exit it from the tray icon and try again.';
+      $('#doneBtn').textContent = ok ? 'Open' : 'Close';
       if (!ok) $('#doneBtn').onclick = () => send({ type: 'close' });
     }
     screen('done');

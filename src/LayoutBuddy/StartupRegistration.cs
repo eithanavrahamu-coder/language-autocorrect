@@ -6,7 +6,7 @@ namespace LayoutBuddy;
 internal static class StartupRegistration
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "LayoutBuddy";
+    private const string ValueName = AppInfo.Id;
 
     public static void Apply(bool enabled)
     {

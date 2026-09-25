@@ -18,12 +18,12 @@ internal sealed class MainWindow : WebWindow
     private readonly IAppController _app;
 
     public static string DataFolder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LayoutBuddy", "WebView2");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppInfo.Id, "WebView2");
 
     public MainWindow(IAppController app) : base("app.html", DataFolder, new Size(980, 680))
     {
         _app = app;
-        Text = "LayoutBuddy";
+        Text = AppInfo.Name;
     }
 
     protected override void OnHandleCreated(EventArgs e)

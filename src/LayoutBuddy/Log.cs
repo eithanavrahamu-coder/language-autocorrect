@@ -8,7 +8,7 @@ internal static class Log
     private static readonly object Lock = new();
 
     public static string Path => System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LayoutBuddy", "log.txt");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.Id, "log.txt");
 
     public static void Write(string message)
     {

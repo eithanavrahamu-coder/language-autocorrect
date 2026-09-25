@@ -11,14 +11,14 @@
     <Nullable>enable</Nullable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <AssemblyName>LayoutBuddy</AssemblyName>
+    <AssemblyName>TypeLanguageCorrector4000</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>2.3.0</Version>
-    <Product>LayoutBuddy</Product>
+    <Version>3.0.0</Version>
+    <Product>Type Language Corrector 4000</Product>
     <Company>Eithan Avraham</Company>
     <Authors>Eithan Avraham</Authors>
     <Copyright>© Eithan Avraham</Copyright>
-    <AssemblyTitle>LayoutBuddy – Hebrew/English keyboard helper</AssemblyTitle>
+    <AssemblyTitle>Type Language Corrector 4000</AssemblyTitle>
     <ApplicationIcon>Assets\LayoutBuddy.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

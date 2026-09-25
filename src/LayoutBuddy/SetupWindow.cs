@@ -20,7 +20,7 @@ internal sealed class SetupWindow : WebWindow
     public SetupWindow(string mode) : base("setup.html", Installer.SetupUiDataDir, new Size(500, 680))
     {
         _mode = mode;
-        Text = mode == "uninstall" ? "Uninstall LayoutBuddy" : "LayoutBuddy Setup";
+        Text = mode == "uninstall" ? "Uninstall " + AppInfo.Name : AppInfo.Name + " Setup";
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
     }

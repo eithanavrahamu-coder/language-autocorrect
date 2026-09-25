@@ -15,6 +15,7 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        AppSettings.MigrateLegacy();
         Application.ThreadException += (_, e) => Log.Write("UI error: " + e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("Fatal: " + e.ExceptionObject);
 
@@ -31,12 +32,12 @@ internal static class Program
             if (result != SetupResult.Portable) return;
         }
 
-        using var mutex = new Mutex(true, @"Local\LayoutBuddy.SingleInstance", out bool isFirst);
+        using var mutex = new Mutex(true, @"Local\" + AppInfo.Id + ".SingleInstance", out bool isFirst);
         if (!isFirst && !selfCheck)
         {
             // Already running (e.g. opened again from the Start menu): bring its window up.
             if (!Installer.SignalShow())
-                MessageBox.Show("LayoutBuddy is already running (look for its icon near the clock).", "LayoutBuddy");
+                MessageBox.Show(AppInfo.Name + " is already running (look for its icon near the clock).", AppInfo.Name);
             return;
         }
 
@@ -48,13 +49,13 @@ internal static class Program
         catch (Exception ex)
         {
             Log.Write("Loading dictionaries failed: " + ex);
-            MessageBox.Show("LayoutBuddy could not load its dictionaries:\n" + ex.Message, "LayoutBuddy");
+            MessageBox.Show(AppInfo.Name + " could not load its dictionaries:\n" + ex.Message, AppInfo.Name);
             return;
         }
 
         if (selfCheck)
         {
-            MessageBox.Show(SelfCheck(detector), "LayoutBuddy self-check");
+            MessageBox.Show(SelfCheck(detector), AppInfo.Name + " self-check");
             return;
         }
 

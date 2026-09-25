@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>LayoutBuddy</title>
+<title>Type Language Corrector 4000</title>
 <style>
   :root {
     --bg: #FBFAF8;
@@ -71,7 +71,7 @@
     display: grid; place-items: center; color: #fff;
     font-weight: 700; font-size: 13px; letter-spacing: -.02em;
   }
-  .brand-name { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-weight: 650; font-size: 16px; letter-spacing: -.01em; }
+  .brand-name { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-weight: 650; font-size: 14.5px; line-height: 1.2; letter-spacing: -.01em; }
   nav { display: flex; flex-direction: column; gap: 2px; }
   nav button {
     display: flex; align-items: center; gap: 11px;
@@ -240,7 +240,7 @@
 <aside>
   <div class="brand">
     <div class="logo">אA</div>
-    <div class="brand-name">LayoutBuddy</div>
+    <div class="brand-name">Type Language<br>Corrector 4000</div>
   </div>
   <nav>
     <button data-page="home" class="active">
@@ -268,7 +268,7 @@
   <!-- ================= HOME ================= -->
   <section class="page active" id="page-home">
     <h1 id="greeting">Welcome back</h1>
-    <p class="lede">Type in either language. LayoutBuddy fixes words typed in the wrong layout the moment you press Space.</p>
+    <p class="lede">Type in either language. Words typed in the wrong layout are fixed the moment you press Space.</p>
 
     <div class="card hero">
       <div class="layout-badge" id="layoutBadge">EN</div>
@@ -389,20 +389,20 @@
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">Start with Windows</div>
-          <div class="setting-desc">Open LayoutBuddy in the background when you sign in.</div>
+          <div class="setting-desc">Run in the background when you sign in.</div>
         </div>
         <label class="toggle"><input type="checkbox" data-set="startWithWindows"><span></span></label>
       </div>
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">About</div>
-          <div class="setting-desc"><span id="aboutVersion">LayoutBuddy</span> · Made by Eithan Avraham</div>
+          <div class="setting-desc"><span id="aboutVersion">Type Language Corrector 4000</span> · Made by Eithan Avraham</div>
         </div>
       </div>
       <div class="setting">
         <div class="setting-text">
           <div class="setting-title">Uninstall</div>
-          <div class="setting-desc">Remove LayoutBuddy from Settings → Apps → Installed apps.</div>
+          <div class="setting-desc">Remove it from Settings → Apps → Installed apps.</div>
         </div>
         <button class="btn small" id="openApps">Open Windows Settings</button>
       </div>
@@ -468,7 +468,7 @@
     $$('#sensitivity button').forEach(b => b.classList.toggle('on', b.dataset.v === s.sensitivity));
 
     $('#version').textContent = 'Version ' + s.version;
-    $('#aboutVersion').textContent = 'LayoutBuddy ' + s.version;
+    $('#aboutVersion').textContent = 'Type Language Corrector 4000 · version ' + s.version;
     $('#statusDot').classList.toggle('off', !s.autoCorrect);
     $('#statusText').textContent = s.autoCorrect ? 'Auto-correct on' : 'Auto-correct paused';
 
