@@ -6,6 +6,28 @@ user presses Space or Enter, then switches the keyboard.
 
 Repository: `eithanavrahamu-coder/language-auto` (branch `main`). Clone it, read `README.md`, then this file.
 
+## Status (version 3.3.0)
+
+All eight languages below are done, one commit each. Notes for whoever continues:
+
+- **Word lists.** Georgian's FrequencyWords list is mostly Bulgarian/Macedonian/Russian subtitles in a broken
+  encoding (cp1251 read as a Georgian 8-bit encoding); those entries were filtered out, leaving ~10,400 real words.
+  Kazakh (~4,700) and Armenian (~6,900) lists are small; rarer words rely on the letter model. Serbian is mostly
+  transliterated from Latin-script subtitles (forms without diacritics and English words dropped). Thai mojibake
+  (`เธ...`) was removed.
+- **Shift letters.** `LanguageInfo.ShiftKeyboard` holds what Shift types where it types letters of its own
+  (Georgian QWERTY, Korean, Thai). Such keys are kept in the key sequence as the US shifted character (`T`, `:`).
+  Languages without a `ShiftKeyboard` behave exactly as before.
+- **Korean** (`LanguageInfo.JoinsSyllables`, `Hangul.cs`): jamo are composed like the IME does. On Windows,
+  `LayoutService.TypedLanguage` reads the IME mode with `WM_IME_CONTROL`/`IMC_GETCONVERSIONMODE`; the Korean keyboard
+  in English mode counts as English, and switching presses `VK_HANGUL`. Before deleting a Korean word, `VK_HANGUL` is
+  pressed twice to finish the syllable the IME is still composing. **None of this could be tried on a real Windows
+  machine** – if Korean misbehaves, check the log and these three places first. If the mode can't be read, Korean is
+  treated as unsupported in that window (no fixes) rather than guessed.
+- **Thai** (`LanguageInfo.WithoutSpaces`): `LanguageModel.Rank` splits text that isn't a dictionary entry into the
+  fewest known words and ranks it by the rarest one.
+- Belarusian is still missing (no FrequencyWords list).
+
 ## Your task
 
 Add these languages, in this order. Commit and push after each language (or each small group) so work is never lost.

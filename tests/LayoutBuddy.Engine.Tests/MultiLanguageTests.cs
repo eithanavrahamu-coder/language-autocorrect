@@ -222,7 +222,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]
@@ -231,7 +231,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
         var en = Words(Lang.English);
         var other = Words(lang)
             .Select(w => (Word: w, Keys: KeyMap.ToUsKeys(w, lang)))
-            .Where(x => x.Keys.All(KeyMap.IsWordKey) && KeyMap.Render(x.Keys, lang) == x.Word)
+            .Where(x => x.Keys.All(k => KeyMap.IsWordKey(k) || KeyMap.IsShiftedKey(k)) && KeyMap.Render(x.Keys, lang) == x.Word)
             .ToList();
 
         // Only words that look different on the two keyboards can be fixed at all.

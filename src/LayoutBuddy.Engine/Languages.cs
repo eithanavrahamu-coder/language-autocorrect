@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -33,6 +33,9 @@ public sealed record LanguageInfo(
     /// <summary>Letters join into syllable blocks as they are typed (Korean, see <see cref="Hangul"/>).</summary>
     public bool JoinsSyllables { get; init; }
 
+    /// <summary>Written without spaces between words (Thai): text typed before Space is often a whole phrase.</summary>
+    public bool WithoutSpaces { get; init; }
+
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
 }
 
@@ -50,6 +53,10 @@ public static class Languages
     private static readonly string HangulSyllables =
         string.Concat(Enumerable.Range('가', '힣' - '가' + 1).Select(c => (char)c)) +
         "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
+
+    // Thai consonants, vowels and tone marks (not the Thai digits or the baht sign).
+    private static readonly string ThaiLetters =
+        string.Concat(Enumerable.Range(0x0E01, 0x0E3A - 0x0E01 + 1).Concat(Enumerable.Range(0x0E40, 0x0E4E - 0x0E40 + 1)).Select(c => (char)c));
 
     public static readonly IReadOnlyList<LanguageInfo> All =
     [
@@ -130,6 +137,15 @@ public static class Languages
         {
             ShiftKeyboard = "~ ! @ # $ % ^ & * ( ) _ + ㅃ ㅉ ㄸ ㄲ ㅆ ㅛ ㅕ ㅑ ㅒ ㅖ { } | ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ : \" ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ < > ?",
             JoinsSyllables = true,
+        },
+
+        // Windows' default "Thai Kedmanee" layout, which types many letters with Shift (ธ, ซ, ู...).
+        new(Lang.Thai, "th", "Thai", "ไทย", "ไท", "#DB2777", 0x1E,
+            ThaiLetters, false, false,
+            "_ ๅ / - ภ ถ ุ ึ ค ต จ ข ช ๆ ไ ำ พ ะ ั ี ร น ย บ ล ฃ ฟ ห ก ด เ ้ ่ า ส ว ง ผ ป แ อ ิ ื ท ม ใ ฝ")
+        {
+            ShiftKeyboard = "% + ๑ ๒ ๓ ๔ ู ฿ ๕ ๖ ๗ ๘ ๙ ๐ \" ฎ ฑ ธ ํ ๊ ณ ฯ ญ ฐ , ฅ ฤ ฆ ฏ โ ฌ ็ ๋ ษ ศ ซ . ( ) ฉ ฮ ฺ ์ ? ฒ ฬ ฦ",
+            WithoutSpaces = true,
         },
     ];
 

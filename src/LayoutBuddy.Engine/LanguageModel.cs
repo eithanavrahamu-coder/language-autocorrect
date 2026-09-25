@@ -14,6 +14,7 @@ public sealed class LanguageModel
     private readonly Dictionary<string, double> _context2 = new();
     private readonly Dictionary<char, double> _context1 = new();
     private double _total;
+    private readonly int _longestWord;
 
     public Lang Lang { get; }
     public LanguageInfo Info { get; }
@@ -28,6 +29,7 @@ public sealed class LanguageModel
         {
             rank++;
             if (!_ranks.ContainsKey(word)) _ranks[word] = rank;
+            _longestWord = Math.Max(_longestWord, word.Length);
             Train(word, 1.0 + Math.Log10(Math.Max(1, count)));
         }
     }
@@ -94,8 +96,41 @@ public sealed class LanguageModel
 
     private static string Normalize(string s) => s.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormC);
 
-    /// <summary>Frequency rank (1 = most common), or null if not in the dictionary.</summary>
-    public int? Rank(string core) => _ranks.TryGetValue(core, out var r) ? r : null;
+    /// <summary>
+    /// Frequency rank (1 = most common), or null if not in the dictionary. In a language written without spaces
+    /// (Thai), text typed before Space is often several words: it ranks as the rarest of the words it splits into.
+    /// </summary>
+    public int? Rank(string core) =>
+        _ranks.TryGetValue(core, out var r) ? r : Info.WithoutSpaces ? PhraseRank(core) : null;
+
+    /// <summary>
+    /// Splits text into the fewest known words (then preferring common ones) and returns the rarest word's rank,
+    /// or null if the text can't be split into known words.
+    /// </summary>
+    private int? PhraseRank(string text)
+    {
+        var lookup = _ranks.GetAlternateLookup<ReadOnlySpan<char>>();
+        int n = text.Length;
+        var words = new int[n + 1];   // fewest words covering text[..i]
+        var rarest = new int[n + 1];  // ...and the rarest of them
+        Array.Fill(words, int.MaxValue);
+        words[0] = 0;
+        for (int i = 0; i < n; i++)
+        {
+            if (words[i] == int.MaxValue) continue;
+            for (int j = i + 1; j <= Math.Min(n, i + _longestWord); j++)
+            {
+                if (!lookup.TryGetValue(text.AsSpan(i, j - i), out var r) || r > KnownRankLimit(j - i)) continue;
+                int count = words[i] + 1, worst = Math.Max(rarest[i], r);
+                if (count < words[j] || (count == words[j] && worst < rarest[j]))
+                {
+                    words[j] = count;
+                    rarest[j] = worst;
+                }
+            }
+        }
+        return words[n] == int.MaxValue ? null : rarest[n];
+    }
 
     /// <summary>
     /// A word counts as "known" if it is in the dictionary with a rank good enough for its length

@@ -6,7 +6,7 @@ A Windows app for people who type in more than one language. It notices words ty
 and fixes them.
 
 **Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY), German (QWERTZ),
-Bulgarian, Serbian (Cyrillic), Macedonian, Kazakh, Georgian, Armenian and Korean.
+Bulgarian, Serbian (Cyrillic), Macedonian, Kazakh, Georgian, Armenian, Korean and Thai.
 Pick yours once in setup (languages whose keyboard is already in Windows are pre-selected) and change them any time in
 Settings → Languages. The app reads your actual Windows keyboards, so variants like Canadian French or Swiss German
 work too.
@@ -20,6 +20,8 @@ work too.
 - **Korean** – the Korean keyboard types both Hangul and English (switched with the 한/영 key or Right Alt), so for
   Korean the app looks at the Hangul/English mode instead of the keyboard, and fixes a word by switching the mode
   (`dkssud` → `안녕`, `ㅗ디ㅣㅐ` → `hello`). Laughing and crying (`ㅋㅋㅋ`, `ㅠㅠ`) are left alone.
+- **Thai** – Thai is written without spaces, so what is typed before Space is often a whole phrase; it is checked by
+  splitting it into dictionary words (`l;ylfu` → `สวัสดี`, `-v[86I,kd` → `ขอบคุณมาก`).
 - **Language indicator** – a small colored badge (`EN`, `עב`, `РУ`, `ΕΛ`...) next to the text cursor.
 - **Voice** (off by default; offered in setup, or turn it on in Settings) – says the language's name when the keyboard
   changes (in that language if Windows has a voice for it).
