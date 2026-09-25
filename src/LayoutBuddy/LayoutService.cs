@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -14,7 +15,32 @@ internal static class LayoutService
 {
     private enum SwitchHotkey { AltShift, CtrlShift, WinSpace }
 
-    public static Lang? FromHkl(IntPtr hkl) => Languages.FromWindowsLangId((int)((long)hkl & 0x3FF))?.Lang;
+    private static readonly ConcurrentDictionary<IntPtr, Lang?> LanguageByHkl = new();
+
+    /// <summary>
+    /// The language of a keyboard layout, from its Windows language id (the low word of the HKL) – unless the
+    /// layout clearly types another script, like a US keyboard added under Hebrew or a Latin keyboard added
+    /// under Serbian (Cyrillic).
+    /// </summary>
+    public static Lang? FromHkl(IntPtr hkl) => LanguageByHkl.GetOrAdd(hkl, h =>
+    {
+        var info = Languages.FromWindowsLangId((int)((long)h & 0xFFFF));
+        return info == null || TypesOtherScript(h, info) ? null : info.Lang;
+    });
+
+    private static bool TypesOtherScript(IntPtr hkl, LanguageInfo info)
+    {
+        try
+        {
+            var tokens = ReadKeyboard(hkl);
+            return tokens != null && tokens.Count(t => info.IsLetter(t[0])) < 10;
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Checking keyboard {info.Name} failed: {ex.Message}");
+            return false;
+        }
+    }
 
     /// <summary>
     /// The window that actually receives typing. Apps like WhatsApp, Teams or Store apps show a frame window

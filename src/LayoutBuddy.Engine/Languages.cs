@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -18,6 +18,12 @@ public sealed record LanguageInfo(
 {
     private readonly HashSet<char> _letters = new(Alphabet);
 
+    /// <summary>
+    /// Full Windows language ids (LANGIDs) to match instead of the primary id, for a language that shares its
+    /// primary id with others (Serbian Cyrillic shares 0x1A with Croatian, Bosnian and Serbian Latin).
+    /// </summary>
+    public IReadOnlyList<int>? WindowsFullLangIds { get; init; }
+
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
 }
 
@@ -29,6 +35,7 @@ public static class Languages
     private const string Acute = "~́´";
     private const string Circumflex = "~̂^";
     private const string Tonos = "~́΄";
+    private const string Apostrophe = "~́'";
 
     public static readonly IReadOnlyList<LanguageInfo> All =
     [
@@ -72,6 +79,13 @@ public static class Languages
         new(Lang.Bulgarian, "bg", "Bulgarian", "Български", "БГ", "#047857", 0x02,
             "абвгдежзийклмнопрстуфхцчшщъьюяѝ", true, false,
             "( 1 2 3 4 5 6 7 8 9 0 - . , у е и ш щ к с д з ц ; „ ь я а о ж г т н в м ч ю й ъ э ф х п р л б"),
+
+        new(Lang.Serbian, "sr", "Serbian (Cyrillic)", "Српски", "СР", "#BE123C", 0x1A,
+            "абвгдђежзијклљмнњопрстћуфхцчџш", true, false,
+            $"` 1 2 3 4 5 6 7 8 9 0 {Apostrophe} + љ њ е р т з у и о п ш ђ ж а с д ф г х ј к л ч ћ ѕ џ ц в б н м , . -")
+        {
+            WindowsFullLangIds = [0x0C1A, 0x1C1A, 0x281A, 0x301A],
+        },
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);
@@ -81,6 +95,7 @@ public static class Languages
     public static LanguageInfo? FromCode(string? code) =>
         All.FirstOrDefault(l => string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase));
 
-    public static LanguageInfo? FromWindowsLangId(int primaryLangId) =>
-        All.FirstOrDefault(l => l.WindowsLangId == primaryLangId);
+    /// <param name="langId">The Windows language id (LANGID) of a keyboard layout, or just its primary id.</param>
+    public static LanguageInfo? FromWindowsLangId(int langId) =>
+        All.FirstOrDefault(l => l.WindowsFullLangIds?.Contains(langId) ?? l.WindowsLangId == (langId & 0x3FF));
 }
