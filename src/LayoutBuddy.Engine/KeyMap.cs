@@ -153,8 +153,9 @@ public static class KeyMap
     {
         var map = _maps[lang];
         bool shiftLetters = Languages.Get(lang).ShiftKeyboard != null;
-        int KeyFor(string s) => Array.FindIndex(map.Plain, t => !t.Dead && t.Text == s);
-        int ShiftedKeyFor(string s) => shiftLetters ? Array.FindIndex(map.Shifted, t => !t.Dead && t.Text == s) : -1;
+        // The last matching key, so letters win over the number row (Armenian ւ is on both 6 and U).
+        int KeyFor(string s) => Array.FindLastIndex(map.Plain, t => !t.Dead && t.Text == s);
+        int ShiftedKeyFor(string s) => shiftLetters ? Array.FindLastIndex(map.Shifted, t => !t.Dead && t.Text == s) : -1;
         var sb = new StringBuilder();
         foreach (var ch in text.Normalize(NormalizationForm.FormC))
         {

@@ -33,6 +33,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Kazakh, "сәлем")]
     [InlineData(Lang.Georgian, "გამარჯობა")]
     [InlineData(Lang.Georgian, "გთხოვთ")]      // თ is Shift+T
+    [InlineData(Lang.Armenian, "բարև")]
+    [InlineData(Lang.Armenian, "շնորհակալություն")]
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -53,6 +55,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Macedonian, "computer")]
     [InlineData(Lang.Kazakh, "world")]
     [InlineData(Lang.Georgian, "hello")]
+    [InlineData(Lang.Armenian, "thanks")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -119,6 +122,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x281A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia
     [InlineData(0x1C1A, Lang.Serbian)]   // Serbian (Cyrillic), Bosnia and Herzegovina
     [InlineData(0x0437, Lang.Georgian)]
+    [InlineData(0x042B, Lang.Armenian)]
     [InlineData(0x0419, Lang.Russian)]
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
@@ -137,6 +141,10 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData("1990")]
     public void NumbersAreLeftAlone(string keys) =>
         Assert.False(D.Evaluate(keys, Lang.English, Lang.Kazakh, Sensitivity.High).ShouldFix);   // Kazakh types letters on the number row
+
+    [Fact]
+    public void LettersOnTheNumberRowAreNotReadAsDigits() =>
+        Assert.False(D.Evaluate(KeyMap.ToUsKeys("հավերժ", Lang.Armenian), Lang.Armenian, Lang.English, Sensitivity.High).ShouldFix);
 
     [Fact]
     public void GeorgianLettersTypedWithShift()
@@ -214,7 +222,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

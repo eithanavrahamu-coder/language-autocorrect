@@ -107,6 +107,7 @@ public sealed class WrongLayoutDetector
         // Keyboards that share most letters (English/French/German) often type the same thing.
         if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return No("same text");
         if (IsNumber(a.Typed, current)) return No("number");
+        if (AddsDigits(a)) return No("digits in a word");
 
         // The sentence so far is in the typed language: only fix clear mistakes.
         if (context < 0 && sensitivity != Sensitivity.Low) sensitivity = Sensitivity.Low;
@@ -156,6 +157,12 @@ public sealed class WrongLayoutDetector
         typed.Any(char.IsDigit) && !typed.Any(Model(typedIn).IsLetter);
 
     /// <summary>
+    /// Letters typed on the number row (Armenian ր is the 8 key) read as digits on other keyboards:
+    /// "հավերժ" is not the English "have8=".
+    /// </summary>
+    private static bool AddsDigits(Analysis a) => a.Alt.Count(char.IsDigit) > a.Typed.Count(char.IsDigit);
+
+    /// <summary>
     /// Which language a finished word is in: the typed layout if it is a word there and not in the other,
     /// the other language if the reverse, otherwise null (ambiguous or unknown).
     /// </summary>
@@ -191,7 +198,7 @@ public sealed class WrongLayoutDetector
     {
         var a = Analyze(usKeys, current, target);
         if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return false;
-        if (a.AltCore == null || IsNumber(a.Typed, current)) return false;
+        if (a.AltCore == null || IsNumber(a.Typed, current) || AddsDigits(a)) return false;
         if (a.TypedKnown)
             return a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar && tr >= ar * 3;
         if (a.AltKnown) return true;

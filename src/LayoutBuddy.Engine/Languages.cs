@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -108,6 +108,11 @@ public static class Languages
         {
             ShiftKeyboard = "“ ! @ # $ % ^ & * ( ) _ + � ჭ � ღ თ � � � � � { } | � შ � � � � ჟ � ₾ : \" ძ � ჩ � � N � < > ?",
         },
+
+        // Windows' default "Armenian Phonetic" layout.
+        new(Lang.Armenian, "hy", "Armenian", "Հայերեն", "ՀԱ", "#4D7C0F", 0x2B,
+            "աբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆև", true, false,
+            "՝ է թ փ ձ ջ ւ և ր չ ճ - ժ ք ո ե ռ տ ը ւ ի օ պ խ ծ շ ա ս դ ֆ գ հ յ կ լ ; ՛ զ ղ ց վ բ ն մ , ․ /"),
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);
