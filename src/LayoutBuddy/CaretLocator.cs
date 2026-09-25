@@ -8,13 +8,15 @@ namespace LayoutBuddy;
 
 /// <summary>
 /// Finds the text caret on screen, trying (1) Win32 caret, (2) MSAA caret object,
-/// (3) UI Automation text selection. Returns screen coordinates in physical pixels.
+/// (3) UI Automation text selection of the focused element, (4) the focused text box itself.
+/// Returns screen coordinates in physical pixels.
 /// </summary>
 internal static class CaretLocator
 {
-    public static Rectangle? Find(Native.GUITHREADINFO gti, IntPtr focusWindow, bool useUia)
+    /// <param name="focusedElement">Gets the focused element through UI Automation (slower), or null to skip it.</param>
+    public static Rectangle? Find(Native.GUITHREADINFO gti, IntPtr focusWindow, Func<AutomationElement?>? focusedElement)
     {
-        return FromWin32(gti) ?? FromMsaa(focusWindow) ?? (useUia ? FromUia() : null);
+        return FromWin32(gti) ?? FromMsaa(focusWindow) ?? (focusedElement?.Invoke() is { } el ? FromUia(el) : null);
     }
 
     private static Rectangle? FromWin32(Native.GUITHREADINFO gti)
@@ -51,40 +53,57 @@ internal static class CaretLocator
         }
     }
 
-    private static Rectangle? FromUia()
+    private static Rectangle? FromUia(AutomationElement el)
     {
         try
         {
-            var el = AutomationElement.FocusedElement;
-            if (el == null || !el.TryGetCurrentPattern(TextPattern.Pattern, out var p)) return null;
-            var sel = ((TextPattern)p).GetSelection();
-            if (sel.Length == 0) return null;
-            var range = sel[0].Clone();
-            // An empty selection (just a caret) has no rectangle; measure the character next to it.
-            var rects = range.GetBoundingRectangles();
-            bool atEnd = false;
-            if (rects.Length == 0)
-            {
-                range.ExpandToEnclosingUnit(TextUnit.Character);
-                rects = range.GetBoundingRectangles();
-                if (rects.Length == 0)
-                {
-                    // Caret at the very end: use the previous character's right edge.
-                    range = sel[0].Clone();
-                    range.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -1);
-                    rects = range.GetBoundingRectangles();
-                    atEnd = true;
-                }
-            }
-            if (rects.Length == 0) return null;
-            var r = rects[0];
-            int x = (int)(atEnd ? r.Right : r.Left);
-            return Valid(new Rectangle(x, (int)r.Top, 1, Math.Max(1, (int)r.Height)));
+            return FromTextPattern(el) ?? FromBounds(el);
         }
         catch
         {
             return null;
         }
+    }
+
+    private static Rectangle? FromTextPattern(AutomationElement el)
+    {
+        if (!el.TryGetCurrentPattern(TextPattern.Pattern, out var p)) return null;
+        var sel = ((TextPattern)p).GetSelection();
+        if (sel.Length == 0) return null;
+        var range = sel[0].Clone();
+        // An empty selection (just a caret) has no rectangle; measure the character next to it.
+        var rects = range.GetBoundingRectangles();
+        bool atEnd = false;
+        if (rects.Length == 0)
+        {
+            range.ExpandToEnclosingUnit(TextUnit.Character);
+            rects = range.GetBoundingRectangles();
+            if (rects.Length == 0)
+            {
+                // Caret at the very end: use the previous character's right edge.
+                range = sel[0].Clone();
+                range.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -1);
+                rects = range.GetBoundingRectangles();
+                atEnd = true;
+            }
+        }
+        if (rects.Length == 0) return null;
+        var r = rects[0];
+        int x = (int)(atEnd ? r.Right : r.Left);
+        return Valid(new Rectangle(x, (int)r.Top, 1, Math.Max(1, (int)r.Height)));
+    }
+
+    /// <summary>
+    /// An empty text box has no text to measure, and some text boxes can't be measured at all:
+    /// use the box itself, from its left edge (a one-line box's full height, so the badge sits just below it).
+    /// </summary>
+    private static Rectangle? FromBounds(AutomationElement el)
+    {
+        var c = el.Current;
+        if (c.ControlType != ControlType.Edit) return null;
+        var b = c.BoundingRectangle;
+        if (b.IsEmpty || b.Width < 1 || b.Height < 1) return null;
+        return Valid(new Rectangle((int)b.Left + 4, (int)b.Top, 1, (int)Math.Min(b.Height, 60)));
     }
 
     private static Rectangle? Valid(Rectangle r) =>

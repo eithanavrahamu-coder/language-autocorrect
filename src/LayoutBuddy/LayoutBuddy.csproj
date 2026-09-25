@@ -13,7 +13,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>LanguageAutocorrect</AssemblyName>
     <RootNamespace>LayoutBuddy</RootNamespace>
-    <Version>3.3.1</Version>
+    <Version>3.3.2</Version>
     <Product>Language Autocorrect</Product>
     <Company>Eithan Avraham</Company>
     <Authors>Eithan Avraham</Authors>

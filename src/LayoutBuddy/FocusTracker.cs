@@ -18,6 +18,7 @@ internal sealed class FocusTracker : IDisposable
 {
     private readonly Thread _thread;
     private readonly Dictionary<uint, string> _processNames = new();
+    private readonly WebViewContent _webView = new();
     private volatile bool _stop;
     private volatile FocusSnapshot _snapshot = new(IntPtr.Zero, IntPtr.Zero, null, null, null, false);
     private int _tick;
@@ -69,9 +70,17 @@ internal sealed class FocusTracker : IDisposable
 
         // UI Automation is slower, so ask less often (or right away when focus moves).
         bool askUia = focusChanged || _tick % 4 == 0;
-        if (askUia) _isPassword = IsPasswordFocused();
+        AutomationElement? element = null;
+        bool fetched = false;
+        AutomationElement? Element()
+        {
+            if (!fetched) element = FocusedElement(fg, focus, search: askUia);
+            fetched = true;
+            return element;
+        }
+        if (askUia) _isPassword = IsPassword(Element());
 
-        var caret = CaretLocator.Find(gti, focus, useUia: askUia || prev.Caret == null);
+        var caret = CaretLocator.Find(gti, focus, askUia || prev.Caret == null ? Element : null);
         if (caret == null && !askUia && prev.Caret != null && !focusChanged)
             caret = prev.Caret; // keep last UIA result between UIA polls
 
@@ -92,11 +101,29 @@ internal sealed class FocusTracker : IDisposable
         Log.Write($"App '{process}': typing window class '{Native.ClassName(focus)}', keyboard 0x{(long)hkl:X8} ({lang?.ToString() ?? "unsupported"})");
     }
 
-    private static bool IsPasswordFocused()
+    /// <summary>The focused element through UI Automation (slower, so not on every poll).</summary>
+    private AutomationElement? FocusedElement(IntPtr fg, IntPtr focus, bool search)
+    {
+        AutomationElement? el;
+        try
+        {
+            el = AutomationElement.FocusedElement;
+            // Apps like the new WhatsApp: their web page is only reachable through a WebView2 helper window.
+            if (WebViewContent.IsHost(focus) && el?.Current.FrameworkId != "Chrome")
+                return _webView.FocusedElement(fg, search) ?? el;
+        }
+        catch
+        {
+            return null;
+        }
+        return el;
+    }
+
+    private static bool IsPassword(AutomationElement? el)
     {
         try
         {
-            return AutomationElement.FocusedElement?.Current.IsPassword == true;
+            return el?.Current.IsPassword == true;
         }
         catch
         {
