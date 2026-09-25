@@ -31,6 +31,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Macedonian, "благодарам")]
     [InlineData(Lang.Kazakh, "рахмет")]
     [InlineData(Lang.Kazakh, "сәлем")]
+    [InlineData(Lang.Georgian, "გამარჯობა")]
+    [InlineData(Lang.Georgian, "გთხოვთ")]      // თ is Shift+T
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -50,6 +52,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Serbian, "thanks")]
     [InlineData(Lang.Macedonian, "computer")]
     [InlineData(Lang.Kazakh, "world")]
+    [InlineData(Lang.Georgian, "hello")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -115,6 +118,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x0C1A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia and Montenegro (former)
     [InlineData(0x281A, Lang.Serbian)]   // Serbian (Cyrillic), Serbia
     [InlineData(0x1C1A, Lang.Serbian)]   // Serbian (Cyrillic), Bosnia and Herzegovina
+    [InlineData(0x0437, Lang.Georgian)]
     [InlineData(0x0419, Lang.Russian)]
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
@@ -133,6 +137,37 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData("1990")]
     public void NumbersAreLeftAlone(string keys) =>
         Assert.False(D.Evaluate(keys, Lang.English, Lang.Kazakh, Sensitivity.High).ShouldFix);   // Kazakh types letters on the number row
+
+    [Fact]
+    public void GeorgianLettersTypedWithShift()
+    {
+        // შენ = Shift+S, e, n: on the Georgian keyboard it's a normal word, on the English one it's fixed.
+        Assert.Equal("Sen", KeyMap.ToUsKeys("შენ", Lang.Georgian));
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Georgian] };
+        Assert.IsType<PassThrough>(Type(s, "Sen ", Lang.Georgian));
+        s.ResetAll();
+        var a = Assert.IsType<FixWord>(Type(s, "gTxovT ", Lang.English));
+        Assert.Equal("გთხოვთ", a.Text);
+        Assert.Equal("gTxovT", a.Correction.Typed);
+        Assert.Equal(Lang.Georgian, a.Layout);
+        s.ResetAll();
+        Assert.IsType<PassThrough>(Type(s, "Thanks ", Lang.English));   // a capital T is still a capital
+    }
+
+    [Fact]
+    public void ShiftedWordIsNotTurnedIntoHebrewWithGeorgianOn()
+    {
+        // Shift+T is Georgian თ, so the key is kept shifted; for Hebrew it still means a capital (a name).
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Hebrew, Lang.Georgian] };
+        Assert.IsType<PassThrough>(Type(s, "Takuo ", Lang.English));
+    }
+
+    [Fact]
+    public void ShiftInsideAWordStillStopsTrackingWithoutGeorgian()
+    {
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Russian] };
+        Assert.IsType<PassThrough>(Type(s, "ghbdTn ", Lang.English));
+    }
 
     [Fact]
     public void CapitalizedGermanNounKeepsItsCapital()
@@ -167,13 +202,19 @@ public class MultiLanguageTests(ITestOutputHelper output)
     {
         TypingAction last = PassThrough.Instance;
         foreach (var c in text)
-            last = s.OnKey(c == ' ' ? KeyInput.Space : KeyInput.Word(c), layout, true, Sensitivity.Medium, T0);
+        {
+            int shifted = KeyMap.ShiftedKeys.IndexOf(c);
+            var key = c == ' ' ? KeyInput.Space
+                : shifted >= 0 ? KeyInput.Word(KeyMap.PhysicalKeys[shifted], shifted: true)
+                : KeyInput.Word(c);
+            last = s.OnKey(key, layout, true, Sensitivity.Medium, T0);
+        }
         return last;
     }
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

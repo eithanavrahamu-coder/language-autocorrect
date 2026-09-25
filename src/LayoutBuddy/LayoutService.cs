@@ -221,7 +221,9 @@ internal static class LayoutService
             try
             {
                 var tokens = ReadKeyboard(hkl);
-                if (tokens != null) KeyMap.SetKeyboard(lang, tokens);
+                // Georgian and similar keyboards type letters of their own with Shift.
+                var shifted = tokens != null && Languages.Get(lang).ShiftKeyboard != null ? ReadKeyboard(hkl, shift: true) : null;
+                if (tokens != null) KeyMap.SetKeyboard(lang, tokens, shifted);
             }
             catch (Exception ex)
             {
@@ -230,11 +232,12 @@ internal static class LayoutService
         }
     }
 
-    private static string[]? ReadKeyboard(IntPtr hkl)
+    private static string[]? ReadKeyboard(IntPtr hkl, bool shift = false)
     {
         var byKey = KeyboardMonitor.PhysicalKeys.ToDictionary(p => p.Key, p => p.ScanCode);
         var tokens = new string[KeyMap.PhysicalKeys.Length];
         var state = new byte[256];
+        if (shift) state[Native.VK_SHIFT] = 0x80;
         var buf = new StringBuilder(8);
         int letters = 0;
 
@@ -264,7 +267,7 @@ internal static class LayoutService
                 tokens[i] = "�"; // this key types nothing on this layout
             }
         }
-        return letters >= 20 ? tokens : null; // sanity check
+        return shift || letters >= 20 ? tokens : null; // sanity check
     }
 
     private static char? CombiningFor(char spacing) => spacing switch

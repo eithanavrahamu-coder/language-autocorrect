@@ -12,12 +12,33 @@ public static class KeyMap
     /// <summary>The 47 keys that can be part of a word, in the order used by <see cref="LanguageInfo.Keyboard"/>.</summary>
     public const string PhysicalKeys = "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./";
 
+    /// <summary>
+    /// The same keys with Shift held, as a US keyboard types them. A key sequence uses these for keys that
+    /// type a letter of their own with Shift (Georgian Shift+T types თ, not a capital ტ).
+    /// </summary>
+    public const string ShiftedKeys = "~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+
     private readonly record struct Token(string Text, char Combining, bool Dead);
 
-    private static volatile Dictionary<Lang, Token[]> _maps = BuildDefaults();
+    private sealed record Map(Token[] Plain, Token[] Shifted);
 
-    private static Dictionary<Lang, Token[]> BuildDefaults() =>
-        Languages.All.ToDictionary(l => l.Lang, l => Parse(l.Keyboard.Split(' ')));
+    private static volatile Dictionary<Lang, Map> _maps = BuildDefaults();
+
+    private static Dictionary<Lang, Map> BuildDefaults() =>
+        Languages.All.ToDictionary(l => l.Lang, l => Build(l, l.Keyboard.Split(' '), l.ShiftKeyboard?.Split(' ')));
+
+    private static Map Build(LanguageInfo info, IReadOnlyList<string> plain, IReadOnlyList<string>? shifted)
+    {
+        var p = Parse(plain);
+        var s = shifted != null ? Parse(shifted) : p.Select((t, i) => DefaultShifted(t, i, info.HasCase)).ToArray();
+        return new Map(p, s);
+    }
+
+    /// <summary>Without a shifted map: the capital of a letter, otherwise what a US keyboard types.</summary>
+    private static Token DefaultShifted(Token t, int key, bool hasCase) =>
+        hasCase && !t.Dead && t.Text.Length == 1 && char.ToUpperInvariant(t.Text[0]) != t.Text[0]
+            ? t with { Text = t.Text.ToUpperInvariant() }
+            : new Token(ShiftedKeys[key].ToString(), '\0', false);
 
     private static Token[] Parse(IReadOnlyList<string> tokens)
     {
@@ -33,9 +54,11 @@ public static class KeyMap
     /// (layouts vary: Canadian French, Swiss German, Persian Standard...).
     /// </summary>
     /// <param name="tokens">One entry per <see cref="PhysicalKeys"/>, in the same format as <see cref="LanguageInfo.Keyboard"/>.</param>
-    public static void SetKeyboard(Lang lang, IReadOnlyList<string> tokens)
+    /// <param name="shifted">The same with Shift held, or null to derive it.</param>
+    public static void SetKeyboard(Lang lang, IReadOnlyList<string> tokens, IReadOnlyList<string>? shifted = null)
     {
-        var copy = new Dictionary<Lang, Token[]>(_maps) { [lang] = Parse(tokens) };
+        var info = Languages.Get(lang);
+        var copy = new Dictionary<Lang, Map>(_maps) { [lang] = Build(info, tokens, shifted ?? info.ShiftKeyboard?.Split(' ')) };
         _maps = copy;
     }
 
@@ -44,11 +67,31 @@ public static class KeyMap
 
     public static bool IsWordKey(char usKey) => PhysicalKeys.IndexOf(char.ToLowerInvariant(usKey)) >= 0;
 
-    private static Token? Lookup(Token[] map, char key)
+    private static Token? Lookup(Map map, char key)
     {
         int i = PhysicalKeys.IndexOf(key);
-        return i < 0 ? null : map[i];
+        if (i >= 0) return map.Plain[i];
+        i = ShiftedKeys.IndexOf(key);
+        return i < 0 ? null : map.Shifted[i];
     }
+
+    /// <summary>
+    /// True if Shift + this key types a letter of its own in <paramref name="lang"/> (Georgian თ, Thai ธ, Korean ㅆ),
+    /// rather than a capital letter.
+    /// </summary>
+    public static bool ShiftTypesLetter(char usKey, Lang lang)
+    {
+        var info = Languages.Get(lang);
+        int i = PhysicalKeys.IndexOf(char.ToLowerInvariant(usKey));
+        if (info.ShiftKeyboard == null || i < 0) return false;
+        var t = _maps[lang].Shifted[i];
+        return !t.Dead && t.Text.Length == 1 && info.IsLetter(t.Text[0]);
+    }
+
+    public static bool IsShiftedKey(char c) => ShiftedKeys.IndexOf(c) >= 0;
+
+    /// <summary>The <see cref="ShiftedKeys"/> character for a physical key.</summary>
+    public static char Shifted(char usKey) => ShiftedKeys[PhysicalKeys.IndexOf(char.ToLowerInvariant(usKey))];
 
     /// <summary>Renders a sequence of physical keys as it would appear when typed in <paramref name="lang"/>.</summary>
     /// <param name="capitalizeFirst">Shift was held for the first key (only affects languages with capital letters).</param>
@@ -109,18 +152,22 @@ public static class KeyMap
     public static string ToUsKeys(string text, Lang lang = Lang.Hebrew)
     {
         var map = _maps[lang];
-        int KeyFor(string s) => Array.FindIndex(map, t => !t.Dead && t.Text == s);
+        bool shiftLetters = Languages.Get(lang).ShiftKeyboard != null;
+        int KeyFor(string s) => Array.FindIndex(map.Plain, t => !t.Dead && t.Text == s);
+        int ShiftedKeyFor(string s) => shiftLetters ? Array.FindIndex(map.Shifted, t => !t.Dead && t.Text == s) : -1;
         var sb = new StringBuilder();
         foreach (var ch in text.Normalize(NormalizationForm.FormC))
         {
-            // A key that types this exact character (French é, German ö)...
+            // A key that types this exact character (French é, German ö, Georgian Shift+T თ)...
             int i = KeyFor(ch.ToString());
             if (i >= 0) { sb.Append(PhysicalKeys[i]); continue; }
+            i = ShiftedKeyFor(ch.ToString());
+            if (i >= 0) { sb.Append(ShiftedKeys[i]); continue; }
 
             // ...or a dead key followed by the base letter (Greek ΄ + α = ά).
             var parts = ch.ToString().Normalize(NormalizationForm.FormD);
             int b = parts.Length == 2 ? KeyFor(parts[0].ToString()) : -1;
-            int d = parts.Length == 2 ? Array.FindIndex(map, t => t.Dead && t.Combining == parts[1]) : -1;
+            int d = parts.Length == 2 ? Array.FindIndex(map.Plain, t => t.Dead && t.Combining == parts[1]) : -1;
             if (b >= 0 && d >= 0)
             {
                 sb.Append(PhysicalKeys[d]).Append(PhysicalKeys[b]);

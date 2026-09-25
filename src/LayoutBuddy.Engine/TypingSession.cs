@@ -119,6 +119,12 @@ public sealed class TypingSession
             case KeyKind.WordKey:
                 if (_wordLayout != null && _wordLayout != layout) Reset();
                 _wordLayout = layout;
+                if (key.Shifted && ShiftTypesLetter(key.UsChar, layout))
+                {
+                    // Georgian, Thai and Korean type letters with Shift (თ, ธ, ㅆ): remember the key as shifted.
+                    _keys.Append(KeyMap.Shifted(key.UsChar));
+                    return PassThrough.Instance;
+                }
                 if (key.Shifted)
                 {
                     // A capital first letter is fine (sentence start, German nouns); Shift anywhere else isn't.
@@ -167,6 +173,10 @@ public sealed class TypingSession
         }
     }
 
+    /// <summary>On this keyboard, or on the keyboard of a language the word may really be in.</summary>
+    private bool ShiftTypesLetter(char usKey, Lang layout) =>
+        KeyMap.ShiftTypesLetter(usKey, layout) || Languages.Any(l => KeyMap.ShiftTypesLetter(usKey, l));
+
     private void ResetAllButUndo()
     {
         Reset();
@@ -210,7 +220,9 @@ public sealed class TypingSession
         {
             if (target == layout) continue;
             // A capitalized word going to a language without capitals (Hebrew, Arabic) is probably a name.
-            if (_capitalized && !LayoutBuddy.Engine.Languages.Get(target).HasCase) continue;
+            // So is one with a shifted key, unless the language types letters with Shift (Georgian).
+            var info = LayoutBuddy.Engine.Languages.Get(target);
+            if (!info.HasCase && (_capitalized || (info.ShiftKeyboard == null && keys.Any(KeyMap.IsShiftedKey)))) continue;
             var d = _detector.Evaluate(keys, layout, target, sensitivity, SentenceContext(layout, target));
             if (d.ShouldFix && (best == null || d.Score > best.Score)) best = d;
         }

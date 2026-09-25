@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -23,6 +23,12 @@ public sealed record LanguageInfo(
     /// primary id with others (Serbian Cyrillic shares 0x1A with Croatian, Bosnian and Serbian Latin).
     /// </summary>
     public IReadOnlyList<int>? WindowsFullLangIds { get; init; }
+
+    /// <summary>
+    /// What each physical key types with Shift, for keyboards where Shift types letters of their own rather than
+    /// capitals (Georgian, Thai, Korean). "�" marks a key that types nothing.
+    /// </summary>
+    public string? ShiftKeyboard { get; init; }
 
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
 }
@@ -94,6 +100,14 @@ public static class Languages
         new(Lang.Kazakh, "kk", "Kazakh", "Қазақша", "ҚЗ", "#0E7490", 0x3F,
             "аәбвгғдеёжзийкқлмнңоөпрстуұүфхһцчшщъыіьэюя", true, false,
             "( \" ә і ң ғ , . ү ұ қ ө һ й ц у к е н г ш щ з х ъ \\ ф ы в а п р о л д ж э я ч с м и т ь б ю №"),
+
+        // Windows' default "Georgian (QWERTY)" layout, which types თ შ ჭ ღ ჟ ძ ჩ with Shift.
+        new(Lang.Georgian, "ka", "Georgian", "ქართული", "ქა", "#A21CAF", 0x37,
+            "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ", false, false,
+            "„ 1 2 3 4 5 6 7 8 9 0 - = ქ წ ე რ ტ ყ უ ი ო პ [ ] ~ ა ს დ ფ გ ჰ ჯ კ ლ ; ' ზ ხ ც ვ ბ ნ მ , . /")
+        {
+            ShiftKeyboard = "“ ! @ # $ % ^ & * ( ) _ + � ჭ � ღ თ � � � � � { } | � შ � � � � ჟ � ₾ : \" ძ � ჩ � � N � < > ?",
+        },
     ];
 
     private static readonly Dictionary<Lang, LanguageInfo> ByLang = All.ToDictionary(l => l.Lang);
