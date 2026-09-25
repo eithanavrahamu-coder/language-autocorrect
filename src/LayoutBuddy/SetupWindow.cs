@@ -47,6 +47,7 @@ internal sealed class SetupWindow : WebWindow
                         nativeName = l.NativeName,
                         badge = l.Badge,
                         color = l.Color,
+                        beta = l.Beta,
                         installed = installed.Contains(l.Lang),
                         selected = l.Lang == Lang.English || installed.Contains(l.Lang),
                         locked = l.Lang == Lang.English,

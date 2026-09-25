@@ -36,6 +36,9 @@ public sealed record LanguageInfo(
     /// <summary>Written without spaces between words (Thai): text typed before Space is often a whole phrase.</summary>
     public bool WithoutSpaces { get; init; }
 
+    /// <summary>Less proven so far (small word list, or not yet tried on a real Windows keyboard): shown as "Beta".</summary>
+    public bool Beta { get; init; }
+
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
 }
 
@@ -114,7 +117,10 @@ public static class Languages
 
         new(Lang.Kazakh, "kk", "Kazakh", "Қазақша", "ҚЗ", "#0E7490", 0x3F,
             "аәбвгғдеёжзийкқлмнңоөпрстуұүфхһцчшщъыіьэюя", true, false,
-            "( \" ә і ң ғ , . ү ұ қ ө һ й ц у к е н г ш щ з х ъ \\ ф ы в а п р о л д ж э я ч с м и т ь б ю №"),
+            "( \" ә і ң ғ , . ү ұ қ ө һ й ц у к е н г ш щ з х ъ \\ ф ы в а п р о л д ж э я ч с м и т ь б ю №")
+        {
+            Beta = true,
+        },
 
         // Windows' default "Georgian (QWERTY)" layout, which types თ შ ჭ ღ ჟ ძ ჩ with Shift.
         new(Lang.Georgian, "ka", "Georgian", "ქართული", "ქა", "#A21CAF", 0x37,
@@ -122,12 +128,16 @@ public static class Languages
             "„ 1 2 3 4 5 6 7 8 9 0 - = ქ წ ე რ ტ ყ უ ი ო პ [ ] ~ ა ს დ ფ გ ჰ ჯ კ ლ ; ' ზ ხ ც ვ ბ ნ მ , . /")
         {
             ShiftKeyboard = "“ ! @ # $ % ^ & * ( ) _ + � ჭ � ღ თ � � � � � { } | � შ � � � � ჟ � ₾ : \" ძ � ჩ � � N � < > ?",
+            Beta = true,
         },
 
         // Windows' default "Armenian Phonetic" layout.
         new(Lang.Armenian, "hy", "Armenian", "Հայերեն", "ՀԱ", "#4D7C0F", 0x2B,
             "աբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆև", true, false,
-            "՝ է թ փ ձ ջ ւ և ր չ ճ - ժ ք ո ե ռ տ ը ւ ի օ պ խ ծ շ ա ս դ ֆ գ հ յ կ լ ; ՛ զ ղ ց վ բ ն մ , ․ /"),
+            "՝ է թ փ ձ ջ ւ և ր չ ճ - ժ ք ո ե ռ տ ը ւ ի օ պ խ ծ շ ա ս դ ֆ գ հ յ կ լ ; ՛ զ ղ ց վ բ ն մ , ․ /")
+        {
+            Beta = true,
+        },
 
         // The standard 2-set (Dubeolsik) layout of the Korean IME. Words are whole syllables; the letters
         // (jamo) the keys type are joined into them.
@@ -137,6 +147,7 @@ public static class Languages
         {
             ShiftKeyboard = "~ ! @ # $ % ^ & * ( ) _ + ㅃ ㅉ ㄸ ㄲ ㅆ ㅛ ㅕ ㅑ ㅒ ㅖ { } | ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ : \" ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ < > ?",
             JoinsSyllables = true,
+            Beta = true,
         },
 
         // Windows' default "Thai Kedmanee" layout, which types many letters with Shift (ธ, ซ, ู...).
@@ -146,6 +157,7 @@ public static class Languages
         {
             ShiftKeyboard = "% + ๑ ๒ ๓ ๔ ู ฿ ๕ ๖ ๗ ๘ ๙ ๐ \" ฎ ฑ ธ ํ ๊ ณ ฯ ญ ฐ , ฅ ฤ ฆ ฏ โ ฌ ็ ๋ ษ ศ ซ . ( ) ฉ ฮ ฺ ์ ? ฒ ฬ ฦ",
             WithoutSpaces = true,
+            Beta = true,
         },
     ];
 

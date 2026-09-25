@@ -189,6 +189,10 @@
   }
   .lang-native { font-weight: 600; }
   .lang-name { color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .lang-beta {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
+    font-size: 11px; font-weight: 600; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
   .lang-warn { color: #B45309; font-size: 12.5px; margin-top: 2px; }
   @media (prefers-color-scheme: dark) { .lang-warn { color: #FBBF24; } }
   .setting .toggle input:disabled { cursor: default; }
@@ -535,6 +539,7 @@
       badge.style.background = l.color;
       $('.lang-native', row).textContent = l.nativeName;
       if (l.nativeName !== l.name) $('.lang-name', row).textContent = l.name;
+      if (l.beta) $('.lang-name', row).insertAdjacentHTML('afterend', '<span class="lang-beta" title="Newer and less tested">Beta</span>');
       if (l.enabled && !l.installed) {
         const warn = document.createElement('div');
         warn.className = 'lang-warn';
@@ -641,7 +646,8 @@
         ['ko', 'Korean', '한국어', '한', '#475569', false, false],
         ['th', 'Thai', 'ไทย', 'ไท', '#DB2777', false, false],
       ].map(([code, name, nativeName, badge, color, enabled, installed]) =>
-        ({ code, name, nativeName, badge, color, enabled, installed, locked: code === 'en' })),
+        ({ code, name, nativeName, badge, color, enabled, installed, locked: code === 'en',
+           beta: ['kk', 'ka', 'hy', 'ko', 'th'].includes(code) })),
       neverFix: ['akuo', 'lol', 'ok', 'vbh'], excludedApps: ['mstsc', 'KeePass'],
       fixesToday: 23, fixesTotal: 1287,
       recent: [

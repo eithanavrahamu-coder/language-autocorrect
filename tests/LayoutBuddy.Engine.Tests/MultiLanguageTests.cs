@@ -127,6 +127,11 @@ public class MultiLanguageTests(ITestOutputHelper output)
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
+    [Fact]
+    public void LessProvenLanguagesAreMarkedBeta() =>
+        Assert.Equal([Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai],
+            Languages.All.Where(l => l.Beta).Select(l => l.Lang));
+
     [Theory]
     [InlineData(0x041A)]   // Croatian
     [InlineData(0x241A)]   // Serbian (Latin)

@@ -145,6 +145,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 nativeName = info.NativeName,
                 badge = info.Badge,
                 color = info.Color,
+                beta = info.Beta,
                 enabled = _settings.EnabledLanguages(_installedLanguages).Contains(info.Lang),
                 installed = _installedLanguages.Contains(info.Lang),
                 locked = info.Lang == Lang.English,
