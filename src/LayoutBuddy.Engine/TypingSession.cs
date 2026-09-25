@@ -54,10 +54,11 @@ public sealed class TypingSession
     private readonly WrongLayoutDetector _detector;
     private readonly StringBuilder _keys = new();
     private bool _tainted;
+    private bool _capitalized;
     private Lang? _wordLayout;
 
     /// <summary>Words already finished with a space, oldest first, as they appear on screen now.</summary>
-    private readonly List<(string Keys, Lang Layout, bool Settled)> _history = new();
+    private readonly List<(string Keys, Lang Layout, bool Settled, bool Cap)> _history = new();
 
     public TypingSession(WrongLayoutDetector detector, NeverFixList neverFix, UndoTracker? undo = null)
     {
@@ -72,12 +73,16 @@ public sealed class TypingSession
     /// <summary>When true, undoing the same word enough times adds it to the never-fix list. Off by default.</summary>
     public bool LearnFromUndos { get; set; }
 
+    /// <summary>The languages the user types in (a wrong-layout word is checked against each of them).</summary>
+    public IReadOnlyList<Lang> Languages { get; set; } = [Lang.English, Lang.Hebrew];
+
     public string CurrentKeys => _keys.ToString();
 
     public void Reset()
     {
         _keys.Clear();
         _tainted = false;
+        _capitalized = false;
         _wordLayout = null;
     }
 
@@ -114,15 +119,25 @@ public sealed class TypingSession
             case KeyKind.WordKey:
                 if (_wordLayout != null && _wordLayout != layout) Reset();
                 _wordLayout = layout;
+                if (key.Shifted)
+                {
+                    // A capital first letter is fine (sentence start, German nouns); Shift anywhere else isn't.
+                    if (_keys.Length == 0 && KeyMap.TypesCasedLetter(key.UsChar, layout)) _capitalized = true;
+                    else _tainted = true;
+                }
                 _keys.Append(char.ToLowerInvariant(key.UsChar));
-                if (key.Shifted) _tainted = true;
                 return PassThrough.Instance;
 
             case KeyKind.Backspace:
                 if (_keys.Length > 0)
                 {
-                    _keys.Length--;
-                    if (_keys.Length == 0) Reset();
+                    // Accent keys and multi-letter keys don't delete one key per Backspace: stop tracking.
+                    if (_wordLayout is Lang wl && !KeyMap.IsSimple(_keys.ToString(), wl)) { Reset(); _history.Clear(); }
+                    else
+                    {
+                        _keys.Length--;
+                        if (_keys.Length == 0) Reset();
+                    }
                 }
                 else if (_history.Count > 0)
                 {
@@ -131,6 +146,7 @@ public sealed class TypingSession
                     _history.RemoveAt(_history.Count - 1);
                     _keys.Append(prev.Keys);
                     _wordLayout = prev.Layout;
+                    _capitalized = prev.Cap;
                 }
                 return PassThrough.Instance;
 
@@ -165,36 +181,51 @@ public sealed class TypingSession
             _history.Clear();
             return;
         }
-        _history.Add((_keys.ToString(), _wordLayout.Value, settled));
+        _history.Add((_keys.ToString(), _wordLayout.Value, settled, _capitalized));
         if (_history.Count > MaxEarlierWords + 4) _history.RemoveAt(0);
     }
 
     /// <summary>
-    /// Looks at up to 3 previous words in this sentence. Returns how many more of them are in the other
-    /// language than in <paramref name="layout"/>'s language (0 for the first word).
+    /// Looks at up to 3 previous words in this sentence. Returns how many more of them are in
+    /// <paramref name="target"/> than in <paramref name="layout"/>'s language (0 for the first word).
     /// </summary>
-    private int SentenceContext(Lang layout)
+    private int SentenceContext(Lang layout, Lang target)
     {
         int score = 0;
         for (int i = _history.Count - 1, seen = 0; i >= 0 && seen < 3; i--, seen++)
         {
             var w = _history[i];
-            var lang = _detector.LanguageOf(w.Keys, w.Layout);
-            if (lang == null) continue;
-            score += lang == layout ? -1 : 1;
+            var lang = _detector.LanguageOf(w.Keys, w.Layout, Languages);
+            if (lang == target) score++;
+            else if (lang == layout) score--;
         }
         return score;
+    }
+
+    /// <summary>Checks the word against every other language and returns the best fix, if any.</summary>
+    private Detection? BestFix(string keys, Lang layout, Sensitivity sensitivity)
+    {
+        Detection? best = null;
+        foreach (var target in Languages)
+        {
+            if (target == layout) continue;
+            // A capitalized word going to a language without capitals (Hebrew, Arabic) is probably a name.
+            if (_capitalized && !LayoutBuddy.Engine.Languages.Get(target).HasCase) continue;
+            var d = _detector.Evaluate(keys, layout, target, sensitivity, SentenceContext(layout, target));
+            if (d.ShouldFix && (best == null || d.Score > best.Score)) best = d;
+        }
+        return best;
     }
 
     private FixWord? TryFix(Lang layout, Sensitivity sensitivity, KeyKind boundary, DateTime now)
     {
         if (_keys.Length == 0 || _tainted || _wordLayout != layout) return null;
         var keys = _keys.ToString();
-        var typed = KeyMap.Render(keys, layout);
+        var typed = KeyMap.Render(keys, layout, _capitalized);
         if (NeverFix.IsBlocked(typed)) return null;
 
-        var d = _detector.Evaluate(keys, layout, sensitivity, SentenceContext(layout));
-        if (!d.ShouldFix) return null;
+        var d = BestFix(keys, layout, sensitivity);
+        if (d == null) return null;
 
         // Also fix the words just before this one that were typed in the same wrong layout.
         int take = 0;
@@ -203,24 +234,24 @@ public sealed class TypingSession
             var w = _history[i];
             if (w.Settled || w.Layout != layout) break;
             if (NeverFix.IsBlocked(KeyMap.Render(w.Keys, layout))) break;
-            if (!_detector.IsPlausibleWrongLayout(w.Keys, layout)) break;
+            if (!_detector.IsPlausibleWrongLayout(w.Keys, layout, d.TargetLang)) break;
             take++;
         }
         var earlier = _history.GetRange(_history.Count - take, take);
 
-        var allKeys = earlier.Select(w => w.Keys).Append(keys).ToList();
-        string typedAll = string.Join(" ", allKeys.Select(k => KeyMap.Render(k, layout)));
-        string fixedAll = string.Join(" ", allKeys.Select(k => KeyMap.Render(k, d.TargetLang)));
+        var all = earlier.Select(w => (Keys: w.Keys, Cap: w.Cap)).Append((Keys: keys, Cap: _capitalized)).ToList();
+        string typedAll = string.Join(" ", all.Select(w => KeyMap.Render(w.Keys, layout, w.Cap)));
+        string fixedAll = string.Join(" ", all.Select(w => KeyMap.Render(w.Keys, d.TargetLang, w.Cap)));
 
         // Update history to what is now on screen; fixed words are settled (never re-fixed).
         _history.RemoveRange(_history.Count - take, take);
-        foreach (var k in allKeys) _history.Add((k, d.TargetLang, true));
+        foreach (var w in all) _history.Add((w.Keys, d.TargetLang, true, w.Cap));
         if (boundary != KeyKind.Space) _history.Clear();
 
         var correction = new Correction(keys, typedAll, fixedAll, layout, d.TargetLang, boundary == KeyKind.Space)
         {
             TriggerTyped = typed,
-            WordCount = allKeys.Count,
+            WordCount = all.Count,
         };
         if (boundary == KeyKind.Space) Undo.Arm(correction, now);
         else Undo.Disarm();

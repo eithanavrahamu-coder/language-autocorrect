@@ -23,7 +23,8 @@ public class KeyMapTests
     [InlineData('a', true)]
     [InlineData(',', true)]
     [InlineData(';', true)]
-    [InlineData('1', false)]
-    [InlineData('[', false)]
+    [InlineData('1', true)]   // French é, è, à... are on the number keys
+    [InlineData('[', true)]   // Russian х
+    [InlineData('+', false)]
     public void WordKeys(char c, bool expected) => Assert.Equal(expected, KeyMap.IsWordKey(c));
 }

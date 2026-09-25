@@ -2,7 +2,11 @@ namespace LayoutBuddy.Engine;
 
 public enum Sensitivity { Low, Medium, High }
 
-public sealed record Detection(bool ShouldFix, string Typed, string Replacement, Lang TargetLang, string Reason);
+public sealed record Detection(bool ShouldFix, string Typed, string Replacement, Lang TargetLang, string Reason)
+{
+    /// <summary>How strongly the replacement looks like a real word (for choosing between several languages).</summary>
+    public double Score { get; init; }
+}
 
 /// <summary>
 /// Decides whether a word was typed in the wrong keyboard layout.
@@ -10,17 +14,27 @@ public sealed record Detection(bool ShouldFix, string Typed, string Replacement,
 /// </summary>
 public sealed class WrongLayoutDetector
 {
-    private readonly LanguageModel _en;
-    private readonly LanguageModel _he;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Lang, Lazy<LanguageModel>> _models = new();
 
-    public WrongLayoutDetector(LanguageModel english, LanguageModel hebrew)
+    public WrongLayoutDetector(params LanguageModel[] models)
     {
-        _en = english;
-        _he = hebrew;
+        foreach (var m in models) _models[m.Lang] = new Lazy<LanguageModel>(m);
     }
 
-    public static WrongLayoutDetector LoadDefault() =>
-        new(LanguageModel.Load(Lang.English), LanguageModel.Load(Lang.Hebrew));
+    /// <summary>A detector that loads each language's word list the first time it is needed.</summary>
+    public static WrongLayoutDetector LoadDefault() => new();
+
+    public LanguageModel Model(Lang lang) =>
+        _models.GetOrAdd(lang, l => new Lazy<LanguageModel>(() => LanguageModel.Load(l))).Value;
+
+    /// <summary>Loads word lists ahead of time so the first word typed isn't slow.</summary>
+    public void Preload(IEnumerable<Lang> langs)
+    {
+        foreach (var l in langs) _ = Model(l);
+    }
+
+    /// <summary>The other language of the original English/Hebrew pair (used by older callers and tests).</summary>
+    private static Lang DefaultTarget(Lang current) => current == Lang.English ? Lang.Hebrew : Lang.English;
 
     private sealed record Params(
         int MaxAltRank,          // alt word must be at least this common when typed text is unknown
@@ -43,11 +57,10 @@ public sealed class WrongLayoutDetector
         bool TypedKnown, int? TypedRank, double TypedLp,
         bool AltKnown, int? AltRank, double AltLp);
 
-    private Analysis Analyze(string usKeys, Lang current)
+    private Analysis Analyze(string usKeys, Lang current, Lang target)
     {
-        var target = current == Lang.English ? Lang.Hebrew : Lang.English;
-        var typedModel = current == Lang.English ? _en : _he;
-        var altModel = current == Lang.English ? _he : _en;
+        var typedModel = Model(current);
+        var altModel = Model(target);
         string typed = KeyMap.Render(usKeys, current);
         string alt = KeyMap.Render(usKeys, target);
 
@@ -81,11 +94,18 @@ public sealed class WrongLayoutDetector
     /// Language of the words just before this one: positive = that many recent words are in the other language
     /// (so this word probably is too), negative = they are in the language as typed.
     /// </param>
-    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity, int context = 0)
+    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity, int context = 0) =>
+        Evaluate(usKeys, current, DefaultTarget(current), sensitivity, context);
+
+    public Detection Evaluate(string usKeys, Lang current, Lang target, Sensitivity sensitivity, int context = 0)
     {
-        var a = Analyze(usKeys, current);
+        var a = Analyze(usKeys, current, target);
+        double score = a.AltKnown && a.AltRank is int rk ? 100 - Math.Log(rk) : a.AltLp;
         Detection No(string why) => new(false, a.Typed, a.Alt, a.Target, why);
-        Detection Yes(string why) => new(true, a.Typed, a.Alt, a.Target, why);
+        Detection Yes(string why) => new(true, a.Typed, a.Alt, a.Target, why) { Score = score };
+
+        // Keyboards that share most letters (English/French/German) often type the same thing.
+        if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return No("same text");
 
         // The sentence so far is in the typed language: only fix clear mistakes.
         if (context < 0 && sensitivity != Sensitivity.Low) sensitivity = Sensitivity.Low;
@@ -131,16 +151,24 @@ public sealed class WrongLayoutDetector
     /// Which language a finished word is in: the typed layout if it is a word there and not in the other,
     /// the other language if the reverse, otherwise null (ambiguous or unknown).
     /// </summary>
-    public Lang? LanguageOf(string usKeys, Lang typedIn)
+    public Lang? LanguageOf(string usKeys, Lang typedIn) => LanguageOf(usKeys, typedIn, [DefaultTarget(typedIn)]);
+
+    /// <summary>
+    /// Which of the languages a finished word is in: the one where it is a known word, if it is clearly
+    /// more common there than in the others; otherwise null (ambiguous or unknown).
+    /// </summary>
+    public Lang? LanguageOf(string usKeys, Lang typedIn, IEnumerable<Lang> others)
     {
-        var a = Analyze(usKeys, typedIn);
-        if (a.TypedKnown && !a.AltKnown) return typedIn;
-        if (a.AltKnown && !a.TypedKnown) return a.Target;
-        if (a.TypedKnown && a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar)
+        var known = new List<(Lang Lang, int Rank)>();
+        foreach (var lang in others.Prepend(typedIn).Distinct())
         {
-            if (tr * 20 <= ar) return typedIn;
-            if (ar * 20 <= tr) return a.Target;
+            var model = Model(lang);
+            var core = model.Core(KeyMap.Render(usKeys, lang));
+            if (core != null && model.IsKnown(core) && model.Rank(core) is int r) known.Add((lang, r));
         }
+        if (known.Count == 0) return null;
+        known.Sort((x, y) => x.Rank.CompareTo(y.Rank));
+        if (known.Count == 1 || known[0].Rank * 20 <= known[1].Rank) return known[0].Lang;
         return null;
     }
 
@@ -148,9 +176,13 @@ public sealed class WrongLayoutDetector
     /// Looser check used for the words just before a word we are fixing: once we know the user
     /// is typing in the wrong layout, a word only needs to look more like the other language.
     /// </summary>
-    public bool IsPlausibleWrongLayout(string usKeys, Lang current)
+    public bool IsPlausibleWrongLayout(string usKeys, Lang current) =>
+        IsPlausibleWrongLayout(usKeys, current, DefaultTarget(current));
+
+    public bool IsPlausibleWrongLayout(string usKeys, Lang current, Lang target)
     {
-        var a = Analyze(usKeys, current);
+        var a = Analyze(usKeys, current, target);
+        if (string.Equals(a.Typed, a.Alt, StringComparison.OrdinalIgnoreCase)) return false;
         if (a.AltCore == null) return false;
         if (a.TypedKnown)
             return a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar && tr >= ar * 3;

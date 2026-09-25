@@ -16,10 +16,12 @@ public sealed class LanguageModel
     private double _total;
 
     public Lang Lang { get; }
+    public LanguageInfo Info { get; }
 
     private LanguageModel(Lang lang, IEnumerable<(string Word, long Count)> words)
     {
         Lang = lang;
+        Info = Languages.Get(lang);
         _ranks = new Dictionary<string, int>(StringComparer.Ordinal);
         int rank = 0;
         foreach (var (word, count) in words)
@@ -34,7 +36,7 @@ public sealed class LanguageModel
 
     public static LanguageModel Load(Lang lang)
     {
-        var name = lang == Lang.English ? "LayoutBuddy.Data.en.txt" : "LayoutBuddy.Data.he.txt";
+        var name = $"LayoutBuddy.Data.{Languages.Get(lang).Code}.txt";
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
             ?? throw new InvalidOperationException($"Missing resource {name}");
         using var reader = new StreamReader(stream);
@@ -55,9 +57,7 @@ public sealed class LanguageModel
         }
     }
 
-    public bool IsLetter(char c) => Lang == Lang.English
-        ? (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''
-        : (c >= 'א' && c <= 'ת') || c == '\'';
+    public bool IsLetter(char c) => Info.IsLetter(c);
 
     /// <summary>
     /// Strips leading/trailing punctuation. Returns null if punctuation remains inside the word.
@@ -70,8 +70,7 @@ public sealed class LanguageModel
         if (start == end) return null;
         for (int i = start; i < end; i++)
             if (!IsLetter(text[i])) return null;
-        var core = text[start..end];
-        return Lang == Lang.English ? core.ToLowerInvariant() : core;
+        return Normalize(text[start..end]);
     }
 
     /// <summary>Splits on any non-letter, returning the letter runs (lowercased for English).</summary>
@@ -87,11 +86,13 @@ public sealed class LanguageModel
             if (i > s)
             {
                 var seg = text[s..i].Trim('\'');
-                if (seg.Length > 0) result.Add(Lang == Lang.English ? seg.ToLowerInvariant() : seg);
+                if (seg.Length > 0) result.Add(Normalize(seg));
             }
         }
         return result;
     }
+
+    private static string Normalize(string s) => s.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormC);
 
     /// <summary>Frequency rank (1 = most common), or null if not in the dictionary.</summary>
     public int? Rank(string core) => _ranks.TryGetValue(core, out var r) ? r : null;
