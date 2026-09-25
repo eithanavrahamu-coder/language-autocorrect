@@ -16,11 +16,40 @@ internal static class LayoutService
 
     public static Lang? FromHkl(IntPtr hkl) => Languages.FromWindowsLangId((int)((long)hkl & 0x3FF))?.Lang;
 
-    public static IntPtr CurrentHkl()
+    /// <summary>
+    /// The window that actually receives typing. Apps like WhatsApp, Teams or Store apps show a frame window
+    /// but type into an embedded part that runs on another thread (or in another process) with its own
+    /// keyboard language, so the foreground window's language can be wrong.
+    /// </summary>
+    public static IntPtr FocusWindow()
     {
         var fg = Native.GetForegroundWindow();
+        if (fg == IntPtr.Zero) return IntPtr.Zero;
         uint tid = Native.GetWindowThreadProcessId(fg, out _);
-        return Native.GetKeyboardLayout(tid);
+        var gti = new Native.GUITHREADINFO { cbSize = Marshal.SizeOf<Native.GUITHREADINFO>() };
+        if (Native.GetGUIThreadInfo(tid, ref gti) && gti.hwndFocus != IntPtr.Zero) return gti.hwndFocus;
+
+        // Store apps: the frame (ApplicationFrameHost) hosts the app's CoreWindow from another process.
+        if (Native.ClassName(fg) == "ApplicationFrameWindow")
+        {
+            var core = Native.FindWindowEx(fg, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
+            if (core != IntPtr.Zero) return core;
+        }
+        return fg;
+    }
+
+    public static IntPtr CurrentHkl()
+    {
+        var target = FocusWindow();
+        uint tid = Native.GetWindowThreadProcessId(target, out _);
+        var hkl = Native.GetKeyboardLayout(tid);
+        if (hkl == IntPtr.Zero)
+        {
+            // Fall back to the foreground window's thread.
+            tid = Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out _);
+            hkl = Native.GetKeyboardLayout(tid);
+        }
+        return hkl;
     }
 
     public static Lang? Current() => FromHkl(CurrentHkl());
@@ -134,7 +163,12 @@ internal static class LayoutService
         if (hkl == null) return false;
         var fg = Native.GetForegroundWindow();
         if (fg == IntPtr.Zero) return false;
-        return Native.PostMessage(fg, Native.WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, hkl.Value);
+        // Ask both the window being typed into and its frame (embedded apps may listen on either).
+        var focus = FocusWindow();
+        bool ok = Native.PostMessage(fg, Native.WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, hkl.Value);
+        if (focus != IntPtr.Zero && focus != fg)
+            ok |= Native.PostMessage(focus, Native.WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, hkl.Value);
+        return ok;
     }
 
     // ---------------- reading the user's real keyboards ----------------

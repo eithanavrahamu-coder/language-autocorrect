@@ -63,7 +63,9 @@ internal sealed class FocusTracker : IDisposable
 
         var prev = _snapshot;
         bool focusChanged = fg != prev.Window || focus != prev.FocusWindow;
-        if (focusChanged) FocusChanged?.Invoke();
+        // Only a different window resets the word being typed. Embedded apps (WhatsApp, Teams...) can move focus
+        // between their inner parts on their own; clicks and Tab already reset the word.
+        if (fg != prev.Window) FocusChanged?.Invoke();
 
         // UI Automation is slower, so ask less often (or right away when focus moves).
         bool askUia = focusChanged || _tick % 4 == 0;
@@ -73,8 +75,21 @@ internal sealed class FocusTracker : IDisposable
         if (caret == null && !askUia && prev.Caret != null && !focusChanged)
             caret = prev.Caret; // keep last UIA result between UIA polls
 
-        _snapshot = new FocusSnapshot(fg, focus, ProcessName(pid), LayoutService.FromHkl(Native.GetKeyboardLayout(tid)),
+        var hkl = LayoutService.CurrentHkl();
+        var process = ProcessName(pid);
+        if (focusChanged) LogFocusOnce(process, focus, hkl);
+        _snapshot = new FocusSnapshot(fg, focus, process, LayoutService.FromHkl(hkl),
             caret, _isPassword);
+    }
+
+    private readonly HashSet<string> _loggedApps = new();
+
+    /// <summary>Writes one line per app to the log (process, focused window class, keyboard) to help diagnose apps.</summary>
+    private void LogFocusOnce(string? process, IntPtr focus, IntPtr hkl)
+    {
+        if (string.IsNullOrEmpty(process) || !_loggedApps.Add(process)) return;
+        var lang = LayoutService.FromHkl(hkl);
+        Log.Write($"App '{process}': typing window class '{Native.ClassName(focus)}', keyboard 0x{(long)hkl:X8} ({lang?.ToString() ?? "unsupported"})");
     }
 
     private static bool IsPasswordFocused()
