@@ -199,7 +199,7 @@ internal static class Installer
         using var key = Registry.CurrentUser.CreateSubKey(UninstallKey);
         key.SetValue("DisplayName", AppName);
         key.SetValue("DisplayVersion", CurrentVersion);
-        key.SetValue("Publisher", AppName);
+        key.SetValue("Publisher", "Eithan Avraham");
         key.SetValue("DisplayIcon", InstalledExe + ",0");
         key.SetValue("InstallLocation", InstallDir);
         key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));

@@ -1,5 +1,7 @@
 # LayoutBuddy
 
+*Made by Eithan Avraham*
+
 A Windows app for people who type in Hebrew and English:
 
 - **Auto-correct** – notices words typed in the wrong layout (e.g. `akuo` → `שלום`, `יקךךם` → `hello`) and fixes them when you
