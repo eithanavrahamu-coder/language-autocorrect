@@ -16,11 +16,33 @@ public sealed class AppSettings
 
     public List<string> ExcludedApps { get; set; } = ["mstsc", "KeePass", "KeePassXC", "1Password", "Bitwarden"];
 
+    /// <summary>Add a word to the never-fix list automatically after it is undone enough times. Off by default.</summary>
+    public bool LearnFromUndos { get; set; }
+
     /// <summary>How many times a word must be undone before it is never auto-corrected again.</summary>
     public int UndosToBlock { get; set; } = 3;
 
     /// <summary>Word -> number of times its auto-correction was undone.</summary>
     public Dictionary<string, int> NeverFixUndoCounts { get; set; } = new();
+
+    public long TotalFixes { get; set; }
+    public string? TodayDate { get; set; }
+    public int TodayFixes { get; set; }
+
+    /// <summary>Counts one auto-correction (resets the daily count on a new day).</summary>
+    public void CountFix(DateTime now, int words = 1)
+    {
+        var today = now.ToString("yyyy-MM-dd");
+        if (TodayDate != today)
+        {
+            TodayDate = today;
+            TodayFixes = 0;
+        }
+        TodayFixes += words;
+        TotalFixes += words;
+    }
+
+    public int FixesToday(DateTime now) => TodayDate == now.ToString("yyyy-MM-dd") ? TodayFixes : 0;
 
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 

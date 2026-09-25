@@ -91,8 +91,16 @@ public class TypingSessionTests
 {
     private static readonly DateTime T0 = new(2026, 1, 1);
 
-    private static TypingSession NewSession(int undosToBlock = 3) =>
-        new(Shared.Detector, new NeverFixList(undosToBlock: undosToBlock));
+    private static TypingSession NewSession(int undosToBlock = 3, bool learn = true) =>
+        new(Shared.Detector, new NeverFixList(undosToBlock: undosToBlock)) { LearnFromUndos = learn };
+
+    private static TypingAction TypeWords(TypingSession s, string text, Lang layout, DateTime at)
+    {
+        TypingAction last = PassThrough.Instance;
+        foreach (var c in text)
+            last = s.OnKey(c == ' ' ? KeyInput.Space : KeyInput.Word(c), layout, true, Sensitivity.Medium, at);
+        return last;
+    }
 
     private static TypingAction Type(TypingSession s, string keys, KeyInput boundary, Lang layout, DateTime at)
     {
@@ -193,6 +201,84 @@ public class TypingSessionTests
         var a = Assert.IsType<FixWord>(Type(s, "akuo", KeyInput.Enter, Lang.English, T0));
         Assert.Equal(KeyKind.Enter, a.Boundary);
         Assert.IsType<PassThrough>(s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0.AddMilliseconds(100)));
+    }
+
+    [Fact]
+    public void UndoDoesNotBlockWhenLearningIsOff()
+    {
+        var s = NewSession(undosToBlock: 1, learn: false);
+        Assert.IsType<FixWord>(Type(s, "akuo", KeyInput.Space, Lang.English, T0));
+        var undo = Assert.IsType<UndoFix>(s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0.AddMilliseconds(100)));
+        Assert.False(undo.NowBlocked);
+        Assert.False(s.NeverFix.IsBlocked("akuo"));
+        Assert.IsType<FixWord>(Type(s, "akuo", KeyInput.Space, Lang.English, T0.AddMinutes(1)));
+    }
+
+    [Fact]
+    public void FixesEarlierWordsTypedInTheSameWrongLayout()
+    {
+        // "ha" (יש) and "jh" (חי) are not fixed on their own; once "akuo" is, all three get fixed together.
+        var s = NewSession();
+        Assert.IsType<PassThrough>(TypeWords(s, "ha jh ", Lang.English, T0));
+        var a = Assert.IsType<FixWord>(TypeWords(s, "akuo ", Lang.English, T0));
+        Assert.Equal("יש חי שלום", a.Text);
+        Assert.Equal("ha jh akuo".Length, a.Backspaces);
+        Assert.Equal(3, a.Correction.WordCount);
+        Assert.Equal("akuo", a.Correction.TriggerTyped);
+    }
+
+    [Fact]
+    public void EarlierWordsFixedWhenFirstWordsWereUncertain()
+    {
+        // Short uncertain words are left alone at first, then fixed once a clear word shows up.
+        var s = new TypingSession(Shared.Detector, new NeverFixList());
+        foreach (var c in "jh ")
+            s.OnKey(c == ' ' ? KeyInput.Space : KeyInput.Word(c), Lang.English, true, Sensitivity.Low, T0);
+        TypingAction last = PassThrough.Instance;
+        foreach (var c in "akuo ")
+            last = s.OnKey(c == ' ' ? KeyInput.Space : KeyInput.Word(c), Lang.English, true, Sensitivity.Low, T0);
+        var a = Assert.IsType<FixWord>(last);
+        Assert.Equal("חי שלום", a.Text);
+    }
+
+    [Fact]
+    public void RealEnglishWordsBeforeAreNotTouched()
+    {
+        var s = NewSession();
+        var a = Assert.IsType<FixWord>(TypeWords(s, "hello world akuo ", Lang.English, T0));
+        Assert.Equal("שלום", a.Text);
+        Assert.Equal(4, a.Backspaces);
+    }
+
+    [Fact]
+    public void AlreadyFixedWordsAreNotFixedAgain()
+    {
+        var s = NewSession();
+        Assert.IsType<FixWord>(TypeWords(s, "akuo ", Lang.English, T0));
+        // Now typing in Hebrew (layout switched); next wrong word must only fix itself.
+        TypeWords(s, "hello ", Lang.Hebrew, T0.AddSeconds(5)); // English typed in Hebrew layout -> fixed
+        var a = Assert.IsType<FixWord>(TypeWords(s, "akuo ", Lang.English, T0.AddSeconds(10)));
+        Assert.Equal("שלום", a.Text);
+    }
+
+    [Fact]
+    public void UndoRestoresAllFixedWords()
+    {
+        var s = NewSession();
+        Assert.IsType<FixWord>(TypeWords(s, "ha akuo ", Lang.English, T0));
+        var u = Assert.IsType<UndoFix>(s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0.AddMilliseconds(200)));
+        Assert.Equal("יש שלום".Length + 1, u.Backspaces);
+        Assert.Equal("ha akuo ", u.Text);
+    }
+
+    [Fact]
+    public void BackspaceIntoPreviousWordKeepsTracking()
+    {
+        var s = NewSession();
+        TypeWords(s, "hello akuk", Lang.English, T0);
+        s.OnKey(KeyInput.Backspace, Lang.English, true, Sensitivity.Medium, T0);
+        var a = Assert.IsType<FixWord>(TypeWords(s, "o ", Lang.English, T0));
+        Assert.Equal("שלום", a.Text);
     }
 
     [Fact]

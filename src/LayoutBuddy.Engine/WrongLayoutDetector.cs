@@ -27,31 +27,29 @@ public sealed class WrongLayoutDetector
         int MaxAltRankShort,     // same, for 2-letter alt words
         double NgramMargin,      // both unknown: alt must beat typed by this many nats/char
         int MinLenNgram,         // both unknown: minimum word length
-        int RareTypedRank,       // typed word is a real but rare word...
-        int CommonAltRank);      // ...and alt is this common -> still fix
+        double PopularityRatio,  // both known: alt must be this many times more popular (by rank)...
+        int MaxPopularAltRank);  // ...and at least this common
 
     private static Params For(Sensitivity s) => s switch
     {
-        Sensitivity.Low => new(20000, 300, double.PositiveInfinity, int.MaxValue, int.MaxValue, 0),
-        Sensitivity.High => new(50000, 1500, 0.9, 3, 12000, 3000),
-        _ => new(50000, 600, 1.4, 4, 25000, 1500),
+        Sensitivity.Low => new(20000, 300, double.PositiveInfinity, int.MaxValue, double.PositiveInfinity, 0),
+        Sensitivity.High => new(50000, 1500, 0.9, 3, 15, 5000),
+        _ => new(50000, 600, 1.4, 4, 40, 2000),
     };
 
-    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity)
+    /// <summary>Everything we know about one key sequence in both languages.</summary>
+    private readonly record struct Analysis(
+        string Typed, string Alt, Lang Target, string? AltCore,
+        bool TypedKnown, int? TypedRank, double TypedLp,
+        bool AltKnown, int? AltRank, double AltLp);
+
+    private Analysis Analyze(string usKeys, Lang current)
     {
         var target = current == Lang.English ? Lang.Hebrew : Lang.English;
         var typedModel = current == Lang.English ? _en : _he;
         var altModel = current == Lang.English ? _he : _en;
         string typed = KeyMap.Render(usKeys, current);
         string alt = KeyMap.Render(usKeys, target);
-        Detection No(string why) => new(false, typed, alt, target, why);
-        Detection Yes(string why) => new(true, typed, alt, target, why);
-
-        var p = For(sensitivity);
-        if (usKeys.Length < 2) return No("too short");
-
-        var altCore = altModel.Core(alt);
-        if (altCore == null || altCore.Length < 2) return No("alt not a word shape");
 
         var typedCore = typedModel.Core(typed);
         bool typedKnown;
@@ -72,24 +70,53 @@ public sealed class WrongLayoutDetector
             typedLp = double.NegativeInfinity;
         }
 
-        int? altRank = altModel.Rank(altCore);
-        bool altKnown = altModel.IsKnown(altCore);
-        double altLp = altModel.AvgLogProb(altCore);
+        var altCore = altModel.Core(alt);
+        int? altRank = altCore == null ? null : altModel.Rank(altCore);
+        bool altKnown = altCore != null && altModel.IsKnown(altCore);
+        double altLp = altCore == null ? double.NegativeInfinity : altModel.AvgLogProb(altCore);
+        return new(typed, alt, target, altCore, typedKnown, typedRank, typedLp, altKnown, altRank, altLp);
+    }
 
-        if (typedKnown)
+    public Detection Evaluate(string usKeys, Lang current, Sensitivity sensitivity)
+    {
+        var a = Analyze(usKeys, current);
+        Detection No(string why) => new(false, a.Typed, a.Alt, a.Target, why);
+        Detection Yes(string why) => new(true, a.Typed, a.Alt, a.Target, why);
+
+        var p = For(sensitivity);
+        if (usKeys.Length < 2) return No("too short");
+        if (a.AltCore == null || a.AltCore.Length < 2) return No("alt not a word shape");
+
+        if (a.TypedKnown)
         {
-            if (typedRank > p.RareTypedRank && altRank <= p.CommonAltRank && altCore.Length >= 3)
-                return Yes("typed word is rare, alt is common");
+            // Both are real words: the much more popular one wins.
+            if (a.AltKnown && a.AltCore.Length >= 3 && a.AltRank <= p.MaxPopularAltRank &&
+                a.TypedRank is int tr && a.AltRank is int ar && tr >= ar * p.PopularityRatio)
+                return Yes("alt word is much more popular");
             return No("typed word is known");
         }
 
-        int limit = altCore.Length == 2 ? p.MaxAltRankShort : p.MaxAltRank;
-        if (altKnown && altRank <= limit)
+        int limit = a.AltCore.Length == 2 ? p.MaxAltRankShort : p.MaxAltRank;
+        if (a.AltKnown && a.AltRank <= limit)
             return Yes("alt word is known");
 
-        if (altCore.Length >= p.MinLenNgram && altLp > -3.2 && altLp - typedLp >= p.NgramMargin)
+        if (a.AltCore.Length >= p.MinLenNgram && a.AltLp > -3.2 && a.AltLp - a.TypedLp >= p.NgramMargin)
             return Yes("alt looks more like a word");
 
         return No("not confident");
+    }
+
+    /// <summary>
+    /// Looser check used for the words just before a word we are fixing: once we know the user
+    /// is typing in the wrong layout, a word only needs to look more like the other language.
+    /// </summary>
+    public bool IsPlausibleWrongLayout(string usKeys, Lang current)
+    {
+        var a = Analyze(usKeys, current);
+        if (a.AltCore == null) return false;
+        if (a.TypedKnown)
+            return a.AltKnown && a.TypedRank is int tr && a.AltRank is int ar && tr >= ar * 3;
+        if (a.AltKnown) return true;
+        return a.AltCore.Length >= 2 && a.AltLp > -3.5 && a.AltLp > a.TypedLp;
     }
 }

@@ -66,6 +66,22 @@ public class DetectorTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void MorePopularWordWins()
+    {
+        // "tbh" is an English word, but rare; "אני" is one of the most common Hebrew words.
+        var d = D.Evaluate("tbh", Lang.English, Sensitivity.Medium);
+        Assert.True(d.ShouldFix, d.Reason);
+        Assert.Equal("אני", d.Replacement);
+    }
+
+    [Theory]
+    [InlineData("the")]
+    [InlineData("and")]
+    [InlineData("you")]
+    public void CommonTypedWordStays(string keys) =>
+        Assert.False(D.Evaluate(keys, Lang.English, Sensitivity.High).ShouldFix);
+
+    [Fact]
     public void Accuracy()
     {
         var en = Shared.English.Value;

@@ -1,7 +1,14 @@
 namespace LayoutBuddy.Engine;
 
 /// <summary>A correction that was just applied and may be undone.</summary>
-public sealed record Correction(string UsKeys, string Typed, string Replacement, Lang From, Lang To, bool EndedWithSpace);
+public sealed record Correction(string UsKeys, string Typed, string Replacement, Lang From, Lang To, bool EndedWithSpace)
+{
+    /// <summary>The word that triggered the fix, as typed (Typed may include earlier words too).</summary>
+    public string TriggerTyped { get; init; } = Typed;
+
+    /// <summary>How many words were fixed together.</summary>
+    public int WordCount { get; init; } = 1;
+}
 
 public enum UndoKey { Backspace, CtrlZ }
 
