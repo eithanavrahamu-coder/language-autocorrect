@@ -40,7 +40,16 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     // A language the badge shows right away (after a fix or a click), before Windows reports the switch.
     private (Lang Lang, DateTime Until)? _expected;
 
-    public TrayApp(WrongLayoutDetector detector, bool showWindow)
+    // Updates: the first look a couple of minutes after start, then every hour whether a daily check is due.
+    private readonly Timer _updateTimer = new() { Interval = 2 * 60 * 1000 };
+    private readonly ToolStripMenuItem _updateItem;
+    private UpdateManifest? _update;            // a newer version, once found
+    private string _updateStatus = "idle";      // idle, checking, latest, available, downloading, installing, error
+    private double _updateProgress;
+    private string? _updateError;
+    private bool _balloonIsUpdate;              // clicking the balloon on screen opens the window to update
+
+    public TrayApp(WrongLayoutDetector detector, bool showWindow, bool justUpdated = false)
     {
         _settings = AppSettings.Load(_settingsPath);
         _neverFix = new NeverFixList(_settings.NeverFixUndoCounts, _settings.UndosToBlock);
@@ -69,17 +78,20 @@ internal sealed class TrayApp : ApplicationContext, IAppController
 
         _autoItem = new ToolStripMenuItem("Auto-correct", null, (_, _) => Change(() => _settings.AutoCorrectEnabled = !_settings.AutoCorrectEnabled));
         var open = new ToolStripMenuItem("Open " + AppInfo.Name, null, (_, _) => ShowMain()) { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
+        _updateItem = new ToolStripMenuItem("Check for updates", null, (_, _) => OnUpdateMenu());
         var menu = new ContextMenuStrip();
         menu.Items.AddRange([
             open,
             new ToolStripSeparator(),
             _autoItem,
+            _updateItem,
             new ToolStripSeparator(),
             new ToolStripMenuItem("Exit", null, (_, _) => ExitThread()),
         ]);
 
         _tray = new NotifyIcon { Text = AppInfo.Name, ContextMenuStrip = menu, Visible = true };
         _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowMain(); };
+        _tray.BalloonTipClicked += (_, _) => { if (_balloonIsUpdate) ShowMain("home"); };
         UpdateTrayIcon(LayoutService.Current() ?? Lang.English);
         SyncMenu();
 
@@ -101,12 +113,30 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _uiTimer.Start();
         StartupRegistration.Apply(_settings.StartWithWindows);
 
-        if (showWindow) _indicator.BeginInvoke(ShowMain);
+        _updateTimer.Tick += (_, _) =>
+        {
+            _updateTimer.Interval = 60 * 60 * 1000;
+            if (UpdateCheckDue()) _ = CheckForUpdatesAsync(manual: false);
+        };
+        _updateTimer.Start();
+
+        if (justUpdated)
+        {
+            var text = "You now have version " + Installer.CurrentVersion + ". Your languages, word list and settings are just as you left them.";
+            ShowBalloon(AppInfo.Name + " was updated", text, update: false);
+            _pendingToast = "Updated to version " + Installer.CurrentVersion;
+            // The download it was installed from has closed by now.
+            System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => Updater.CleanUp());
+        }
+
+        if (showWindow) _indicator.BeginInvoke(() => ShowMain());
     }
 
     // ---------------- main window ----------------
 
-    private void ShowMain()
+    private string? _pendingToast;
+
+    private void ShowMain(string? page = null)
     {
         if (!WebWindow.RuntimeAvailable)
         {
@@ -127,6 +157,12 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             _main.Show();
         }
         _main.Activate();
+        if (page != null) _main.ShowPage(page);
+        if (_pendingToast != null)
+        {
+            _main.Toast(_pendingToast);
+            _pendingToast = null;
+        }
     }
 
     private void PushState() => _main?.PushState();
@@ -167,8 +203,25 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 .Where(l => l != Lang.English && VoiceAnnouncer.VoiceFor(l) == null)
                 .Select(l => Languages.Get(l).Name),
             recent = _recent.Select(r => new { time = r.Time.ToString("HH:mm"), typed = r.Typed, @fixed = r.Fixed, app = r.App }),
+            checkForUpdates = _settings.CheckForUpdates,
+            update = new
+            {
+                status = _updateStatus,
+                version = _update?.Version.ToString(),
+                progress = _updateProgress,
+                error = _updateError,
+                // A copy run without installing gets the new version from the download page instead.
+                installed = Installer.IsRunningInstalledCopy,
+                @checked = _settings.UpdateCheckedAt is { } at ? WhenChecked(at.ToLocalTime(), now) : null,
+            },
         };
     }
+
+    /// <summary>"today at 14:32", "yesterday at 09:10" or "on 3 Sep".</summary>
+    private static string WhenChecked(DateTime at, DateTime now) =>
+        at.Date == now.Date ? "today at " + at.ToString("HH:mm")
+        : at.Date == now.Date.AddDays(-1) ? "yesterday at " + at.ToString("HH:mm")
+        : "on " + at.ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
 
     public void HandleAction(string type, JsonElement msg)
     {
@@ -213,6 +266,12 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             case "openAppsSettings":
                 OpenUrl("ms-settings:appsfeatures");
                 return;
+            case "update.check":
+                _ = CheckForUpdatesAsync(manual: true);
+                return;
+            case "update.install":
+                StartUpdate();
+                return;
         }
         SyncMenu();
         Save();
@@ -241,7 +300,122 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 _settings.StartWithWindows = value.GetBoolean();
                 StartupRegistration.Apply(_settings.StartWithWindows);
                 break;
+            case "checkForUpdates":
+                _settings.CheckForUpdates = value.GetBoolean();
+                if (UpdateCheckDue()) _ = CheckForUpdatesAsync(manual: false);
+                break;
         }
+    }
+
+    // ---------------- updates ----------------
+
+    private bool UpdateCheckDue() =>
+        _settings.CheckForUpdates && (_settings.UpdateCheckedAt is not { } at || DateTime.UtcNow - at > TimeSpan.FromHours(20));
+
+    /// <summary>
+    /// Asks the download page for its newest version. A check the user asked for reports what it found (or why it
+    /// couldn't look); the daily one stays quiet unless there's something new, which the tray announces once.
+    /// </summary>
+    private async System.Threading.Tasks.Task CheckForUpdatesAsync(bool manual)
+    {
+        if (_updateStatus is "checking" or "downloading" or "installing") return;
+        var before = _updateStatus;
+        _updateStatus = "checking";
+        _updateError = null;
+        PushState();
+        try
+        {
+            _update = await Updater.CheckAsync();
+            _settings.UpdateCheckedAt = DateTime.UtcNow;
+            _updateStatus = _update != null ? "available" : manual ? "latest" : "idle";
+            if (_update is { } found && !manual && _settings.UpdateAnnounced != found.Version.ToString())
+            {
+                _settings.UpdateAnnounced = found.Version.ToString();
+                ShowBalloon("Update available", $"{AppInfo.Name} {found.Version} is ready. Click here to update.", update: true);
+            }
+            Save();
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Update check failed: " + ex.Message);
+            if (manual)
+            {
+                _updateStatus = "error";
+                _updateError = ex switch
+                {
+                    System.Net.Http.HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound } =>
+                        "The download page isn't available right now. Try again later.",
+                    System.IO.InvalidDataException => ex.Message,
+                    _ => "Couldn't reach the download page. Check your internet connection and try again.",
+                };
+            }
+            else
+            {
+                _updateStatus = before is "latest" or "error" ? "idle" : before;
+            }
+        }
+        SyncMenu();
+        PushState();
+    }
+
+    /// <summary>Downloads the newer version and hands over to it: it closes this copy, installs itself and starts again.</summary>
+    private async void StartUpdate()
+    {
+        if (_update is not { } update || _updateStatus is "checking" or "downloading" or "installing") return;
+        if (!Installer.IsRunningInstalledCopy)
+        {
+            OpenUrl(AppInfo.Website); // running without installing: there's nothing to update in place
+            return;
+        }
+        _updateStatus = "downloading";
+        _updateProgress = 0;
+        _updateError = null;
+        SyncMenu();
+        PushState();
+        try
+        {
+            int shown = 0;
+            var progress = new Progress<double>(p =>
+            {
+                _updateProgress = p;
+                if ((int)(p * 100) < shown + 3) return; // every few percent is plenty
+                shown = (int)(p * 100);
+                PushState();
+            });
+            var file = await Updater.DownloadAsync(update, progress);
+            _updateStatus = "installing";
+            PushState();
+            Log.Write("Installing version " + update.Version);
+            Updater.Install(file);
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Update failed: " + ex);
+            _updateStatus = "error";
+            _updateError = ex is System.IO.InvalidDataException
+                ? ex.Message
+                : "The download didn't finish. Check your internet connection and try again.";
+            SyncMenu();
+            PushState();
+        }
+    }
+
+    private void OnUpdateMenu()
+    {
+        if (_update != null)
+        {
+            ShowMain("home");
+            StartUpdate();
+            return;
+        }
+        ShowMain("settings");
+        _ = CheckForUpdatesAsync(manual: true);
+    }
+
+    private void ShowBalloon(string title, string text, bool update)
+    {
+        _balloonIsUpdate = update;
+        _tray.ShowBalloonTip(6000, title, text, ToolTipIcon.Info);
     }
 
     // ---------------- events ----------------
@@ -369,9 +543,9 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         PushState();
         if (undo.NowBlocked)
         {
-            _tray.ShowBalloonTip(4000, AppInfo.Name,
+            ShowBalloon(AppInfo.Name,
                 $"\"{undo.Correction.TriggerTyped}\" won't be auto-corrected anymore. You can change this in the Never fix list.",
-                ToolTipIcon.Info);
+                update: false);
         }
     }
 
@@ -405,7 +579,12 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         PushState();
     }
 
-    private void SyncMenu() => _autoItem.Checked = _settings.AutoCorrectEnabled;
+    private void SyncMenu()
+    {
+        _autoItem.Checked = _settings.AutoCorrectEnabled;
+        _updateItem.Text = _update != null ? "Update to version " + _update.Version : "Check for updates";
+        _updateItem.Enabled = _updateStatus is not ("checking" or "downloading" or "installing");
+    }
 
     private void Save()
     {
@@ -441,6 +620,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     protected override void ExitThreadCore()
     {
         _uiTimer.Stop();
+        _updateTimer.Stop();
         _exitWait.Unregister(null);
         _showWait.Unregister(null);
         _exitEvent.Dispose();

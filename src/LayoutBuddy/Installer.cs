@@ -111,8 +111,9 @@ internal static class Installer
     /// <summary>Installs or updates. <paramref name="startWithWindows"/> null keeps the current setting.</summary>
     /// <param name="languages">Language codes chosen in setup; null keeps the current choice.</param>
     /// <param name="voice">Say the language out loud; null keeps the current setting.</param>
+    /// <param name="launchArgs">How the installed copy is started at the end.</param>
     public static void Install(bool? startWithWindows, bool desktopShortcut, List<string>? languages, bool? voice,
-        Action<double, string> progress)
+        Action<double, string> progress, string launchArgs = "--background")
     {
         progress(0.1, "Closing " + AppName);
         StopRunningInstances();
@@ -145,7 +146,7 @@ internal static class Installer
         Pause();
 
         progress(0.9, "Starting " + AppName);
-        Process.Start(new ProcessStartInfo(InstalledExe, "--background") { UseShellExecute = true, WorkingDirectory = InstallDir });
+        Process.Start(new ProcessStartInfo(InstalledExe, launchArgs) { UseShellExecute = true, WorkingDirectory = InstallDir });
         Pause();
         progress(1, "Done");
     }
@@ -334,6 +335,27 @@ internal static class Installer
         {
             MessageBox.Show("Installing failed:\n" + ex.Message, AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             return SetupResult.Cancelled;
+        }
+    }
+
+    /// <summary>
+    /// Installs this copy over the installed one without asking (the app's own updater started it with --update), then
+    /// starts the new version with its window open.
+    /// </summary>
+    public static void UpdateSilently()
+    {
+        try
+        {
+            Install(null, false, null, null, (_, step) => Log.Write("Updating: " + step), launchArgs: "--updated");
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Update failed: " + ex);
+            MessageBox.Show(AppName + " couldn't be updated:\n" + ex.Message + "\n\nYou can download the new version from " +
+                            AppInfo.Website, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            // Leave the user with a running app.
+            if (File.Exists(InstalledExe))
+                TryDo(() => Process.Start(new ProcessStartInfo(InstalledExe) { UseShellExecute = true, WorkingDirectory = InstallDir }));
         }
     }
 

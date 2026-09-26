@@ -2,6 +2,7 @@
 //   - the languages (names, badges, colors, keyboards) from src/LayoutBuddy.Engine/Languages.cs
 //   - the app version from src/LayoutBuddy/LayoutBuddy.csproj
 //   - the most common words of a few languages, for the "try it yourself" demo
+//   - version.json, which the app reads to find out about updates
 // Runs before `npm run dev` and `npm run build`.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -153,5 +154,8 @@ const info = {
 await mkdir(path.join(site, 'src/generated'), { recursive: true });
 await writeFile(path.join(site, 'src/generated/app-info.json'), JSON.stringify(info, null, 2));
 await writeWordLists();
+// What the app's update check reads (AppInfo.Website + version.json): the newest version and the file next to this page.
+await writeFile(path.join(site, 'public/version.json'),
+  JSON.stringify({ version: info.version, file: 'LanguageAutocorrect.exe', size: info.downloadBytes }, null, 2));
 console.log(`Language Autocorrect ${info.version}: ${languages.length} languages` +
   (info.downloadBytes ? `, download ${(info.downloadBytes / 1048576).toFixed(1)} MB` : ''));

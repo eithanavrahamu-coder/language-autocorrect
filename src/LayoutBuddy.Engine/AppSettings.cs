@@ -64,6 +64,15 @@ public sealed class AppSettings
     /// <summary>Word -> number of times its auto-correction was undone.</summary>
     public Dictionary<string, int> NeverFixUndoCounts { get; set; } = new();
 
+    /// <summary>Look for a newer version once a day (only the download page's version number is read).</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>When the app last looked for a newer version (UTC).</summary>
+    public DateTime? UpdateCheckedAt { get; set; }
+
+    /// <summary>The newest version the tray has already told the user about, so each one is announced once.</summary>
+    public string? UpdateAnnounced { get; set; }
+
     public long TotalFixes { get; set; }
     public string? TodayDate { get; set; }
     public int TodayFixes { get; set; }

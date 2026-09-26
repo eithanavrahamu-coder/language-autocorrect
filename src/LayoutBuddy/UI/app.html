@@ -246,6 +246,30 @@
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+  /* Updates */
+  .update-banner {
+    display: flex; align-items: center; gap: 16px; padding: 16px 18px 16px 16px; margin-bottom: 12px;
+    background: linear-gradient(115deg, color-mix(in srgb, var(--en) 11%, var(--card)), color-mix(in srgb, var(--accent) 11%, var(--card)) 55%, color-mix(in srgb, var(--he) 11%, var(--card)));
+    border-color: color-mix(in srgb, var(--accent) 25%, var(--line));
+  }
+  .up-icon {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, var(--en), var(--accent) 55%, var(--he));
+  }
+  .up-icon svg { width: 20px; height: 20px; }
+  .up-icon.plain { background: var(--hover); color: var(--muted); }
+  .up-icon.ok { background: color-mix(in srgb, var(--he) 15%, transparent); color: var(--he); }
+  .up-icon.bad { background: color-mix(in srgb, var(--danger) 13%, transparent); color: var(--danger); }
+  .up-bar { height: 5px; border-radius: 5px; background: var(--hover); overflow: hidden; margin-top: 9px; max-width: 320px; }
+  .up-bar div { height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, var(--en), var(--accent), var(--he)); transition: width .3s ease; }
+  .side-update {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; border: 0; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 8px;
+  }
+  .side-update:hover { filter: brightness(.97); }
+  .side-update i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  [hidden] { display: none !important; }
+
   ::-webkit-scrollbar { width: 10px; }
   ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; border: 3px solid var(--bg); }
 </style>
@@ -274,6 +298,7 @@
   </nav>
   <div class="side-foot">
     <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">Running</span></div>
+    <button class="side-update" id="sideUpdate" hidden><i></i>Update available</button>
     <div class="version" id="version"></div>
     <div class="credit">Made by Eithan Avraham</div>
   </div>
@@ -284,6 +309,16 @@
   <section class="page active" id="page-home">
     <h1 id="greeting">Welcome back</h1>
     <p class="lede">Type in any of your languages. Words typed on the wrong keyboard are fixed the moment you press Space.</p>
+
+    <div class="card update-banner" id="updateBanner" hidden>
+      <div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></div>
+      <div class="setting-text">
+        <div class="setting-title" id="bannerTitle"></div>
+        <div class="setting-desc" id="bannerDesc"></div>
+        <div class="up-bar" id="bannerBar" hidden><div></div></div>
+      </div>
+      <button class="btn primary" id="bannerBtn">Update now</button>
+    </div>
 
     <div class="card hero">
       <div class="layout-badge" id="layoutBadge">EN</div>
@@ -410,6 +445,26 @@
     </div>
     <p class="note">Auto-correct is always off in password boxes.</p>
 
+    <h2>Updates</h2>
+    <div class="card" id="updates">
+      <div class="setting">
+        <div class="up-icon plain" id="updateIcon"></div>
+        <div class="setting-text">
+          <div class="setting-title" id="updateTitle"></div>
+          <div class="setting-desc" id="updateDesc"></div>
+          <div class="up-bar" id="updateBar" hidden><div></div></div>
+        </div>
+        <button class="btn small" id="updateBtn">Check for updates</button>
+      </div>
+      <div class="setting">
+        <div class="setting-text">
+          <div class="setting-title">Check for updates automatically</div>
+          <div class="setting-desc">Once a day. It only asks the download page for the newest version number.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="checkForUpdates"><span></span></label>
+      </div>
+    </div>
+
     <h2>General</h2>
     <div class="card">
       <div class="setting">
@@ -485,6 +540,12 @@
   $('#appInput').addEventListener('keydown', e => { if (e.key === 'Enter') addApp(); });
 
   $('#testVoice').addEventListener('click', () => send({ type: 'testVoice' }));
+  $('#updateBtn').addEventListener('click', () => {
+    const u = state.update;
+    send({ type: u.version && (u.status === 'available' || u.status === 'error') ? 'update.install' : 'update.check' });
+  });
+  $('#bannerBtn').addEventListener('click', () => send({ type: 'update.install' }));
+  $('#sideUpdate').addEventListener('click', () => show('home'));
   $('#openApps').addEventListener('click', () => send({ type: 'openAppsSettings' }));
 
   // ---------- rendering ----------
@@ -530,6 +591,65 @@
       : '');
 
     renderLanguages(s.languages);
+    renderUpdate(s.version, s.update);
+  }
+
+  const ICONS = {
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+    sync: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 7v6M12 17h0"/></svg>',
+  };
+
+  /** The Updates card in Settings, the banner on Home and the sidebar hint. */
+  function renderUpdate(current, u) {
+    const pct = Math.round((u.progress || 0) * 100) + '%';
+    let icon = 'sync', iconClass = 'plain', title = 'Version ' + current, btn = 'Check for updates', primary = false, busy = false;
+    let desc = u.checked ? `Last checked ${u.checked}.` : 'Updates install over this version and keep your settings.';
+    switch (u.status) {
+      case 'checking':
+        desc = 'Checking…'; busy = true; break;
+      case 'latest':
+        icon = 'check'; iconClass = 'ok'; title = 'You’re up to date'; desc = `Version ${current} is the newest.`; btn = 'Check again'; break;
+      case 'available':
+        icon = 'download'; iconClass = ''; title = `Version ${u.version} is available`; primary = true;
+        desc = u.installed ? `You have ${current}. Updating keeps your languages, word list and settings.` : `You have ${current}. Get it from the download page.`;
+        btn = u.installed ? 'Update now' : 'Download'; break;
+      case 'downloading':
+        icon = 'download'; iconClass = ''; title = `Downloading version ${u.version}…`; desc = pct; busy = true; break;
+      case 'installing':
+        icon = 'download'; iconClass = ''; title = `Installing version ${u.version}…`;
+        desc = 'Language Autocorrect will close and open again in a moment.'; busy = true; break;
+      case 'error':
+        icon = 'alert'; iconClass = 'bad'; title = u.version ? 'Couldn’t update' : 'Couldn’t check for updates';
+        desc = u.error || 'Something went wrong.'; btn = 'Try again'; break;
+    }
+    $('#updateIcon').className = 'up-icon ' + iconClass;
+    $('#updateIcon').innerHTML = ICONS[icon];
+    $('#updateTitle').textContent = title;
+    $('#updateDesc').textContent = desc;
+    $('#updateBar').hidden = u.status !== 'downloading';
+    $('#updateBar div').style.width = pct;
+    const b = $('#updateBtn');
+    b.textContent = btn;
+    b.className = 'btn small' + (primary ? ' primary' : '');
+    b.hidden = u.status === 'downloading' || u.status === 'installing';
+    b.disabled = busy;
+
+    // Home: only while there's a new version to get.
+    const offer = !!u.version && ['available', 'downloading', 'installing', 'error'].includes(u.status);
+    $('#updateBanner').hidden = !offer;
+    $('#sideUpdate').hidden = !offer || u.status !== 'available';
+    if (offer) {
+      $('#bannerTitle').textContent = u.status === 'error' ? 'Couldn’t update' : title;
+      $('#bannerDesc').textContent = u.status === 'available'
+        ? (u.installed ? 'Updating takes a few seconds and keeps your languages, word list and settings.' : 'Get it from the download page.')
+        : desc;
+      $('#bannerBar').hidden = u.status !== 'downloading';
+      $('#bannerBar div').style.width = pct;
+      $('#bannerBtn').hidden = u.status === 'downloading' || u.status === 'installing';
+      $('#bannerBtn').textContent = u.status === 'error' ? 'Try again' : u.installed ? 'Update now' : 'Download';
+    }
   }
 
   function renderLanguages(langs) {
@@ -661,6 +781,11 @@
         ({ code, name, nativeName, badge, color, enabled, installed, locked: code === 'en',
            beta: ['kk', 'ka', 'hy', 'ko', 'th', 'ur'].includes(code) })),
       neverFix: ['akuo', 'lol', 'ok', 'vbh'], excludedApps: ['mstsc', 'KeePass'],
+      // ?update=available|downloading|latest|error to preview the update states
+      checkForUpdates: true,
+      update: { status: new URLSearchParams(location.search).get('update') || 'idle', version: '3.11.0', progress: .45,
+                error: 'Couldn’t reach the download page. Check your internet connection and try again.', installed: true,
+                checked: 'today at 14:02' },
       fixesToday: 23, fixesTotal: 1287,
       recent: [
         { time: '14:32', typed: 'ha jh akuo', fixed: 'יש חי שלום', app: 'WhatsApp' },
@@ -682,6 +807,8 @@
     if (msg.type === 'excluded.add') s.excludedApps.push(msg.app);
     if (msg.type === 'language.set') s.languages.find(l => l.code === msg.code).enabled = msg.on;
     if (msg.type === 'excluded.remove') s.excludedApps = s.excludedApps.filter(a => a !== msg.app);
+    if (msg.type === 'update.check') s.update.status = 'available';
+    if (msg.type === 'update.install') { s.update.status = 'downloading'; s.update.progress = .3; }
     render(s);
   }
 })();

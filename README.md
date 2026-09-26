@@ -58,6 +58,15 @@ is enough.
 
 Uninstall from **Settings → Apps → Installed apps → Language Autocorrect → Uninstall** (you can choose to keep your settings).
 
+### Updates
+
+Once a day the app asks the download page for the newest version number (`version.json`, published by the website
+build next to the app). When there's a newer one, the tray says so once, and the app window offers **Update now**
+(on Home, and in Settings → Updates, which also has **Check for updates** and a switch for the daily check; the tray
+menu has it too). Updating downloads the new version, checks it's the app at that version, and runs it with
+`--update`: it closes the running copy, installs over it keeping all settings, and opens again. Nothing about you is
+sent. A copy run without installing opens the download page instead.
+
 The app window and setup use the Microsoft Edge WebView2 Runtime, which comes with Windows 11 and current Windows 10.
 Run `LanguageAutocorrect.exe --selfcheck` to check keyboard layouts, voices and detection.
 Settings and log: `%AppData%\LanguageAutocorrect\`.

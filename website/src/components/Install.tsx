@@ -63,7 +63,7 @@ export function Install() {
             <h3>Good to know</h3>
             <dl>
               <div><dt>Works on</dt><dd>Windows 11, or Windows 10 version 1809 or newer (64‑bit).</dd></div>
-              <div><dt>Updating</dt><dd>Download the new version and open it. It offers <b>Update</b> and keeps your settings.</dd></div>
+              <div><dt>Updating</dt><dd>The app checks once a day and offers <b>Update now</b> in its window, keeping your settings. Or download the new version and open it.</dd></div>
               <div><dt>Uninstalling</dt><dd>Settings → Apps → Installed apps → Language Autocorrect → Uninstall.</dd></div>
               <div><dt>Needs</dt><dd>Microsoft Edge WebView2, which comes with Windows 11 and up-to-date Windows 10.</dd></div>
             </dl>

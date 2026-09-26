@@ -6,3 +6,4 @@ dist
 # Made from the app's code by scripts/prepare.mjs
 src/generated
 public/words
+public/version.json

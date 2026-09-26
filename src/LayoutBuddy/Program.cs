@@ -25,6 +25,13 @@ internal static class Program
             return;
         }
 
+        // A downloaded new version, started by the app's updater: replace the installed copy and start it again.
+        if (args.Contains("--update"))
+        {
+            Installer.UpdateSilently();
+            return;
+        }
+
         bool selfCheck = args.Contains("--selfcheck");
         if (!selfCheck && !args.Contains("--portable") && !Installer.IsRunningInstalledCopy)
         {
@@ -62,7 +69,7 @@ internal static class Program
         Log.Write("Started v" + Installer.CurrentVersion);
         // Open the window on a manual launch; stay in the tray when started with Windows.
         bool showWindow = !args.Contains("--background");
-        Application.Run(new TrayApp(detector, showWindow));
+        Application.Run(new TrayApp(detector, showWindow, justUpdated: args.Contains("--updated")));
     }
 
     private static SetupResult RunSetup(string mode)
