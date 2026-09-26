@@ -38,6 +38,9 @@ internal abstract class WebWindow : Form
 
     protected Size LogicalClientSize { get; }
 
+    /// <summary>No Windows title bar: the page draws its own close button, and calls <see cref="BeginDrag"/> to move the window.</summary>
+    protected virtual bool Frameless => false;
+
     public static bool IsDarkMode
     {
         get
@@ -65,7 +68,10 @@ internal abstract class WebWindow : Form
     {
         base.OnHandleCreated(e);
         float scale = DeviceDpi / 96f;
-        ClientSize = new Size((int)(LogicalClientSize.Width * scale), (int)(LogicalClientSize.Height * scale));
+        var size = new Size((int)(LogicalClientSize.Width * scale), (int)(LogicalClientSize.Height * scale));
+        // Without a frame the window is all client area (setting ClientSize would add room for a title bar).
+        if (Frameless) Size = size;
+        else ClientSize = size;
         StyleTitleBar();
     }
 
@@ -142,19 +148,63 @@ internal abstract class WebWindow : Form
         return r.ReadToEnd();
     }
 
-    // Match the Windows title bar to the page (Windows 11; ignored elsewhere).
+    private Timer? _drag;
+
+    /// <summary>
+    /// Moves the window with the mouse until the button is let go (for a frameless window's top edge). The page holds
+    /// the mouse while its button is down, so Windows' own window dragging can't take over; this follows the cursor.
+    /// </summary>
+    /// <param name="grab">Where the page was pressed, in page pixels from the window's top left corner.</param>
+    protected void BeginDrag(PointF grab)
+    {
+        if (_drag != null || !LeftButtonDown()) return;
+        float scale = DeviceDpi / 96f;
+        var offset = new Size((int)Math.Round(grab.X * scale), (int)Math.Round(grab.Y * scale));
+        _drag = new Timer { Interval = 8 };
+        _drag.Tick += (_, _) =>
+        {
+            var to = Cursor.Position - offset;
+            if (to != Location) Location = to;
+            if (LeftButtonDown()) return;
+            _drag.Dispose();
+            _drag = null;
+        };
+        _drag.Start();
+    }
+
+    // The button as it is now (Control.MouseButtons only knows about clicks on this thread's windows, not the page's).
+    private static bool LeftButtonDown() => Native.IsDown(SystemInformation.MouseButtonsSwapped ? 0x02 : 0x01);
+
+    // Match the Windows title bar to the page (Windows 11; ignored elsewhere). A frameless window gets rounded
+    // corners and a shadow instead.
     private void StyleTitleBar()
     {
         try
         {
             int dark = IsDarkMode ? 1 : 0;
             DwmSetWindowAttribute(Handle, 20, ref dark, sizeof(int));
+            if (Frameless)
+            {
+                int round = 2; // DWMWA_WINDOW_CORNER_PREFERENCE = DWMWCP_ROUND
+                DwmSetWindowAttribute(Handle, 33, ref round, sizeof(int));
+                int enabled = 2; // DWMWA_NCRENDERING_POLICY = DWMNCRP_ENABLED, so DWM draws the shadow
+                DwmSetWindowAttribute(Handle, 2, ref enabled, sizeof(int));
+                var margins = new Margins { Bottom = 1 };
+                DwmExtendFrameIntoClientArea(Handle, ref margins);
+                return;
+            }
             int color = BackColor.R | (BackColor.G << 8) | (BackColor.B << 16);
             DwmSetWindowAttribute(Handle, 35, ref color, sizeof(int));
         }
         catch { /* older Windows */ }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Margins { public int Left, Right, Top, Bottom; }
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins margins);
 }

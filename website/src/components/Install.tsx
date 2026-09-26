@@ -49,10 +49,10 @@ export function Install() {
               <li>
                 <span className="install-num">3</span>
                 <div>
-                  <h3>Choose Install</h3>
+                  <h3>Click Get started</h3>
                   <p>
-                    Pick your languages and you’re done. No administrator rights needed. Prefer not to install? Choose
-                    <b> Run without installing</b>.
+                    Your languages and settings are already picked for you, so it’s <b>Next</b>, then <b>Install</b>.
+                    No administrator rights needed. Prefer not to install? Choose <b>Run without installing</b>.
                   </p>
                 </div>
               </li>

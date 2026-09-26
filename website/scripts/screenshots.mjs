@@ -23,14 +23,15 @@ const shots = [
   { name: 'home', file: 'app.html', query: '', size: [980, 680] },
   { name: 'words', file: 'app.html', query: '?page=words', size: [980, 680] },
   { name: 'settings', file: 'app.html', query: '?page=settings', size: [980, 680] },
-  { name: 'setup', file: 'setup.html', query: '', size: [500, 680] },
+  { name: 'setup', file: 'setup.html', query: '', size: [960, 640] },
 ];
 
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge' });
 const encoder = await browser.newPage();
 for (const scheme of ['light', 'dark']) {
-  const context = await browser.newContext({ deviceScaleFactor: 2, colorScheme: scheme });
+  // Reduced motion shows the setup's typing demo finished (a word already fixed) instead of mid-typing.
+  const context = await browser.newContext({ deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: 'reduce' });
   // Home greets by the time of day; keep it the same whenever the screenshots are taken.
   await context.clock.setFixedTime(new Date(2026, 8, 1, 14, 35));
   for (const s of shots) {

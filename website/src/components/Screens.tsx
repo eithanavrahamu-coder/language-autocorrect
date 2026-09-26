@@ -21,8 +21,9 @@ const TABS = [
     alt: 'The Never fix page: a list of words that are never auto-corrected, and the option to learn from undos.' },
   { id: 'settings', label: 'Settings', light: settingsLight, dark: settingsDark, w: 980, h: 680, title: 'Language Autocorrect',
     alt: 'Settings: languages switched on and off, each with its colored badge.' },
-  { id: 'setup', label: 'Setup', light: setupLight, dark: setupDark, w: 500, h: 680, title: 'Language Autocorrect Setup',
-    alt: 'The setup window: Install, with options to start with Windows, add a desktop shortcut and turn on the voice.' },
+  { id: 'setup', label: 'Setup', light: setupLight, dark: setupDark, w: 960, h: 640, title: 'Language Autocorrect Setup',
+    alt: 'The setup window: a colorful side showing a word typed on the wrong keyboard being fixed, and a Get started button.',
+    frameless: true },
 ];
 
 export function Screens() {
@@ -66,10 +67,13 @@ export function Screens() {
             role="tabpanel"
             aria-labelledby={`tab-${tab.id}`}
           >
-            <motion.div className="win-bar" layout="position">
-              <span className="win-title"><img src={icon} alt="" width={16} height={16} />{tab.title}</span>
-              <span className="win-caption" aria-hidden><Minus size={15} /><Square size={12} /><X size={16} /></span>
-            </motion.div>
+            {/* The setup window draws its own top edge, so it has no title bar. */}
+            {!('frameless' in tab) && (
+              <motion.div className="win-bar" layout="position">
+                <span className="win-title"><img src={icon} alt="" width={16} height={16} />{tab.title}</span>
+                <span className="win-caption" aria-hidden><Minus size={15} /><Square size={12} /><X size={16} /></span>
+              </motion.div>
+            )}
             <div className="win-body" style={{ aspectRatio: `${tab.w} / ${tab.h}` }}>
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.picture

@@ -203,6 +203,23 @@ internal static class Installer
         return true;
     }
 
+    /// <summary>Opens the installed app's window: asks the running copy to (waiting a moment if it's still starting), or starts it.</summary>
+    public static void OpenInstalled()
+    {
+        int self = Environment.ProcessId;
+        for (int attempt = 0; attempt < 15; attempt++)
+        {
+            if (SignalShow()) return;
+            var others = Process.GetProcessesByName(AppId);
+            bool starting = others.Any(p => p.Id != self);
+            foreach (var p in others) p.Dispose();
+            if (!starting) break;
+            Thread.Sleep(200);
+        }
+        try { Process.Start(new ProcessStartInfo(InstalledExe) { UseShellExecute = true, WorkingDirectory = InstallDir }); }
+        catch (Exception ex) { Log.Write("Opening the app failed: " + ex.Message); }
+    }
+
     /// <summary>Asks running copies to exit (and closes them if they don't).</summary>
     private static void StopRunningInstances()
     {

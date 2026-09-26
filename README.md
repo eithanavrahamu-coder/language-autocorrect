@@ -46,11 +46,14 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 Download `LanguageAutocorrect.exe` from the website, **https://eithanavrahamu-coder.github.io/language-auto/**
 (or from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
-The setup window offers:
+Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo,
+your languages (the ones already in Windows are picked), a few preferences (already set), and done, with tips and
+a reminder to add any keyboard Windows doesn't have yet. Everything is pre-chosen, so *Get started → Next → Install*
+is enough.
 
 - **Install** – copies the app to `%LocalAppData%\Programs\Language Autocorrect`, adds Start menu (and optionally desktop)
   shortcuts, and registers it in **Settings → Apps → Installed apps**. No administrator rights needed.
-  Running a newer version later offers **Update** and keeps your settings.
+  Running a newer version later offers **Update** and keeps your settings; running the same version offers to open it.
 - **Run without installing** – runs it from where it is. `LanguageAutocorrect.exe --portable` skips the setup window.
 
 Uninstall from **Settings → Apps → Installed apps → Language Autocorrect → Uninstall** (you can choose to keep your settings).
@@ -78,7 +81,8 @@ installs under those names and keeps their settings. The code still uses `Layout
 - `src/LayoutBuddy.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
 - `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
 - `src/LayoutBuddy/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
-  browser to preview with sample data (`app.html?page=words`, `setup.html?mode=uninstall`).
+  browser to preview with sample data (`app.html?page=words`, `setup.html?screen=languages`, `setup.html?mode=update`,
+  `setup.html?mode=uninstall`).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
 
 ## Credits
