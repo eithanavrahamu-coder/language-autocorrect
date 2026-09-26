@@ -88,6 +88,11 @@ public sealed class WrongLayoutDetector
         var altCore = altModel.Core(alt);
         int? altRank = altCore == null ? null : altModel.Rank(altCore);
         bool altKnown = altCore != null && altModel.IsKnown(altCore);
+
+        // Punctuation isn't typed in front of a word on purpose where the other keyboard types a letter:
+        // ".ok" is Turkish çok, not "ok".
+        if (typedKnown && altKnown && typed.Length > 0 && !typedModel.IsLetter(typed[0]) && altModel.IsLetter(alt[0]))
+            typedKnown = false;
         double altLp = altCore == null ? double.NegativeInfinity : altModel.AvgLogProb(altCore);
         int altLength = altCore == null ? 0 : altModel.Length(altCore);
         return new(typed, alt, target, altCore, altLength, typedKnown, typedRank, typedLp, altKnown, altRank, altLp);

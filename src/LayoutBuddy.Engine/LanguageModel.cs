@@ -94,7 +94,7 @@ public sealed class LanguageModel
         return result;
     }
 
-    private static string Normalize(string s) => s.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormC);
+    private string Normalize(string s) => Info.ToLower(s).Normalize(System.Text.NormalizationForm.FormC);
 
     /// <summary>
     /// Frequency rank (1 = most common), or null if not in the dictionary. In a language written without spaces

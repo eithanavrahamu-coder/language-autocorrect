@@ -42,6 +42,10 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Portuguese, "não")]
     [InlineData(Lang.Portuguese, "coração")]
     [InlineData(Lang.Portuguese, "você")]    // ^ is Shift+'
+    [InlineData(Lang.Turkish, "için")]
+    [InlineData(Lang.Turkish, "güzel")]
+    [InlineData(Lang.Turkish, "teşekkür")]
+    [InlineData(Lang.Turkish, "çok")]       // ".ok" on the English keyboard, not "ok"
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -66,6 +70,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Spanish, "don't")]
     [InlineData(Lang.Russian, "don't")]
     [InlineData(Lang.Portuguese, "don't")]
+    [InlineData(Lang.Turkish, "this")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -78,6 +83,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.German, "hello")]
     [InlineData(Lang.Spanish, "hola")]
     [InlineData(Lang.Portuguese, "obrigado")]
+    [InlineData(Lang.Turkish, "merhaba")]
     public void SameTextIsLeftAlone(Lang lang, string word) =>
         Assert.False(D.Evaluate(word, Lang.English, lang, Sensitivity.High).ShouldFix);
 
@@ -140,6 +146,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x080A, Lang.Spanish)]   // Mexico
     [InlineData(0x0416, Lang.Portuguese)]   // Brazil
     [InlineData(0x0816, Lang.Portuguese)]   // Portugal
+    [InlineData(0x041F, Lang.Turkish)]
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
@@ -235,6 +242,29 @@ public class MultiLanguageTests(ITestOutputHelper output)
         Assert.Equal(Lang.Portuguese, a.Layout);
     }
 
+    [Fact]
+    public void TurkishCapitalsFollowTurkishRules()
+    {
+        // i and ı are different letters: their capitals are İ and I.
+        Assert.Equal("İyi", KeyMap.Render("'y'", Lang.Turkish, capitalizeFirst: true));
+        Assert.Equal("Ilık", KeyMap.Render("ilik", Lang.Turkish, capitalizeFirst: true));
+        Assert.True(Languages.Get(Lang.Turkish).IsLetter('İ'));
+    }
+
+    [Fact]
+    public void CapitalOnAPunctuationKey()
+    {
+        // Shift+. is Turkish Ç and Shift+; is Russian Ж: a capital first letter, not a stray Shift.
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Russian, Lang.Turkish] };
+        var a = Assert.IsType<FixWord>(Type(s, ">ok ", Lang.English));
+        Assert.Equal("Çok", a.Text);
+        Assert.Equal(">ok", a.Correction.Typed);
+        s.ResetAll();
+        Assert.Equal("Жизнь", Assert.IsType<FixWord>(Type(s, ":bpym ", Lang.English)).Text);
+        s.ResetAll();
+        Assert.IsType<PassThrough>(Type(s, "\"hello ", Lang.English));
+    }
+
     [Theory]
     [InlineData("canción", Lang.Spanish)]
     [InlineData("está", Lang.Spanish)]
@@ -283,7 +313,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
          Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai,
-         Lang.Spanish, Lang.Portuguese];
+         Lang.Spanish, Lang.Portuguese, Lang.Turkish];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

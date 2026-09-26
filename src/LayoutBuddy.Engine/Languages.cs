@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -42,9 +42,16 @@ public sealed record LanguageInfo(
     /// <summary>Less proven so far (small word list, or not yet tried on a real Windows keyboard): shown as "Beta".</summary>
     public bool Beta { get; init; }
 
-    public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
+    /// <summary>Turkish: dotted i/İ and dotless ı/I are different letters, so their capitals differ from English.</summary>
+    public bool DottedI { get; init; }
 
-    public char ToUpper(char c) => char.ToUpperInvariant(c);
+    public bool IsLetter(char c) => _letters.Contains(HasCase ? ToLower(c) : c);
+
+    public char ToUpper(char c) => DottedI && c is 'i' or 'ı' ? (c == 'i' ? 'İ' : 'I') : char.ToUpperInvariant(c);
+
+    public char ToLower(char c) => DottedI && c is 'I' or 'İ' ? (c == 'I' ? 'ı' : 'i') : char.ToLowerInvariant(c);
+
+    public string ToLower(string s) => DottedI ? string.Concat(s.Select(ToLower)) : s.ToLowerInvariant();
 }
 
 public static class Languages
@@ -190,6 +197,14 @@ public static class Languages
             $"' 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p {Acute} [ ] a s d f g h j k l ç {Tilde} z x c v b n m , . ;")
         {
             ShiftKeyboard = $"\" ! @ # $ % {Diaeresis} & * ( ) _ + Q W E R T Y U I O P {Grave} {{ }} A S D F G H J K L Ç {Circumflex} Z X C V B N M < > :",
+        },
+
+        // Windows' default "Turkish Q" layout: the I key types ı, and i is where English has '.
+        new(Lang.Turkish, "tr", "Turkish", "Türkçe", "TR", "#991B1B", 0x1F,
+            "abcçdefgğhıijklmnoöprsştuüvyz", true, false,
+            "\" 1 2 3 4 5 6 7 8 9 0 * - q w e r t y u ı o p ğ ü , a s d f g h j k l ş i z x c v b n m ö ç .")
+        {
+            DottedI = true,
         },
     ];
 

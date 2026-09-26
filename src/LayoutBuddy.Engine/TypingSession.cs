@@ -128,7 +128,7 @@ public sealed class TypingSession
                 if (key.Shifted)
                 {
                     // A capital first letter is fine (sentence start, German nouns); Shift anywhere else isn't.
-                    if (_keys.Length == 0 && KeyMap.TypesCasedLetter(key.UsChar, layout)) _capitalized = true;
+                    if (_keys.Length == 0 && TypesCapital(key.UsChar, layout)) _capitalized = true;
                     else _tainted = true;
                 }
                 _keys.Append(char.ToLowerInvariant(key.UsChar));
@@ -176,6 +176,14 @@ public sealed class TypingSession
     /// <summary>On this keyboard, or on the keyboard of a language the word may really be in.</summary>
     private bool ShiftTypesLetter(char usKey, Lang layout) =>
         KeyMap.ShiftTypesLetter(usKey, layout) || Languages.Any(l => KeyMap.ShiftTypesLetter(usKey, l));
+
+    /// <summary>
+    /// On this keyboard, or – on a keyboard with capitals – on the keyboard of a language the word may really be in
+    /// (Shift+. types > in English, Ç in Turkish).
+    /// </summary>
+    private bool TypesCapital(char usKey, Lang layout) =>
+        KeyMap.TypesCasedLetter(usKey, layout)
+        || LayoutBuddy.Engine.Languages.Get(layout).HasCase && Languages.Any(l => KeyMap.TypesCasedLetter(usKey, l));
 
     private void ResetAllButUndo()
     {

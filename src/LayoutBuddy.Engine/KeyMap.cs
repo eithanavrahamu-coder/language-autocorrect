@@ -30,14 +30,14 @@ public static class KeyMap
     private static Map Build(LanguageInfo info, IReadOnlyList<string> plain, IReadOnlyList<string>? shifted)
     {
         var p = Parse(plain);
-        var s = shifted != null ? Parse(shifted) : p.Select((t, i) => DefaultShifted(t, i, info.HasCase)).ToArray();
+        var s = shifted != null ? Parse(shifted) : p.Select((t, i) => DefaultShifted(t, i, info)).ToArray();
         return new Map(p, s);
     }
 
     /// <summary>Without a shifted map: the capital of a letter, otherwise what a US keyboard types.</summary>
-    private static Token DefaultShifted(Token t, int key, bool hasCase) =>
-        hasCase && !t.Dead && t.Text.Length == 1 && char.ToUpperInvariant(t.Text[0]) != t.Text[0]
-            ? t with { Text = t.Text.ToUpperInvariant() }
+    private static Token DefaultShifted(Token t, int key, LanguageInfo info) =>
+        info.HasCase && !t.Dead && t.Text.Length == 1 && info.ToUpper(t.Text[0]) != t.Text[0]
+            ? t with { Text = info.ToUpper(t.Text[0]).ToString() }
             : new Token(ShiftedKeys[key].ToString(), '\0', false);
 
     private static Token[] Parse(IReadOnlyList<string> tokens)
@@ -103,6 +103,10 @@ public static class KeyMap
     /// <param name="capitalizeFirst">Shift was held for the first key (only affects languages with capital letters).</param>
     public static string Render(string usKeys, Lang lang, bool capitalizeFirst = false)
     {
+        // Shift + the first key: its capital, or whatever else Shift types there (Turkish İ is Shift+', which
+        // types " on an English keyboard).
+        if (capitalizeFirst && Languages.Get(lang).HasCase && usKeys.Length > 0 && PhysicalKeys.Contains(usKeys[0]))
+            usKeys = Shifted(usKeys[0]) + usKeys[1..];
         var map = _maps[lang];
         var sb = new StringBuilder(usKeys.Length + 2);
         for (int i = 0; i < usKeys.Length; i++)
@@ -132,8 +136,6 @@ public static class KeyMap
 
         var s = sb.ToString();
         if (Languages.Get(lang).JoinsSyllables) s = Hangul.Compose(s);
-        if (capitalizeFirst && Languages.Get(lang).HasCase && s.Length > 0)
-            s = char.ToUpperInvariant(s[0]) + s[1..];
         return s;
     }
 
@@ -153,10 +155,11 @@ public static class KeyMap
     /// <summary>True if the key types a letter that has upper and lower case in <paramref name="lang"/>.</summary>
     public static bool TypesCasedLetter(char usKey, Lang lang)
     {
-        if (!Languages.Get(lang).HasCase) return false;
+        var info = Languages.Get(lang);
+        if (!info.HasCase) return false;
         var t = Lookup(_maps[lang], char.ToLowerInvariant(usKey));
         return t is { Dead: false } tok && tok.Text.Length == 1 && char.IsLetter(tok.Text[0])
-               && char.ToUpperInvariant(tok.Text[0]) != tok.Text[0];
+               && info.ToUpper(tok.Text[0]) != tok.Text[0];
     }
 
     /// <summary>Converts text back to the physical keys that type it on <paramref name="lang"/>'s keyboard (tests and tools).</summary>
