@@ -79,6 +79,7 @@ installs under those names and keeps their settings. The code still uses `Layout
 - `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
 - `src/LayoutBuddy/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
   browser to preview with sample data (`app.html?page=words`, `setup.html?mode=uninstall`).
+- `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
 
 ## Credits
 

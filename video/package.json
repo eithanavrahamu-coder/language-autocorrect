@@ -1,0 +1,31 @@
+{
+  "name": "language-autocorrect-video",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "data": "node ../website/scripts/prepare.mjs",
+    "sound": "node scripts/sound.ts",
+    "studio": "npm run data && npm run sound && remotion studio",
+    "render": "npm run data && npm run sound && remotion render Promo out/picture.mp4 --muted && ffmpeg -v error -y -i out/picture.mp4 -i public/soundtrack.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k -movflags +faststart LanguageAutocorrect-promo.mp4",
+    "typecheck": "tsc --noEmit",
+    "stills": "node scripts/stills.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/onest": "5.3.1",
+    "@remotion/bundler": "4.0.529",
+    "@remotion/cli": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "lucide-react": "1.48.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~6.0.2"
+  }
+}

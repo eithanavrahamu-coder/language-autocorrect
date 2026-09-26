@@ -1,0 +1,4 @@
+node_modules
+out
+# Made by `npm run sound`
+public/soundtrack.wav
