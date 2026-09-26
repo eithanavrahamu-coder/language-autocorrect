@@ -32,6 +32,9 @@ internal sealed class KeyboardMonitor : IDisposable
     public event Action<FixWord>? Fixed;
     public event Action<UndoFix>? Undone;
 
+    /// <summary>Called on the hook thread just before a fix is typed (to take a picture of the text first).</summary>
+    public Action<FixWord>? BeforeFix { get; set; }
+
     public bool IsRunning => _kbHook != IntPtr.Zero;
 
     public KeyboardMonitor(TypingSession session, Func<MonitorContext> context)
@@ -153,6 +156,8 @@ internal sealed class KeyboardMonitor : IDisposable
         {
             case FixWord fix:
             {
+                try { BeforeFix?.Invoke(fix); }
+                catch (Exception ex) { Log.Write("Before-fix error: " + ex.Message); }
                 var send = new InputSender();
                 TakeSwitch(send);
                 // The Korean IME may still be putting the last syllable together: pressing Hangul/English twice

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Text;
 using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
@@ -23,6 +22,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private readonly FocusTracker _focus = new();
     private readonly VoiceAnnouncer _voice = new();
     private readonly IndicatorForm _indicator = new();
+    private readonly FixCardForm _card = new();
+    private readonly FixFlash _flash;
     private readonly NotifyIcon _tray;
     private readonly Timer _uiTimer = new() { Interval = 60 };
     private readonly ToolStripMenuItem _autoItem;
@@ -36,6 +37,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private MainWindow? _main;
     private IReadOnlyList<Lang> _installedLanguages = [];
     private int _tickCount;
+    // A language the badge shows right away (after a fix or a click), before Windows reports the switch.
+    private (Lang Lang, DateTime Until)? _expected;
 
     public TrayApp(WrongLayoutDetector detector, bool showWindow)
     {
@@ -45,6 +48,9 @@ internal sealed class TrayApp : ApplicationContext, IAppController
 
         // Force the indicator's handle so we can marshal calls to the UI thread through it.
         _ = _indicator.Handle;
+        _ = _card.Handle;
+        _flash = new FixFlash();
+        _indicator.Clicked += OnBadgeClicked;
 
         _detector = detector;
         _session = new TypingSession(detector, _neverFix) { LearnFromUndos = _settings.LearnFromUndos };
@@ -56,6 +62,10 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             _indicator.BeginInvoke(() => OnFixed(fix, app));
         };
         _monitor.Undone += undo => _indicator.BeginInvoke(() => OnUndone(undo));
+        _monitor.BeforeFix = fix =>
+        {
+            if (_settings.ShowFixes) _flash.BeforeFix(fix, _focus.Snapshot);
+        };
 
         _autoItem = new ToolStripMenuItem("Auto-correct", null, (_, _) => Change(() => _settings.AutoCorrectEnabled = !_settings.AutoCorrectEnabled));
         var open = new ToolStripMenuItem("Open " + AppInfo.Name, null, (_, _) => ShowMain()) { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
@@ -130,6 +140,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             version = Installer.CurrentVersion,
             autoCorrect = _settings.AutoCorrectEnabled,
             showIndicator = _settings.ShowIndicator,
+            showFixes = _settings.ShowFixes,
             voice = _settings.VoiceEnabled,
             sensitivity = _settings.Sensitivity.ToString(),
             startWithWindows = _settings.StartWithWindows,
@@ -213,6 +224,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         {
             case "autoCorrect": _settings.AutoCorrectEnabled = value.GetBoolean(); break;
             case "showIndicator": _settings.ShowIndicator = value.GetBoolean(); break;
+            case "showFixes": _settings.ShowFixes = value.GetBoolean(); break;
             case "voice": _settings.VoiceEnabled = value.GetBoolean(); break;
             case "learnFromUndos":
                 _settings.LearnFromUndos = value.GetBoolean();
@@ -290,10 +302,36 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         }
         _lastWindow = snap.Window;
 
-        if (_settings.ShowIndicator && layout != null && snap.Caret is { } caret && !ownApp)
-            _indicator.ShowAt(caret, layout.Value);
+        var badge = layout;
+        if (_expected is { } expected)
+        {
+            if (layout == expected.Lang || DateTime.UtcNow > expected.Until) _expected = null;
+            else badge = expected.Lang;
+        }
+        if (_settings.ShowIndicator && badge != null && snap.Caret is { } caret && !ownApp)
+            _indicator.ShowAt(caret, badge.Value);
         else if (_indicator.Visible)
             _indicator.Hide();
+    }
+
+    /// <summary>Shows <paramref name="lang"/> on the badge now; Windows reports the keyboard switch a little later.</summary>
+    private void ExpectLayout(Lang lang)
+    {
+        _expected = (lang, DateTime.UtcNow.AddMilliseconds(700));
+        if (_indicator.Visible && _focus.Snapshot.Caret is { } caret) _indicator.ShowAt(caret, lang);
+    }
+
+    /// <summary>A click on the badge switches the keyboard to the next of the user's languages.</summary>
+    private void OnBadgeClicked()
+    {
+        var languages = _session.Languages;
+        var current = _expected?.Lang ?? _focus.Snapshot.Layout ?? LayoutService.Current();
+        if (current == null || languages.Count < 2) return;
+        var next = languages[(languages.ToList().IndexOf(current.Value) + 1) % languages.Count];
+        var send = new InputSender();
+        LayoutService.AppendSwitch(send, next);
+        send.Send();
+        ExpectLayout(next);
     }
 
     private void OnFixed(FixWord fix, string? app)
@@ -301,6 +339,17 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _settings.CountFix(DateTime.Now, fix.Correction.WordCount);
         _recent.Insert(0, new RecentFix(DateTime.Now, fix.Correction.Typed, fix.Correction.Replacement, FriendlyAppName(app)));
         if (_recent.Count > 12) _recent.RemoveAt(_recent.Count - 1);
+        ExpectLayout(fix.Layout);
+        if (_settings.ShowFixes)
+        {
+            // The card waits for the word to be found on screen, to sit right above it.
+            var card = new FixCardText(fix.Correction.Typed, fix.Correction.Replacement, UndoTip: _settings.TakeUndoTip());
+            var line = _focus.Snapshot.Caret;
+            _flash.WhenLocated(word =>
+            {
+                if (line is { } l) _card.ShowFix(card, l, word);
+            });
+        }
         Save();
         PushState();
     }
@@ -311,6 +360,11 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _settings.TotalFixes = Math.Max(0, _settings.TotalFixes - undo.Correction.WordCount);
         _settings.TodayFixes = Math.Max(0, _settings.TodayFixes - undo.Correction.WordCount);
         if (_recent.Count > 0 && _recent[0].Fixed == undo.Correction.Replacement) _recent.RemoveAt(0);
+        _settings.UndoTipDone = true;
+        _flash.Cancel();
+        ExpectLayout(undo.Layout);
+        if (_settings.ShowFixes && _focus.Snapshot.Caret is { } line)
+            _card.ShowFix(new FixCardText(undo.Correction.Typed, undo.Correction.Replacement, Undone: true), line, null);
         Save();
         PushState();
         if (undo.NowBlocked)
@@ -374,24 +428,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
 
     private void UpdateTrayIcon(Lang lang)
     {
-        using var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-            g.Clear(Color.Transparent);
-            using var bg = new SolidBrush(IndicatorForm.ColorOf(lang));
-            using var path = new System.Drawing.Drawing2D.GraphicsPath();
-            path.AddArc(0, 1, 10, 10, 180, 90);
-            path.AddArc(22, 1, 10, 10, 270, 90);
-            path.AddArc(22, 21, 10, 10, 0, 90);
-            path.AddArc(0, 21, 10, 10, 90, 90);
-            path.CloseFigure();
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.FillPath(bg, path);
-            using var font = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
-            var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(Languages.Get(lang).Badge, font, Brushes.White, new RectangleF(0, 0, 32, 32), fmt);
-        }
+        // Drawn at the exact size the tray shows, so the label stays sharp instead of being shrunk from 32×32.
+        using var bmp = BadgeArt.TrayIcon(lang, Math.Max(16, SystemInformation.SmallIconSize.Width));
         var handle = bmp.GetHicon();
         var old = _trayIconHandle;
         _tray.Icon = Icon.FromHandle(handle);
@@ -414,6 +452,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _tray.Visible = false;
         _tray.Dispose();
         _indicator.Close();
+        _card.Close();
+        _flash.Dispose();
         Save();
         base.ExitThreadCore();
     }

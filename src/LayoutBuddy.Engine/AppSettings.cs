@@ -6,6 +6,24 @@ namespace LayoutBuddy.Engine;
 public sealed class AppSettings
 {
     public bool ShowIndicator { get; set; } = true;
+
+    /// <summary>Show each fix at the cursor: the word glows, and a small card shows what was typed.</summary>
+    public bool ShowFixes { get; set; } = true;
+
+    /// <summary>How many fix cards have shown the "Backspace to undo" tip.</summary>
+    public int UndoTipsShown { get; set; }
+
+    /// <summary>The user has undone a fix, so the tip isn't needed anymore.</summary>
+    public bool UndoTipDone { get; set; }
+
+    /// <summary>Whether the next fix card shows the undo tip: the first few, then now and then, until the user has undone a fix.</summary>
+    public bool TakeUndoTip()
+    {
+        if (UndoTipDone || (UndoTipsShown >= 3 && TotalFixes % 20 != 0)) return false;
+        UndoTipsShown++;
+        return true;
+    }
+
     /// <summary>Say the language out loud when the keyboard changes. Off by default (offered in setup).</summary>
     public bool VoiceEnabled { get; set; }
 

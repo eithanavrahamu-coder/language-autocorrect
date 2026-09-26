@@ -385,6 +385,13 @@
       </div>
       <div class="setting">
         <div class="setting-text">
+          <div class="setting-title">Show each fix</div>
+          <div class="setting-desc">The fixed word glows for a moment, and a small card shows what you typed, like <s>ghbdtn</s> → <b>привет</b>.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-set="showFixes"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="setting-text">
           <div class="setting-title">Say the language out loud</div>
           <div class="setting-desc" id="voiceDesc">Says the language's name when the keyboard changes.</div>
         </div>
@@ -624,7 +631,7 @@
   } else {
     // Browser preview with sample data.
     window.__mockState = {
-      version: '2.2.0', autoCorrect: true, showIndicator: true, voice: true, sensitivity: 'Medium',
+      version: '2.2.0', autoCorrect: true, showIndicator: true, showFixes: true, voice: true, sensitivity: 'Medium',
       startWithWindows: true, learnFromUndos: false, undosToBlock: 3, nativeVoices: ['Hebrew'],
       layout: { code: 'he', name: 'Hebrew', badge: 'עב', color: '#16A34A' },
       languages: [
