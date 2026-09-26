@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -58,6 +58,7 @@ public static class Languages
     private const string Apostrophe = "~́'";
     private const string Grave = "~̀`";
     private const string Diaeresis = "~̈¨";
+    private const string Tilde = "~̃~";
 
     // Syllables, plus the letters they are made of: letters that didn't join a syllable are part of the word.
     private static readonly string HangulSyllables =
@@ -180,6 +181,15 @@ public static class Languages
             $"º 1 2 3 4 5 6 7 8 9 0 ' ¡ q w e r t y u i o p {Grave} + ç a s d f g h j k l ñ {Acute} z x c v b n m , . -")
         {
             ShiftKeyboard = $"ª ! \" · $ % & / ( ) = ? ¿ Q W E R T Y U I O P {Circumflex} * Ç A S D F G H J K L Ñ {Diaeresis} Z X C V B N M ; : _",
+        },
+
+        // Windows' "Portuguese (Brazil ABNT2)" layout; the Portugal layout is read from Windows at runtime.
+        // Shift types accents of its own: ^ (você) and ` (à).
+        new(Lang.Portuguese, "pt", "Portuguese", "Português", "PT", "#15803D", 0x16,
+            "abcdefghijklmnopqrstuvwxyzáâãàçéêíóôõúü", true, false,
+            $"' 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p {Acute} [ ] a s d f g h j k l ç {Tilde} z x c v b n m , . ;")
+        {
+            ShiftKeyboard = $"\" ! @ # $ % {Diaeresis} & * ( ) _ + Q W E R T Y U I O P {Grave} {{ }} A S D F G H J K L Ç {Circumflex} Z X C V B N M < > :",
         },
     ];
 

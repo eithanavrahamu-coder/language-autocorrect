@@ -32,6 +32,12 @@ function readString(src, i, consts) {
       i += 2;
       continue;
     }
+    if (interpolated && (c === '{' || c === '}') && src[i + 1] === c) {
+      // {{ and }} are a literal brace.
+      out += c;
+      i += 2;
+      continue;
+    }
     if (interpolated && c === '{') {
       const end = src.indexOf('}', i);
       const name = src.slice(i + 1, end).trim();

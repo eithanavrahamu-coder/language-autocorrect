@@ -39,6 +39,9 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Spanish, "canción")]
     [InlineData(Lang.Spanish, "mañana")]
     [InlineData(Lang.Spanish, "pingüino")]   // ¨ is Shift+'
+    [InlineData(Lang.Portuguese, "não")]
+    [InlineData(Lang.Portuguese, "coração")]
+    [InlineData(Lang.Portuguese, "você")]    // ^ is Shift+'
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -62,6 +65,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Armenian, "thanks")]
     [InlineData(Lang.Spanish, "don't")]
     [InlineData(Lang.Russian, "don't")]
+    [InlineData(Lang.Portuguese, "don't")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -73,6 +77,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.French, "hello")]   // types the same on both keyboards
     [InlineData(Lang.German, "hello")]
     [InlineData(Lang.Spanish, "hola")]
+    [InlineData(Lang.Portuguese, "obrigado")]
     public void SameTextIsLeftAlone(Lang lang, string word) =>
         Assert.False(D.Evaluate(word, Lang.English, lang, Sensitivity.High).ShouldFix);
 
@@ -133,6 +138,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x0419, Lang.Russian)]
     [InlineData(0x040A, Lang.Spanish)]   // Spain
     [InlineData(0x080A, Lang.Spanish)]   // Mexico
+    [InlineData(0x0416, Lang.Portuguese)]   // Brazil
+    [InlineData(0x0816, Lang.Portuguese)]   // Portugal
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
@@ -219,6 +226,29 @@ public class MultiLanguageTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void PortugueseCapitalAndShiftedAccent()
+    {
+        // "Você": a capital V, then ^ (Shift+') and e.
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Portuguese] };
+        var a = Assert.IsType<FixWord>(Type(s, "Voc\"e ", Lang.English));
+        Assert.Equal("Você", a.Text);
+        Assert.Equal(Lang.Portuguese, a.Layout);
+    }
+
+    [Theory]
+    [InlineData("canción", Lang.Spanish)]
+    [InlineData("está", Lang.Spanish)]
+    [InlineData("não", Lang.Portuguese)]
+    [InlineData("está", Lang.Portuguese)]   // the same word, typed on the Portuguese keyboard
+    public void PicksTheRightLatinLanguage(string word, Lang lang)
+    {
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Spanish, Lang.Portuguese] };
+        var a = Assert.IsType<FixWord>(Type(s, KeyMap.ToUsKeys(word, lang) + " ", Lang.English));
+        Assert.Equal(word, a.Text);
+        Assert.Equal(lang, a.Layout);
+    }
+
+    [Fact]
     public void CapitalizedWordIsNotTurnedIntoHebrew()
     {
         var s = new TypingSession(D, new NeverFixList());
@@ -253,7 +283,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
          Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai,
-         Lang.Spanish];
+         Lang.Spanish, Lang.Portuguese];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]
