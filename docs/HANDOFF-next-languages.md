@@ -6,6 +6,33 @@ user presses Space or Enter, then switches the keyboard.
 
 Repository: `eithanavrahamu-coder/language-auto` (branch `main`). Clone it, read `README.md`, then this file.
 
+## Wave 3 (versions 3.5.0–3.9.0): Spanish, Portuguese, Turkish, Italian, Urdu
+
+Done, one commit each. Keyboard maps were converted from Microsoft's own layout files (kbdlayout.info, `.klc`
+downloads) rather than typed by hand. What the engine gained on the way:
+
+- **Latin-script languages.** Most of their words type the same as English and are left alone ("same text");
+  only words with accents or extra letters differ. Their accuracy is measured on those words only, so the
+  samples are small (Italian 57 words).
+- **Accents on Shift** (Spanish ¨, Portuguese ^ and `, Italian é): `ShiftKeyboard` may contain dead keys and
+  letters that aren't capitals; `KeyMap.ShiftTypesLetter` counts both, but never a plain capital.
+- **`JoinsWithApostrophe`** (English, French, Italian): don't = don + 't, l'uomo = l' + uomo. Only short
+  forms ranked in the top 1000 count, because the lists also hold junk pieces like 'a.
+- **`DottedI`** (Turkish): i/İ and ı/I. All case changes go through `LanguageInfo.ToUpper/ToLower`.
+- **Punctuation that is really a letter:** a word isn't "known as typed" if it starts with punctuation, or has
+  ; [ ] \ ` = inside or right after it, where the other keyboard types a letter (".ok" is Turkish çok, "per;"
+  is Italian però, "ma;ana" is mañana).
+- **Capitals on punctuation keys:** Shift + a key that types a letter in one of the user's languages starts a
+  capitalized word (">ok" becomes Çok, ":bpym" becomes Жизнь).
+- **One-letter words** are fixed only if two keys typed them and they are among the most common (Portuguese é).
+- Urdu is Beta (a small word list: ~8,700 words).
+
+Known gaps: Italian è is a single key ([ on the English keyboard) and can't be fixed on its own; words
+starting with ¿ or ¡ are skipped.
+
+Next candidates (word lists exist in FrequencyWords): Hindi, Bengali (medium work: InScript keyboards type many
+letters with Shift), Romanian, Hungarian, Czech, Slovak, Swedish, Finnish, Norwegian, Danish (easy, like Spanish).
+
 ## Status (version 3.3.0)
 
 All eight languages below are done, one commit each. Notes for whoever continues:

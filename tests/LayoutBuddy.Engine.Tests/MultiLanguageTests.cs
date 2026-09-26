@@ -53,6 +53,9 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Italian, "quell'anno")]
     [InlineData(Lang.Italian, "però")]      // "per;" on the English keyboard, not "per"
     [InlineData(Lang.Portuguese, "é")]      // one letter, but two keys
+    [InlineData(Lang.Urdu, "شکریہ")]
+    [InlineData(Lang.Urdu, "پاکستان")]
+    [InlineData(Lang.Urdu, "زندگی")]        // ز and گ are Shift+S and Shift+K
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -79,6 +82,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Portuguese, "don't")]
     [InlineData(Lang.Turkish, "this")]
     [InlineData(Lang.Italian, "don't")]
+    [InlineData(Lang.Urdu, "hello")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -142,6 +146,19 @@ public class MultiLanguageTests(ITestOutputHelper output)
     }
 
     [Theory]
+    [InlineData("شکریہ", Lang.Urdu)]
+    [InlineData("زندگی", Lang.Urdu)]
+    [InlineData("سلام", Lang.Persian)]
+    [InlineData("شكرا", Lang.Arabic)]
+    public void PicksTheRightArabicScriptLanguage(string word, Lang lang)
+    {
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Arabic, Lang.Persian, Lang.Urdu] };
+        var a = Assert.IsType<FixWord>(Type(s, KeyMap.ToUsKeys(word, lang) + " ", Lang.English));
+        Assert.Equal(word, a.Text);
+        Assert.Equal(lang, a.Layout);
+    }
+
+    [Theory]
     [InlineData(0x0402, Lang.Bulgarian)]
     [InlineData(0x042F, Lang.Macedonian)]
     [InlineData(0x043F, Lang.Kazakh)]
@@ -157,12 +174,14 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x0816, Lang.Portuguese)]   // Portugal
     [InlineData(0x041F, Lang.Turkish)]
     [InlineData(0x0410, Lang.Italian)]
+    [InlineData(0x0420, Lang.Urdu)]      // Pakistan
+    [InlineData(0x0820, Lang.Urdu)]      // India
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
     [Fact]
     public void LessProvenLanguagesAreMarkedBeta() =>
-        Assert.Equal([Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai],
+        Assert.Equal([Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai, Lang.Urdu],
             Languages.All.Where(l => l.Beta).Select(l => l.Lang));
 
     [Theory]
@@ -334,7 +353,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
          Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai,
-         Lang.Spanish, Lang.Portuguese, Lang.Turkish, Lang.Italian];
+         Lang.Spanish, Lang.Portuguese, Lang.Turkish, Lang.Italian, Lang.Urdu];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish, Italian }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish, Italian, Urdu }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -214,6 +214,15 @@ public static class Languages
         {
             ShiftKeyboard = "| ! \" £ $ % & / ( ) = ? ^ Q W E R T Y U I O P é * § A S D F G H J K L ç ° Z X C V B N M ; : _",
             JoinsWithApostrophe = true,
+        },
+
+        // Windows' "Urdu" layout, which types many letters with Shift (ز, چ, خ, گ, ں...).
+        new(Lang.Urdu, "ur", "Urdu", "اردو", "ار", "#166534", 0x20,
+            "ءآؤئابپتٹثجچحخدڈذرڑزژسشصضطظعغفقکگلمنںوہھیےۂۃۓي", false, true,
+            "` 1 2 3 4 5 6 7 8 9 0 - = ط ص ھ د ٹ پ ت ب ج ح ] [ \\ م و ر ن ل ہ ا ک ی ؛ ' ق ف ے س ش غ ع ، ۔ /")
+        {
+            ShiftKeyboard = "~ ! @ # $ ٪ ^ ۖ ٭ ) ( _ + ظ ض ذ ڈ ث ّ ۃ ـ چ خ } { | ژ ز ڑ ں ۂ ء آ گ ي : \" � � ۓ � ؤ ئ � > < ؟",
+            Beta = true,
         },
     ];
 

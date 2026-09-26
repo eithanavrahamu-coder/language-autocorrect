@@ -656,9 +656,10 @@
         ['pt', 'Portuguese', 'Português', 'PT', '#15803D', false, false],
         ['tr', 'Turkish', 'Türkçe', 'TR', '#991B1B', false, false],
         ['it', 'Italian', 'Italiano', 'IT', '#7C3AED', false, false],
+        ['ur', 'Urdu', 'اردو', 'ار', '#166534', false, false],
       ].map(([code, name, nativeName, badge, color, enabled, installed]) =>
         ({ code, name, nativeName, badge, color, enabled, installed, locked: code === 'en',
-           beta: ['kk', 'ka', 'hy', 'ko', 'th'].includes(code) })),
+           beta: ['kk', 'ka', 'hy', 'ko', 'th', 'ur'].includes(code) })),
       neverFix: ['akuo', 'lol', 'ok', 'vbh'], excludedApps: ['mstsc', 'KeePass'],
       fixesToday: 23, fixesTotal: 1287,
       recent: [
