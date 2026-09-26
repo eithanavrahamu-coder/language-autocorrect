@@ -36,6 +36,9 @@ public sealed class WrongLayoutDetector
     /// <summary>The other language of the original English/Hebrew pair (used by older callers and tests).</summary>
     private static Lang DefaultTarget(Lang current) => current == Lang.English ? Lang.Hebrew : Lang.English;
 
+    /// <summary>Punctuation that is hardly ever typed inside or right after a word on purpose.</summary>
+    private const string NotTypedInWords = ";[]\\`=";
+
     private sealed record Params(
         int MaxAltRank,          // alt word must be at least this common when typed text is unknown
         int MaxAltRankShort,     // same, for 2-letter alt words
@@ -81,7 +84,7 @@ public sealed class WrongLayoutDetector
             // a word on purpose (Spanish "ma;ana" is mañana, not "ma" and "ana").
             var segs = typedModel.Segments(typed);
             typedKnown = segs.Count > 0 && segs.All(s => typedModel.IsKnown(s) && typedModel.Length(s) >= 2)
-                         && typed.AsSpan().Trim(";[]\\`=").IndexOfAny(";[]\\`=") < 0;
+                         && typed.AsSpan().Trim(NotTypedInWords).IndexOfAny(NotTypedInWords) < 0;
             typedLp = double.NegativeInfinity;
         }
 
@@ -89,9 +92,11 @@ public sealed class WrongLayoutDetector
         int? altRank = altCore == null ? null : altModel.Rank(altCore);
         bool altKnown = altCore != null && altModel.IsKnown(altCore);
 
-        // Punctuation isn't typed in front of a word on purpose where the other keyboard types a letter:
-        // ".ok" is Turkish çok, not "ok".
-        if (typedKnown && altKnown && typed.Length > 0 && !typedModel.IsLetter(typed[0]) && altModel.IsLetter(alt[0]))
+        // Punctuation isn't typed on purpose where the other keyboard types a letter: in front of a word
+        // (".ok" is Turkish çok, not "ok"), or a semicolon or bracket right after it ("per;" is Italian però).
+        if (typedKnown && altKnown && typed.Length > 0 &&
+            (!typedModel.IsLetter(typed[0]) && altModel.IsLetter(alt[0]) ||
+             NotTypedInWords.Contains(typed[^1]) && altModel.IsLetter(alt[^1])))
             typedKnown = false;
         double altLp = altCore == null ? double.NegativeInfinity : altModel.AvgLogProb(altCore);
         int altLength = altCore == null ? 0 : altModel.Length(altCore);
@@ -123,7 +128,9 @@ public sealed class WrongLayoutDetector
 
         var p = For(sensitivity);
         if (usKeys.Length < 2) return No("too short");
-        if (a.AltCore == null || a.AltLength < 2) return No("alt not a word shape");
+        // A one-letter word only if it took two keys (Portuguese é is ´ then e) and is one of the most common words.
+        bool accentedLetter = a.AltLength == 1 && a.AltKnown && a.Alt == a.AltCore;
+        if (a.AltCore == null || a.AltLength < 2 && !accentedLetter) return No("alt not a word shape");
 
         // The sentence so far is in the other language ("הוא אוכל far" -> כשר):
         // a word that exists there is fixed even if it is also a real word as typed.

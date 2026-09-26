@@ -46,6 +46,13 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Turkish, "güzel")]
     [InlineData(Lang.Turkish, "teşekkür")]
     [InlineData(Lang.Turkish, "çok")]       // ".ok" on the English keyboard, not "ok"
+    [InlineData(Lang.Italian, "città")]
+    [InlineData(Lang.Italian, "più")]
+    [InlineData(Lang.Italian, "perché")]    // é is Shift+[
+    [InlineData(Lang.Italian, "l'uomo")]    // the apostrophe is the - key
+    [InlineData(Lang.Italian, "quell'anno")]
+    [InlineData(Lang.Italian, "però")]      // "per;" on the English keyboard, not "per"
+    [InlineData(Lang.Portuguese, "é")]      // one letter, but two keys
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -71,6 +78,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Russian, "don't")]
     [InlineData(Lang.Portuguese, "don't")]
     [InlineData(Lang.Turkish, "this")]
+    [InlineData(Lang.Italian, "don't")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -84,6 +92,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Spanish, "hola")]
     [InlineData(Lang.Portuguese, "obrigado")]
     [InlineData(Lang.Turkish, "merhaba")]
+    [InlineData(Lang.Italian, "ciao")]
     public void SameTextIsLeftAlone(Lang lang, string word) =>
         Assert.False(D.Evaluate(word, Lang.English, lang, Sensitivity.High).ShouldFix);
 
@@ -147,6 +156,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x0416, Lang.Portuguese)]   // Brazil
     [InlineData(0x0816, Lang.Portuguese)]   // Portugal
     [InlineData(0x041F, Lang.Turkish)]
+    [InlineData(0x0410, Lang.Italian)]
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
@@ -265,6 +275,17 @@ public class MultiLanguageTests(ITestOutputHelper output)
         Assert.IsType<PassThrough>(Type(s, "\"hello ", Lang.English));
     }
 
+    [Fact]
+    public void ItalianAccentTypedWithShiftAndApostrophe()
+    {
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Italian] };
+        Assert.Equal("perché", Assert.IsType<FixWord>(Type(s, "perch{ ", Lang.English)).Text);
+        s.ResetAll();
+        Assert.Equal("c'è", Assert.IsType<FixWord>(Type(s, "c-[ ", Lang.English)).Text);
+        s.ResetAll();
+        Assert.IsType<PassThrough>(Type(s, "perch{ ", Lang.Italian));
+    }
+
     [Theory]
     [InlineData("canción", Lang.Spanish)]
     [InlineData("está", Lang.Spanish)]
@@ -313,7 +334,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
          Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai,
-         Lang.Spanish, Lang.Portuguese, Lang.Turkish];
+         Lang.Spanish, Lang.Portuguese, Lang.Turkish, Lang.Italian];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

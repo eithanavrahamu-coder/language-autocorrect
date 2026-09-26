@@ -116,7 +116,7 @@ public sealed class LanguageModel
         int i = core.IndexOf('\'');
         if (i <= 0 || i == core.Length - 1) return null;
         int? Joined(string word, string shortForm) =>
-            _ranks.TryGetValue(shortForm, out var rs) && rs <= 300
+            _ranks.TryGetValue(shortForm, out var rs) && rs <= 1000
             && _ranks.TryGetValue(word, out var rw) && rw <= KnownRankLimit(word.Length)
                 ? Math.Max(rs, rw) : null;
         return Joined(core[..i], core[i..]) ?? Joined(core[(i + 1)..], core[..(i + 1)]);

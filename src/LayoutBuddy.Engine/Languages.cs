@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish, Italian }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -205,6 +205,15 @@ public static class Languages
             "\" 1 2 3 4 5 6 7 8 9 0 * - q w e r t y u ı o p ğ ü , a s d f g h j k l ş i z x c v b n m ö ç .")
         {
             DottedI = true,
+        },
+
+        // Windows' "Italian" layout: the apostrophe is where English has -, and Shift types é (perché).
+        new(Lang.Italian, "it", "Italian", "Italiano", "IT", "#7C3AED", 0x10,
+            "abcdefghijklmnopqrstuvwxyzàèéìòù'", true, false,
+            "\\ 1 2 3 4 5 6 7 8 9 0 ' ì q w e r t y u i o p è + ù a s d f g h j k l ò à z x c v b n m , . -")
+        {
+            ShiftKeyboard = "| ! \" £ $ % & / ( ) = ? ^ Q W E R T Y U I O P é * § A S D F G H J K L ç ° Z X C V B N M ; : _",
+            JoinsWithApostrophe = true,
         },
     ];
 
