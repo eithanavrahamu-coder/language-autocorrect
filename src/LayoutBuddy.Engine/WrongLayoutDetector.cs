@@ -77,9 +77,11 @@ public sealed class WrongLayoutDetector
         else
         {
             // Punctuation inside the typed text (e.g. "www.google.com", "3.5", "t,v").
-            // Treat as fine if every piece looks like a real word.
+            // Treat as fine if every piece looks like a real word – unless the punctuation is never typed inside
+            // a word on purpose (Spanish "ma;ana" is mañana, not "ma" and "ana").
             var segs = typedModel.Segments(typed);
-            typedKnown = segs.Count > 0 && segs.All(s => typedModel.IsKnown(s) && typedModel.Length(s) >= 2);
+            typedKnown = segs.Count > 0 && segs.All(s => typedModel.IsKnown(s) && typedModel.Length(s) >= 2)
+                         && typed.AsSpan().Trim(";[]\\`=").IndexOfAny(";[]\\`=") < 0;
             typedLp = double.NegativeInfinity;
         }
 

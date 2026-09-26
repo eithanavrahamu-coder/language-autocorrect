@@ -1,6 +1,6 @@
 namespace LayoutBuddy.Engine;
 
-public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai }
+public enum Lang { English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French, German, Bulgarian, Serbian, Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish }
 
 /// <summary>Everything the app knows about one supported language.</summary>
 public sealed record LanguageInfo(
@@ -26,7 +26,7 @@ public sealed record LanguageInfo(
 
     /// <summary>
     /// What each physical key types with Shift, for keyboards where Shift types letters of their own rather than
-    /// capitals (Georgian, Thai, Korean). "�" marks a key that types nothing.
+    /// capitals (Georgian, Thai, Korean) or accents of their own (Spanish ¨). "�" marks a key that types nothing.
     /// </summary>
     public string? ShiftKeyboard { get; init; }
 
@@ -36,10 +36,15 @@ public sealed record LanguageInfo(
     /// <summary>Written without spaces between words (Thai): text typed before Space is often a whole phrase.</summary>
     public bool WithoutSpaces { get; init; }
 
+    /// <summary>Words are joined by an apostrophe (English don't, French l'homme, Italian l'uomo).</summary>
+    public bool JoinsWithApostrophe { get; init; }
+
     /// <summary>Less proven so far (small word list, or not yet tried on a real Windows keyboard): shown as "Beta".</summary>
     public bool Beta { get; init; }
 
     public bool IsLetter(char c) => _letters.Contains(HasCase ? char.ToLowerInvariant(c) : c);
+
+    public char ToUpper(char c) => char.ToUpperInvariant(c);
 }
 
 public static class Languages
@@ -51,6 +56,8 @@ public static class Languages
     private const string Circumflex = "~̂^";
     private const string Tonos = "~́΄";
     private const string Apostrophe = "~́'";
+    private const string Grave = "~̀`";
+    private const string Diaeresis = "~̈¨";
 
     // Syllables, plus the letters they are made of: letters that didn't join a syllable are part of the word.
     private static readonly string HangulSyllables =
@@ -65,7 +72,10 @@ public static class Languages
     [
         new(Lang.English, "en", "English", "English", "EN", "#2563EB", 0x09,
             "abcdefghijklmnopqrstuvwxyz'", true, false,
-            "` 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p [ ] \\ a s d f g h j k l ; ' z x c v b n m , . /"),
+            "` 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p [ ] \\ a s d f g h j k l ; ' z x c v b n m , . /")
+        {
+            JoinsWithApostrophe = true,
+        },
 
         new(Lang.Hebrew, "he", "Hebrew", "עברית", "עב", "#16A34A", 0x0D,
             "אבגדהוזחטיכךלמםנןסעפףצץקרשת'", false, true,
@@ -93,7 +103,10 @@ public static class Languages
 
         new(Lang.French, "fr", "French", "Français", "FR", "#4F46E5", 0x0C,
             "abcdefghijklmnopqrstuvwxyzàâæçéèêëîïôœùûüÿ'", true, false,
-            $"² & é \" ' ( - è _ ç à ) = a z e r t y u i o p {Circumflex} $ * q s d f g h j k l m ù w x c v b n , ; : !"),
+            $"² & é \" ' ( - è _ ç à ) = a z e r t y u i o p {Circumflex} $ * q s d f g h j k l m ù w x c v b n , ; : !")
+        {
+            JoinsWithApostrophe = true,
+        },
 
         new(Lang.German, "de", "German", "Deutsch", "DE", "#EA580C", 0x07,
             "abcdefghijklmnopqrstuvwxyzäöüß", true, false,
@@ -158,6 +171,15 @@ public static class Languages
             ShiftKeyboard = "% + ๑ ๒ ๓ ๔ ู ฿ ๕ ๖ ๗ ๘ ๙ ๐ \" ฎ ฑ ธ ํ ๊ ณ ฯ ญ ฐ , ฅ ฤ ฆ ฏ โ ฌ ็ ๋ ษ ศ ซ . ( ) ฉ ฮ ฺ ์ ? ฒ ฬ ฦ",
             WithoutSpaces = true,
             Beta = true,
+        },
+
+        // Windows' "Spanish" layout (Spain); Latin American is read from Windows at runtime.
+        // Shift types an accent of its own: ¨ (pingüino).
+        new(Lang.Spanish, "es", "Spanish", "Español", "ES", "#D97706", 0x0A,
+            "abcdefghijklmnopqrstuvwxyzáéíóúüñ", true, false,
+            $"º 1 2 3 4 5 6 7 8 9 0 ' ¡ q w e r t y u i o p {Grave} + ç a s d f g h j k l ñ {Acute} z x c v b n m , . -")
+        {
+            ShiftKeyboard = $"ª ! \" · $ % & / ( ) = ? ¿ Q W E R T Y U I O P {Circumflex} * Ç A S D F G H J K L Ñ {Diaeresis} Z X C V B N M ; : _",
         },
     ];
 

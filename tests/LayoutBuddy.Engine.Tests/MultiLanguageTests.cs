@@ -21,6 +21,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Greek, "καλημέρα")]
     [InlineData(Lang.French, "aller")]
     [InlineData(Lang.French, "été")]
+    [InlineData(Lang.French, "c'est")]    // two words joined by an apostrophe
     [InlineData(Lang.German, "schön")]
     [InlineData(Lang.German, "zeit")]
     [InlineData(Lang.Bulgarian, "здравей")]
@@ -35,6 +36,9 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Georgian, "გთხოვთ")]      // თ is Shift+T
     [InlineData(Lang.Armenian, "բարև")]
     [InlineData(Lang.Armenian, "շնորհակալություն")]
+    [InlineData(Lang.Spanish, "canción")]
+    [InlineData(Lang.Spanish, "mañana")]
+    [InlineData(Lang.Spanish, "pingüino")]   // ¨ is Shift+'
     public void FixesWordTypedOnEnglishKeyboard(Lang lang, string word)
     {
         var keys = KeyMap.ToUsKeys(word, lang);
@@ -56,6 +60,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(Lang.Kazakh, "world")]
     [InlineData(Lang.Georgian, "hello")]
     [InlineData(Lang.Armenian, "thanks")]
+    [InlineData(Lang.Spanish, "don't")]
+    [InlineData(Lang.Russian, "don't")]
     public void FixesEnglishTypedOnOtherKeyboard(Lang lang, string word)
     {
         var d = D.Evaluate(word, lang, Lang.English, Sensitivity.Medium);
@@ -66,6 +72,7 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [Theory]
     [InlineData(Lang.French, "hello")]   // types the same on both keyboards
     [InlineData(Lang.German, "hello")]
+    [InlineData(Lang.Spanish, "hola")]
     public void SameTextIsLeftAlone(Lang lang, string word) =>
         Assert.False(D.Evaluate(word, Lang.English, lang, Sensitivity.High).ShouldFix);
 
@@ -124,6 +131,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
     [InlineData(0x0437, Lang.Georgian)]
     [InlineData(0x042B, Lang.Armenian)]
     [InlineData(0x0419, Lang.Russian)]
+    [InlineData(0x040A, Lang.Spanish)]   // Spain
+    [InlineData(0x080A, Lang.Spanish)]   // Mexico
     public void RecognizesWindowsLanguage(int langId, Lang lang) =>
         Assert.Equal(lang, Languages.FromWindowsLangId(langId)?.Lang);
 
@@ -194,6 +203,22 @@ public class MultiLanguageTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void SpanishAccentTypedWithShift()
+    {
+        // ü is Shift+' then u; a capital M is still a capital.
+        var s = new TypingSession(D, new NeverFixList()) { Languages = [Lang.English, Lang.Spanish] };
+        var a = Assert.IsType<FixWord>(Type(s, "ping\"uino ", Lang.English));
+        Assert.Equal("pingüino", a.Text);
+        Assert.Equal(Lang.Spanish, a.Layout);
+        s.ResetAll();
+        Assert.IsType<PassThrough>(Type(s, "ping\"uino ", Lang.Spanish));
+        s.ResetAll();
+        Assert.Equal("Mañana", Assert.IsType<FixWord>(Type(s, "Ma;ana ", Lang.English)).Text);
+        s.ResetAll();
+        Assert.IsType<PassThrough>(Type(s, "ghbdTn ", Lang.English));   // Shift inside a word still stops tracking
+    }
+
+    [Fact]
     public void CapitalizedWordIsNotTurnedIntoHebrew()
     {
         var s = new TypingSession(D, new NeverFixList());
@@ -227,7 +252,8 @@ public class MultiLanguageTests(ITestOutputHelper output)
 
     public static TheoryData<Lang> NewLanguages =>
         [Lang.Russian, Lang.Arabic, Lang.Ukrainian, Lang.Persian, Lang.Greek, Lang.French, Lang.German,
-         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai];
+         Lang.Bulgarian, Lang.Serbian, Lang.Macedonian, Lang.Kazakh, Lang.Georgian, Lang.Armenian, Lang.Korean, Lang.Thai,
+         Lang.Spanish];
 
     [Theory]
     [MemberData(nameof(NewLanguages))]

@@ -101,7 +101,26 @@ public sealed class LanguageModel
     /// (Thai), text typed before Space is often several words: it ranks as the rarest of the words it splits into.
     /// </summary>
     public int? Rank(string core) =>
-        _ranks.TryGetValue(core, out var r) ? r : Info.WithoutSpaces ? PhraseRank(core) : null;
+        _ranks.TryGetValue(core, out var r) ? r
+        : Info.WithoutSpaces ? PhraseRank(core)
+        : Info.JoinsWithApostrophe ? JoinedRank(core)
+        : null;
+
+    /// <summary>
+    /// A word joined to a short form by an apostrophe (don + 't, l' + uomo), which the word lists keep apart:
+    /// ranks as the rarer of the two, or null if the word isn't known or the short form isn't a common one
+    /// (the lists also hold junk pieces like 'a).
+    /// </summary>
+    private int? JoinedRank(string core)
+    {
+        int i = core.IndexOf('\'');
+        if (i <= 0 || i == core.Length - 1) return null;
+        int? Joined(string word, string shortForm) =>
+            _ranks.TryGetValue(shortForm, out var rs) && rs <= 300
+            && _ranks.TryGetValue(word, out var rw) && rw <= KnownRankLimit(word.Length)
+                ? Math.Max(rs, rw) : null;
+        return Joined(core[..i], core[i..]) ?? Joined(core[(i + 1)..], core[..(i + 1)]);
+    }
 
     /// <summary>
     /// Splits text into the fewest known words (then preferring common ones) and returns the rarest word's rank,

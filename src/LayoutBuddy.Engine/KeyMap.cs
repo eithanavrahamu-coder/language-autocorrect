@@ -76,8 +76,8 @@ public static class KeyMap
     }
 
     /// <summary>
-    /// True if Shift + this key types a letter of its own in <paramref name="lang"/> (Georgian თ, Thai ธ, Korean ㅆ),
-    /// rather than a capital letter.
+    /// True if Shift + this key types a letter of its own in <paramref name="lang"/> (Georgian თ, Thai ธ, Korean ㅆ)
+    /// or an accent of its own (Spanish ¨), rather than a capital letter.
     /// </summary>
     public static bool ShiftTypesLetter(char usKey, Lang lang)
     {
@@ -85,9 +85,14 @@ public static class KeyMap
         int i = PhysicalKeys.IndexOf(char.ToLowerInvariant(usKey));
         if (info.ShiftKeyboard == null || i < 0) return false;
         var t = _maps[lang].Shifted[i];
-        return !t.Dead && t.Text.Length == 1 && t.Text != _maps[lang].Plain[i].Text
+        var plain = _maps[lang].Plain[i];
+        if (t.Dead) return !plain.Dead || plain.Combining != t.Combining;
+        return t.Text.Length == 1 && t.Text != plain.Text && !IsCapitalOf(t.Text, plain.Text, info)
                && (info.IsLetter(t.Text[0]) || info.JoinsSyllables && Hangul.IsLetter(t.Text[0]));
     }
+
+    private static bool IsCapitalOf(string upper, string lower, LanguageInfo info) =>
+        info.HasCase && lower.Length == 1 && upper[0] == info.ToUpper(lower[0]);
 
     public static bool IsShiftedKey(char c) => ShiftedKeys.IndexOf(c) >= 0;
 
@@ -173,13 +178,19 @@ public static class KeyMap
             i = ShiftedKeyFor(ch.ToString());
             if (i >= 0) { sb.Append(ShiftedKeys[i]); continue; }
 
-            // ...or a dead key followed by the base letter (Greek ΄ + α = ά).
+            // ...or a dead key followed by the base letter (Greek ΄ + α = ά, Portuguese Shift+' then e = ê).
             var parts = ch.ToString().Normalize(NormalizationForm.FormD);
             int b = parts.Length == 2 ? KeyFor(parts[0].ToString()) : -1;
             int d = parts.Length == 2 ? Array.FindIndex(map.Plain, t => t.Dead && t.Combining == parts[1]) : -1;
             if (b >= 0 && d >= 0)
             {
                 sb.Append(PhysicalKeys[d]).Append(PhysicalKeys[b]);
+                continue;
+            }
+            d = parts.Length == 2 && shiftLetters ? Array.FindIndex(map.Shifted, t => t.Dead && t.Combining == parts[1]) : -1;
+            if (b >= 0 && d >= 0)
+            {
+                sb.Append(ShiftedKeys[d]).Append(PhysicalKeys[b]);
                 continue;
             }
             sb.Append(ch);
