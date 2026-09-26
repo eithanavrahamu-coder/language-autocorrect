@@ -1,4 +1,6 @@
 node_modules
 out
 # Made by `npm run sound`
-public/soundtrack.wav
+public/soundtrack*.wav
+# Made by `npm run data`
+src/generated

@@ -208,7 +208,7 @@ LANGS.cards.forEach((c, i) => {
   play(c.fix, sparkle(i), 0.24, side, 0.35);
 });
 play(LANGS.gridOut + 0.2, whoosh(0.5, 2600, 400, 3, 0.4), 0.2, 0, 0.3);
-const languageCount: number = JSON.parse(readFileSync(path.join(root, '../website/src/generated/app-info.json'), 'utf8')).languages.length;
+const languageCount: number = JSON.parse(readFileSync(path.join(root, 'src/generated/app-info.json'), 'utf8')).languages.length;
 for (let i = 0; i < languageCount; i++) {
   play(LANGS.burst + i * LANGS.burstStep + 0.04, pop(0.8 + i * 0.035, 30 + i), 0.13, ((i % 9) / 8 - 0.5) * 0.8, 0.25);
 }
@@ -366,19 +366,6 @@ for (let i = 0; i < length; i++) {
   mix.right[i] = effects.right[i] + tune.mix.right[i] * g;
 }
 
-// Nothing above 16 kHz: nobody hears it, video sites drop it, and it makes peaks overshoot between samples.
-for (const channel of [mix.left, mix.right]) {
-  const a = new Filter('low', 16000, 0.541), b = new Filter('low', 16000, 1.307);
-  for (let i = 0; i < length; i++) channel[i] = b.run(a.run(channel[i]));
-}
-// The last half second fades out, so the chime's tail and the last chord don't stop dead.
-const fade = samples(0.5);
-for (let i = 0; i < fade; i++) {
-  const g = Math.cos(((i + 1) / fade) * (Math.PI / 2)) ** 2;
-  mix.left[length - fade + i] *= g;
-  mix.right[length - fade + i] *= g;
-}
-
 if (process.env.SOUND_DEBUG) {
   // The effects and the music on their own, to listen to or measure; and how loud each was.
   const musicAlone = stereo(length);
@@ -401,17 +388,38 @@ if (process.env.SOUND_DEBUG) {
   console.log(peaks.slice(0, 12).map(p => `${p.at.toFixed(2)}s ${p.db.toFixed(1)} dB`).join('\n'));
 }
 
-// Aim for -16 LUFS (what most sites and phones expect), with peaks kept 1.5 dB under full scale.
-const TARGET = -16, CEILING = 10 ** (-1.5 / 20);
-let gain = 1, result: [Stereo, number] = [mix, 1], level = { lufs: 0, peak: 0 };
-for (let round = 0; round < 4; round++) {
-  result = limited(mix, gain, CEILING);
-  level = measure(result[0]);
-  if (Math.abs(level.lufs - TARGET) < 0.3) break;
-  gain *= 10 ** ((TARGET - level.lufs) / 20);
+// ---------- the two soundtracks ----------
+
+/**
+ * Finishes a soundtrack and saves it as public/`name`: nothing above 16 kHz (nobody hears it, video sites drop it, and
+ * it makes peaks overshoot between samples), a fade over the last half second so nothing stops dead, and -16 LUFS
+ * (what most sites and phones expect) with peaks kept 1.5 dB under full scale.
+ */
+function finish(sound: Stereo, name: string, what: string) {
+  const out = stereo(length);
+  for (const side of ['left', 'right'] as const) {
+    const a = new Filter('low', 16000, 0.541), b = new Filter('low', 16000, 1.307);
+    for (let i = 0; i < length; i++) out[side][i] = b.run(a.run(sound[side][i]));
+  }
+  const fade = samples(0.5);
+  for (let i = 0; i < fade; i++) {
+    const g = Math.cos(((i + 1) / fade) * (Math.PI / 2)) ** 2;
+    out.left[length - fade + i] *= g;
+    out.right[length - fade + i] *= g;
+  }
+  const TARGET = -16, CEILING = 10 ** (-1.5 / 20);
+  let gain = 1, result: [Stereo, number] = [out, 1], level = { lufs: 0, peak: 0 };
+  for (let round = 0; round < 4; round++) {
+    result = limited(out, gain, CEILING);
+    level = measure(result[0]);
+    if (Math.abs(level.lufs - TARGET) < 0.3) break;
+    gain *= 10 ** ((TARGET - level.lufs) / 20);
+  }
+  const file = path.join(root, 'public', name);
+  writeWav(file, [result[0].left, result[0].right], 24);
+  console.log(`${what} → ${path.relative(root, file)}: ${level.lufs.toFixed(1)} LUFS, true peak ${level.peak.toFixed(1)} dBFS, ` +
+    `loudest moments turned down by ${(-20 * Math.log10(result[1])).toFixed(1)} dB`);
 }
-const file = path.join(root, 'public/soundtrack.wav');
-writeWav(file, [result[0].left, result[0].right], 24);
-console.log(`${events.length} sounds over the music (${MUSIC_BELOW} dB under them) → ${path.relative(root, file)}: ` +
-  `${level.lufs.toFixed(1)} LUFS, true peak ${level.peak.toFixed(1)} dBFS, loudest moments turned down by ` +
-  `${(-20 * Math.log10(result[1])).toFixed(1)} dB`);
+
+finish(mix, 'soundtrack.wav', `${events.length} sounds over the music (${MUSIC_BELOW} dB under them)`);
+finish(effects, 'soundtrack-no-music.wav', `${events.length} sounds, no music`);

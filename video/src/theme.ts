@@ -1,4 +1,4 @@
-import info from '../../website/src/generated/app-info.json';
+import info from './generated/app-info.json';
 
 /** The app's own colors (src/LayoutBuddy/UI/app.html), as on the website. */
 export const C = {
@@ -26,7 +26,7 @@ export const FONT_BADGE = "'Segoe UI', 'Leelawadee UI', 'Malgun Gothic', sans-se
 
 export type Language = (typeof info.languages)[number];
 
-/** Read from the app's code by website/scripts/prepare.mjs (`npm run data`). */
+/** Read from the app's code by scripts/data.ts (`npm run data`). */
 export const LANGUAGES: Language[] = info.languages;
 export const byCode = (code: string): Language => {
   const lang = LANGUAGES.find(l => l.code === code);

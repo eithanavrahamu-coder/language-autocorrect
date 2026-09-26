@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "data": "node ../website/scripts/prepare.mjs",
+    "data": "node scripts/data.ts",
     "sound": "node scripts/sound.ts",
     "studio": "npm run data && npm run sound && remotion studio",
-    "render": "npm run data && npm run sound && remotion render Promo out/picture.mp4 --muted && ffmpeg -v error -y -i out/picture.mp4 -i public/soundtrack.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k -movflags +faststart LanguageAutocorrect-promo.mp4",
+    "render": "npm run data && npm run sound && remotion render Promo out/picture.mp4 --muted && npm run mux",
     "typecheck": "tsc --noEmit",
-    "stills": "node scripts/stills.ts"
+    "stills": "node scripts/stills.ts",
+    "mux": "node scripts/mux.ts"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "5.3.0",
