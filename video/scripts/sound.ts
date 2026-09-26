@@ -1,126 +1,18 @@
-// Makes the video's soundtrack, public/soundtrack.wav. Every sound is synthesized here (so there are no recordings
-// and no licenses to worry about) and placed at its moment in src/timeline.ts, which the pictures use too.
+// Makes the video's soundtrack, public/soundtrack.wav: the sound effects, synthesized here, over the music
+// (scripts/music.ts). Every sound is placed at its moment in src/timeline.ts, which the pictures use too, and nothing
+// is a recording, so there are no licenses to worry about.
 // `npm run sound` (Node runs this TypeScript file directly). Needs ffmpeg, to measure the loudness.
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { APPS, HERO, LANGS, OUTRO, SECONDS, UNDO } from '../src/timeline.ts';
+import { music } from './music.ts';
+import {
+  bell, Filter, hiss, hz, knock, type Mode, normalized, note, place, RATE, random, room, samples, type Sound, stereo,
+  type Stereo,
+} from './synth.ts';
 
-const RATE = 48000;
 const root = path.resolve(import.meta.dirname, '..');
-const samples = (seconds: number) => Math.round(seconds * RATE);
-
-/** A sound, and where in it its moment is (a whoosh peaks in its middle, a rewind swells up to its end). */
-type Sound = { data: Float32Array; hit: number };
-
-// ---------- building blocks ----------
-
-/** Repeatable random numbers (mulberry32), so the soundtrack comes out the same every time. */
-function random(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** A two-pole filter (the Audio EQ Cookbook's low-pass, high-pass and band-pass). */
-class Filter {
-  kind: 'low' | 'high' | 'band';
-  b0 = 0; b1 = 0; b2 = 0; a1 = 0; a2 = 0;
-  x1 = 0; x2 = 0; y1 = 0; y2 = 0;
-
-  constructor(kind: 'low' | 'high' | 'band', freq: number, q = 0.707) {
-    this.kind = kind;
-    this.tune(freq, q);
-  }
-
-  tune(freq: number, q: number) {
-    const w = (2 * Math.PI * Math.min(freq, RATE * 0.45)) / RATE;
-    const cos = Math.cos(w), a = Math.sin(w) / (2 * q), a0 = 1 + a;
-    const [b0, b1, b2] =
-      this.kind === 'low' ? [(1 - cos) / 2, 1 - cos, (1 - cos) / 2]
-      : this.kind === 'high' ? [(1 + cos) / 2, -(1 + cos), (1 + cos) / 2]
-      : [a, 0, -a];
-    this.b0 = b0 / a0; this.b1 = b1 / a0; this.b2 = b2 / a0;
-    this.a1 = (-2 * cos) / a0; this.a2 = (1 - a) / a0;
-  }
-
-  run(x: number) {
-    const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
-    this.x2 = this.x1; this.x1 = x; this.y2 = this.y1; this.y1 = y;
-    return y;
-  }
-}
-
-function normalized(data: Float32Array): Float32Array {
-  let peak = 0;
-  for (const v of data) peak = Math.max(peak, Math.abs(v));
-  if (peak > 0) for (let i = 0; i < data.length; i++) data[i] /= peak;
-  return data;
-}
-
-type Mode = { f: number; tau: number; a: number };
-
-/** One knock: a sharp click, a burst of filtered noise, and the ringing of whatever was hit (its `modes`). */
-function knock(out: Float32Array, at: number, amp: number, rnd: () => number,
-  o: { click: number; clickTau: number; band: number; bandTau: number; bandAmp: number; modes: Mode[] }) {
-  const start = samples(at);
-  const high = new Filter('high', o.click, 0.7);
-  const band = new Filter('band', o.band, 1.3);
-  const phases = o.modes.map(() => rnd() * Math.PI * 2);
-  const n = Math.min(out.length - start, samples(0.15));
-  for (let i = 0; i < n; i++) {
-    const t = i / RATE;
-    const noise = rnd() * 2 - 1;
-    let v = high.run(noise) * Math.exp(-t / o.clickTau) * 0.9 + band.run(noise) * Math.exp(-t / o.bandTau) * o.bandAmp;
-    for (let k = 0; k < o.modes.length; k++) {
-      const m = o.modes[k];
-      v += m.a * Math.sin(2 * Math.PI * m.f * t + phases[k]) * Math.exp(-t / m.tau);
-    }
-    out[start + i] += amp * Math.min(1, t / 0.0003) * v;
-  }
-}
-
-/** A bell-like note: a sine with a few quieter overtones above it that fade faster. */
-function bell(out: Float32Array, at: number, freq: number, amp: number, tau: number) {
-  const partials = [[1, 1, 1], [1.002, 0.35, 0.9], [2.76, 0.3, 0.45], [5.4, 0.11, 0.25], [8.93, 0.045, 0.15]];
-  const start = samples(at);
-  const n = Math.min(out.length - start, samples(tau * 7));
-  for (const [ratio, level, decay] of partials) {
-    const f = freq * ratio;
-    if (f > 16000) continue;
-    for (let i = 0; i < n; i++) {
-      const t = i / RATE;
-      out[start + i] += amp * level * Math.min(1, t / 0.002) * Math.exp(-t / (tau * decay)) * Math.sin(2 * Math.PI * f * t);
-    }
-  }
-}
-
-/** A short soft note with a little warmth (two overtones). */
-function note(out: Float32Array, at: number, freq: number, amp: number, tau: number) {
-  const start = samples(at);
-  const n = Math.min(out.length - start, samples(tau * 7));
-  for (let i = 0; i < n; i++) {
-    const t = i / RATE, w = 2 * Math.PI * freq * t;
-    const env = Math.min(1, t / 0.002) * Math.exp(-t / tau);
-    out[start + i] += amp * env * (Math.sin(w) + 0.3 * Math.sin(2 * w) + 0.1 * Math.sin(3 * w));
-  }
-}
-
-/** Airy high noise, for sparkle. */
-function hiss(out: Float32Array, at: number, duration: number, amp: number, cutoff: number, rnd: () => number) {
-  const high = new Filter('high', cutoff, 0.7);
-  const start = samples(at);
-  const n = Math.min(out.length - start, samples(duration));
-  for (let i = 0; i < n; i++) {
-    const t = i / RATE;
-    out[start + i] += amp * Math.min(1, t / 0.03) * Math.exp(-t / (duration / 4)) * high.run(rnd() * 2 - 1);
-  }
-}
 
 // ---------- the sounds ----------
 
@@ -150,12 +42,16 @@ function key(seed: number, kind: 'letter' | 'space' | 'backspace' = 'letter'): S
   return { data: normalized(out), hit: 0 };
 }
 
-/** The fix: a quick bright arpeggio (E major), a semitone `step` higher for each language in the montage. */
+/**
+ * The fix: a quick bright run of four notes. `step` moves it up the E major pentatonic scale (E F# G# B C#), so the
+ * languages' fixes climb, and every note fits the music's chords.
+ */
 function sparkle(step: number): Sound {
   const rnd = random(100 + step);
   const out = new Float32Array(samples(1.7));
-  const k = 2 ** (step / 12);
-  [659.25, 830.61, 987.77, 1318.51].forEach((f, i) => bell(out, 0.004 + i * 0.042, f * k, [0.5, 0.42, 0.42, 0.55][i], 0.24));
+  const scale = [76, 78, 80, 83, 85];
+  const degree = (d: number) => scale[d % 5] + 12 * Math.floor(d / 5);
+  [0, 2, 3, 5].forEach((d, i) => bell(out, 0.004 + i * 0.042, hz(degree(step + d)), [0.5, 0.42, 0.42, 0.55][i], 0.24));
   hiss(out, 0.01, 0.7, 0.05, 7000, rnd);
   return { data: normalized(out), hit: 0 };
 }
@@ -263,7 +159,7 @@ function glint(): Sound {
   return { data: normalized(out), hit: 0 };
 }
 
-// ---------- the soundtrack ----------
+// ---------- the sound effects, in order ----------
 
 type Event = { at: number; sound: Sound; gain: number; pan: number; wet: number };
 const events: Event[] = [];
@@ -305,12 +201,11 @@ type(HERO.then, HERO.thenTimes, 0.42);
 play(HERO.out + 0.15, whoosh(0.55, 2400, 500, 2, 0.45), 0.2, 0.2, 0.3);
 
 // 2. The languages: each fix a step up the scale, then the badges landing
-const scale = [0, 2, 4, 7, 9, 12];
 LANGS.cards.forEach((c, i) => {
   const side = ((i % 3) - 1) * 0.45;
   play(c.cardIn, pop(0.9 + i * 0.05, 10 + i), 0.12, side);
-  type(c.keys, c.keyTimes, 0.3, side * 0.6);
-  play(c.fix, sparkle(scale[i]), 0.32, side, 0.35);
+  type(c.keys, c.keyTimes, 0.2, side * 0.6);
+  play(c.fix, sparkle(i), 0.24, side, 0.35);
 });
 play(LANGS.gridOut + 0.2, whoosh(0.5, 2600, 400, 3, 0.4), 0.2, 0, 0.3);
 const languageCount: number = JSON.parse(readFileSync(path.join(root, '../website/src/generated/app-info.json'), 'utf8')).languages.length;
@@ -339,136 +234,13 @@ play(APPS.privacy, reassure(), 0.2, 0, 0.45);
 play(APPS.out + 0.12, whoosh(0.75, 3000, 300, 7, 0.35), 0.26, 0, 0.35);
 
 // 5. The end
-play(OUTRO.icon, chime(), 0.55, 0, 0.35);
+play(OUTRO.icon, chime(), 0.46, 0, 0.35);
 play(OUTRO.name + 0.1, whoosh(0.5, 800, 3000, 8, 0.5), 0.07, 0, 0.3);
 OUTRO.badges.forEach((b, i) => play(b.at, tick(1.3 + (i % 3) * 0.1, 40 + i), 0.07, 0.35, 0.2));
 play(OUTRO.button, pop(0.85, 5), 0.18);
-play(17.45, glint(), 0.1, 0.1, 0.4);
-
-// ---------- mixing ----------
-
-/** A small room (Freeverb's design), so the sounds sit together instead of in a vacuum. */
-function room(send: Float32Array): [Float32Array, Float32Array] {
-  const scale = RATE / 44100;
-  const comb = (size: number) => ({ buf: new Float32Array(Math.round(size * scale)), i: 0, store: 0 });
-  const pass = (size: number) => ({ buf: new Float32Array(Math.round(size * scale)), i: 0 });
-  const side = (spread: number) => ({
-    combs: [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617].map(s => comb(s + spread)),
-    passes: [556, 441, 341, 225].map(s => pass(s + spread)),
-  });
-  const feedback = 0.86, damp = 0.3;
-  const run = (s: ReturnType<typeof side>, x: number) => {
-    let y = 0;
-    for (const c of s.combs) {
-      const out = c.buf[c.i];
-      c.store = out * (1 - damp) + c.store * damp;
-      c.buf[c.i] = x + c.store * feedback;
-      c.i = (c.i + 1) % c.buf.length;
-      y += out;
-    }
-    for (const p of s.passes) {
-      const b = p.buf[p.i];
-      p.buf[p.i] = y + b * 0.5;
-      p.i = (p.i + 1) % p.buf.length;
-      y = b - y;
-    }
-    return y;
-  };
-  const l = side(0), r = side(23);
-  const outL = new Float32Array(send.length), outR = new Float32Array(send.length);
-  for (let i = 0; i < send.length; i++) {
-    outL[i] = run(l, send[i] * 0.015);
-    outR[i] = run(r, send[i] * 0.015);
-  }
-  return [outL, outR];
-}
-
-const length = samples(SECONDS);
-const left = new Float32Array(length), right = new Float32Array(length), send = new Float32Array(length);
-for (const e of events) {
-  const start = samples(e.at - e.sound.hit);
-  const angle = ((Math.max(-1, Math.min(1, e.pan)) + 1) * Math.PI) / 4;
-  const gl = Math.cos(angle) * Math.SQRT2, gr = Math.sin(angle) * Math.SQRT2;
-  for (let i = 0; i < e.sound.data.length; i++) {
-    const j = start + i;
-    if (j < 0 || j >= length) continue;
-    const v = e.sound.data[i] * e.gain;
-    left[j] += v * gl;
-    right[j] += v * gr;
-    send[j] += v * e.wet;
-  }
-}
-const [wetL, wetR] = room(send);
-const WET = 1.6;
-for (let i = 0; i < length; i++) {
-  left[i] += wetL[i] * WET;
-  right[i] += wetR[i] * WET;
-}
-// Nothing above 16 kHz: nobody hears it, video sites drop it, and it makes peaks overshoot between samples.
-for (const channel of [left, right]) {
-  const a = new Filter('low', 16000, 0.541), b = new Filter('low', 16000, 1.307);
-  for (let i = 0; i < length; i++) channel[i] = b.run(a.run(channel[i]));
-}
-// The last half second fades out, so the chime's tail doesn't stop dead.
-const fade = samples(0.5);
-for (let i = 0; i < fade; i++) {
-  const g = Math.cos(((i + 1) / fade) * (Math.PI / 2)) ** 2;
-  left[length - fade + i] *= g;
-  right[length - fade + i] *= g;
-}
+play(OUTRO.shine, glint(), 0.1, 0.1, 0.4);
 
 // ---------- loudness ----------
-
-/** How high the wave goes around sample `i`, including between samples (where a player's output can overshoot). */
-function peakNear(x: Float32Array, i: number): number {
-  const a = x[Math.max(0, i - 1)], b = x[i], c = x[Math.min(x.length - 1, i + 1)], d = x[Math.min(x.length - 1, i + 2)];
-  let peak = Math.abs(b);
-  for (const t of [0.25, 0.5, 0.75]) {
-    // Catmull-Rom interpolation between b and c.
-    const v = b + 0.5 * t * (c - a + t * (2 * a - 5 * b + 4 * c - d + t * (3 * (b - c) + d - a)));
-    peak = Math.max(peak, Math.abs(v));
-  }
-  return peak;
-}
-
-/**
- * Keeps peaks under `ceiling` without distorting: it looks 3 ms ahead, lowers the level smoothly before a peak,
- * and lets it come back up over about 80 ms.
- */
-function limited(l: Float32Array, r: Float32Array, gain: number, ceiling: number): [Float32Array, Float32Array, number] {
-  const n = l.length, look = samples(0.003), release = Math.exp(-1 / samples(0.08));
-  const need = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const p = Math.max(peakNear(l, i), peakNear(r, i)) * gain;
-    need[i] = p > ceiling ? ceiling / p : 1;
-  }
-  // The smallest level needed in the next `look` samples.
-  const ahead = new Float32Array(n);
-  const queue = new Int32Array(n);
-  let head = 0, tail = 0;
-  for (let k = 0; k < n + look; k++) {
-    if (k < n) {
-      while (tail > head && need[queue[tail - 1]] >= need[k]) tail--;
-      queue[tail++] = k;
-    }
-    const i = k - look;
-    if (i >= 0) {
-      while (queue[head] < i) head++;
-      ahead[i] = need[queue[head]];
-    }
-  }
-  const outL = new Float32Array(n), outR = new Float32Array(n);
-  // Averaged over the last `look` samples (1 before the start), the level is down in time for every peak.
-  let sum = look, level = 1, lowest = 1;
-  for (let i = 0; i < n; i++) {
-    sum += ahead[i] - (i >= look ? ahead[i - look] : 1);
-    level = Math.min(sum / look, 1 - (1 - level) * release);
-    lowest = Math.min(lowest, level);
-    outL[i] = l[i] * gain * level;
-    outR[i] = r[i] * gain * level;
-  }
-  return [outL, outR, lowest];
-}
 
 function writeWav(file: string, channels: Float32Array[], bits: 24 | 32) {
   const n = channels[0].length, bytes = bits / 8;
@@ -498,9 +270,14 @@ function writeWav(file: string, channels: Float32Array[], bits: 24 | 32) {
   writeFileSync(file, Buffer.concat([head, data]));
 }
 
+mkdirSync(path.join(root, 'out'), { recursive: true });
+mkdirSync(path.join(root, 'public'), { recursive: true });
+const probe = path.join(root, 'out/soundtrack-probe.wav');
+
 /** Integrated loudness (LUFS) and true peak (dBFS), measured by ffmpeg the way streaming sites do (EBU R128). */
-function measure(file: string): { lufs: number; peak: number } {
-  const run = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128=peak=true', '-f', 'null', '-'], { encoding: 'utf8' });
+function measure(sound: Stereo): { lufs: number; peak: number } {
+  writeWav(probe, [sound.left, sound.right], 32);
+  const run = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', probe, '-af', 'ebur128=peak=true', '-f', 'null', '-'], { encoding: 'utf8' });
   const summary = run.stderr.slice(run.stderr.lastIndexOf('Summary:'));
   const lufs = /I:\s+(-?[\d.]+) LUFS/.exec(summary);
   const peak = /Peak:\s+(-?[\d.]+) dBFS/.exec(summary);
@@ -508,33 +285,133 @@ function measure(file: string): { lufs: number; peak: number } {
   return { lufs: Number(lufs[1]), peak: Number(peak[1]) };
 }
 
+/** How high the wave goes around sample `i`, including between samples (where a player's output can overshoot). */
+function peakNear(x: Float32Array, i: number): number {
+  const a = x[Math.max(0, i - 1)], b = x[i], c = x[Math.min(x.length - 1, i + 1)], d = x[Math.min(x.length - 1, i + 2)];
+  let peak = Math.abs(b);
+  for (const t of [0.25, 0.5, 0.75]) {
+    // Catmull-Rom interpolation between b and c.
+    const v = b + 0.5 * t * (c - a + t * (2 * a - 5 * b + 4 * c - d + t * (3 * (b - c) + d - a)));
+    peak = Math.max(peak, Math.abs(v));
+  }
+  return peak;
+}
+
+/**
+ * Keeps peaks under `ceiling` without distorting: it looks 3 ms ahead, lowers the level smoothly before a peak,
+ * and lets it come back up over about 80 ms. Returns the result, and how far down it had to go at most.
+ */
+function limited(sound: Stereo, gain: number, ceiling: number): [Stereo, number] {
+  const { left: l, right: r } = sound;
+  const n = l.length, look = samples(0.003), release = Math.exp(-1 / samples(0.08));
+  const need = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const p = Math.max(peakNear(l, i), peakNear(r, i)) * gain;
+    need[i] = p > ceiling ? ceiling / p : 1;
+  }
+  // The smallest level needed in the next `look` samples.
+  const ahead = new Float32Array(n);
+  const queue = new Int32Array(n);
+  let head = 0, tail = 0;
+  for (let k = 0; k < n + look; k++) {
+    if (k < n) {
+      while (tail > head && need[queue[tail - 1]] >= need[k]) tail--;
+      queue[tail++] = k;
+    }
+    const i = k - look;
+    if (i >= 0) {
+      while (queue[head] < i) head++;
+      ahead[i] = need[queue[head]];
+    }
+  }
+  const out = stereo(n);
+  // Averaged over the last `look` samples (1 before the start), the level is down in time for every peak.
+  let sum = look, level = 1, lowest = 1;
+  for (let i = 0; i < n; i++) {
+    sum += ahead[i] - (i >= look ? ahead[i - look] : 1);
+    level = Math.min(sum / look, 1 - (1 - level) * release);
+    lowest = Math.min(lowest, level);
+    out.left[i] = l[i] * gain * level;
+    out.right[i] = r[i] * gain * level;
+  }
+  return [out, lowest];
+}
+
+// ---------- mixing ----------
+
+const length = samples(SECONDS);
+const effects = stereo(length), effectsSend = new Float32Array(length);
+for (const e of events) place(effects, e.at - e.sound.hit, e.sound.data, e.gain, e.pan, effectsSend, e.wet);
+room(effectsSend, effects, 1.6);
+
+const tune = music(length);
+room(tune.send, tune.mix, 1.6);
+
+// The music sits MUSIC_BELOW dB under the effects (by loudness)...
+const MUSIC_BELOW = 4;
+const effectsLevel = measure(effects), musicLevel = measure(tune.mix);
+const musicGain = 10 ** ((effectsLevel.lufs - MUSIC_BELOW - musicLevel.lufs) / 20);
+
+// ...and steps back up to 5 dB more while an effect plays (like music under a voice), coming back over a quarter second.
+let effectsPeak = 0;
+for (let i = 0; i < length; i++) effectsPeak = Math.max(effectsPeak, Math.abs(effects.left[i]), Math.abs(effects.right[i]));
+const attack = Math.exp(-1 / samples(0.004)), recover = Math.exp(-1 / samples(0.25));
+const mix = stereo(length);
+let follow = 0;
+for (let i = 0; i < length; i++) {
+  const x = Math.max(Math.abs(effects.left[i]), Math.abs(effects.right[i])) / effectsPeak;
+  follow = x > follow ? x + (follow - x) * attack : x + (follow - x) * recover;
+  const g = musicGain * (1 - 0.44 * Math.min(1, follow / 0.25));
+  mix.left[i] = effects.left[i] + tune.mix.left[i] * g;
+  mix.right[i] = effects.right[i] + tune.mix.right[i] * g;
+}
+
+// Nothing above 16 kHz: nobody hears it, video sites drop it, and it makes peaks overshoot between samples.
+for (const channel of [mix.left, mix.right]) {
+  const a = new Filter('low', 16000, 0.541), b = new Filter('low', 16000, 1.307);
+  for (let i = 0; i < length; i++) channel[i] = b.run(a.run(channel[i]));
+}
+// The last half second fades out, so the chime's tail and the last chord don't stop dead.
+const fade = samples(0.5);
+for (let i = 0; i < fade; i++) {
+  const g = Math.cos(((i + 1) / fade) * (Math.PI / 2)) ** 2;
+  mix.left[length - fade + i] *= g;
+  mix.right[length - fade + i] *= g;
+}
+
 if (process.env.SOUND_DEBUG) {
+  // The effects and the music on their own, to listen to or measure; and how loud each was.
+  const musicAlone = stereo(length);
+  for (let i = 0; i < length; i++) {
+    musicAlone.left[i] = tune.mix.left[i] * musicGain;
+    musicAlone.right[i] = tune.mix.right[i] * musicGain;
+  }
+  writeWav(path.join(root, 'out/effects-alone.wav'), [effects.left, effects.right], 32);
+  writeWav(path.join(root, 'out/music-alone.wav'), [musicAlone.left, musicAlone.right], 32);
+  console.log(`effects ${effectsLevel.lufs} LUFS, music ${musicLevel.lufs} LUFS before its gain of ${(20 * Math.log10(musicGain)).toFixed(1)} dB`);
   // The loudest moments before any limiting, to balance the sounds by.
   const peaks: { at: number; db: number }[] = [];
   const step = samples(0.05);
   for (let s = 0; s < length; s += step) {
     let p = 0;
-    for (let i = s; i < Math.min(length, s + step); i++) p = Math.max(p, Math.abs(left[i]), Math.abs(right[i]));
+    for (let i = s; i < Math.min(length, s + step); i++) p = Math.max(p, Math.abs(mix.left[i]), Math.abs(mix.right[i]));
     peaks.push({ at: s / RATE, db: 20 * Math.log10(p || 1e-9) });
   }
   peaks.sort((a, b) => b.db - a.db);
-  console.log(peaks.slice(0, 16).map(p => `${p.at.toFixed(2)}s ${p.db.toFixed(1)} dB`).join('\n'));
+  console.log(peaks.slice(0, 12).map(p => `${p.at.toFixed(2)}s ${p.db.toFixed(1)} dB`).join('\n'));
 }
 
 // Aim for -16 LUFS (what most sites and phones expect), with peaks kept 1.5 dB under full scale.
 const TARGET = -16, CEILING = 10 ** (-1.5 / 20);
-mkdirSync(path.join(root, 'out'), { recursive: true });
-mkdirSync(path.join(root, 'public'), { recursive: true });
-const probe = path.join(root, 'out/soundtrack-probe.wav');
-let gain = 1, result: [Float32Array, Float32Array, number] = [left, right, 1], level = { lufs: 0, peak: 0 };
+let gain = 1, result: [Stereo, number] = [mix, 1], level = { lufs: 0, peak: 0 };
 for (let round = 0; round < 4; round++) {
-  result = limited(left, right, gain, CEILING);
-  writeWav(probe, [result[0], result[1]], 32);
-  level = measure(probe);
+  result = limited(mix, gain, CEILING);
+  level = measure(result[0]);
   if (Math.abs(level.lufs - TARGET) < 0.3) break;
   gain *= 10 ** ((TARGET - level.lufs) / 20);
 }
 const file = path.join(root, 'public/soundtrack.wav');
-writeWav(file, [result[0], result[1]], 24);
-console.log(`${events.length} sounds → ${path.relative(root, file)}: ${level.lufs.toFixed(1)} LUFS, true peak ` +
-  `${level.peak.toFixed(1)} dBFS, loudest moments turned down by ${(-20 * Math.log10(result[2])).toFixed(1)} dB`);
+writeWav(file, [result[0].left, result[0].right], 24);
+console.log(`${events.length} sounds over the music (${MUSIC_BELOW} dB under them) → ${path.relative(root, file)}: ` +
+  `${level.lufs.toFixed(1)} LUFS, true peak ${level.peak.toFixed(1)} dBFS, loudest moments turned down by ` +
+  `${(-20 * Math.log10(result[1])).toFixed(1)} dB`);

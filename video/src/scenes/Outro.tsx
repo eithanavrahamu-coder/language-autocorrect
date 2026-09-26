@@ -81,7 +81,7 @@ function AppIcon() {
   const p = pop(t, OUTRO.icon, BOUNCY);
   const size = 200;
   const halo = ramp(t, OUTRO.icon, 0.8);
-  const shine = ramp(t, 17.3, 0.7);
+  const shine = ramp(t, OUTRO.shine, 0.7);
   return (
     <div style={{ position: 'absolute', top: 222, width: size, height: size }}>
       <div
