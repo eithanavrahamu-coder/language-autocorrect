@@ -59,7 +59,9 @@ export const HERO = {
 };
 
 // ---------- 2. The languages (5.4–10.2 s) ----------
-// Each card starts on the English keyboard, as in the website's examples (checked with the app's engine).
+// Each card starts on the English keyboard. The first six are the website's examples (checked with the app's
+// engine); the second row is the newest languages, with words from the app's own tests
+// (tests/LayoutBuddy.Engine.Tests/MultiLanguageTests.cs, FixesWordTypedOnEnglishKeyboard).
 const cardWords = [
   { lang: 'he', keys: 'akuo', fixed: 'שלום' },
   { lang: 'ru', keys: 'ghbdtn', fixed: 'привет' },
@@ -67,13 +69,18 @@ const cardWords = [
   { lang: 'el', keys: 'kalhm;era', fixed: 'καλημέρα' },
   { lang: 'ko', keys: 'dkssud', fixed: '안녕' },
   { lang: 'th', keys: 'l;ylfu', fixed: 'สวัสดี' },
+  { lang: 'es', keys: 'ma;ana', fixed: 'mañana' },
+  { lang: 'pt', keys: "cora;'ao", fixed: 'coração' },
+  { lang: 'tr', keys: 'te;ekk]r', fixed: 'teşekkür' },
+  { lang: 'it', keys: "citt'", fixed: 'città' },
+  { lang: 'ur', keys: 'bkdlh', fixed: 'شکریہ' },
 ];
 export const LANGS = {
   start: 5.2,
   end: 10.3,
   cards: cardWords.map((c, i) => {
-    // The words are fixed on six eighth notes in a row, so their sparkles play as a little run over the music.
-    const fix = beat(7 + i / 2);
+    // The words are fixed on sixteenth notes in a row, so their sparkles play as a quick rising run over the music.
+    const fix = beat(7 + i / 4);
     const keyTimes = typing(c.keys, 0, 0.55);
     const start = fix - 0.14 - keyTimes[keyTimes.length - 1];
     return { ...c, cardIn: start - 0.2, keyTimes: keyTimes.map(t => t + start), fix, switchAt: fix + 0.1 };

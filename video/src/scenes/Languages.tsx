@@ -6,9 +6,9 @@ import { Field, FixedWord } from '../parts/Field.tsx';
 import { LANGS } from '../timeline.ts';
 import { LANGUAGES } from '../theme.ts';
 
-const CARD = { width: 520, height: 200, size: 60, gap: 40, top: 330 };
+const CARD = { width: 272, height: 170, size: 48, gap: 24, rowGap: 30, top: 340 };
 
-/** 5.5–10.1 s: six languages fixed one after another, then every language's badge. */
+/** 5.4–10.2 s: eleven languages fixed one after another (the newest in the second row), then every language's badge. */
 export function Languages() {
   const t = useTime();
   if (t < LANGS.start || t > LANGS.end) return null;
@@ -24,13 +24,17 @@ export function Languages() {
 
 function Grid() {
   const t = useTime();
-  const center = { x: 960, y: CARD.top + CARD.height + CARD.gap / 2 };
+  const center = { x: 960, y: CARD.top + CARD.height + CARD.rowGap / 2 };
+  // Two rows, each centered.
+  const perRow = Math.ceil(LANGS.cards.length / 2);
   return (
     <>
       {LANGS.cards.map((c, i) => {
-        const col = i % 3, row = Math.floor(i / 3);
-        const x = 960 + (col - 1) * (CARD.width + CARD.gap);
-        const y = CARD.top + CARD.height / 2 + row * (CARD.height + CARD.gap);
+        const row = i < perRow ? 0 : 1;
+        const inRow = row === 0 ? perRow : LANGS.cards.length - perRow;
+        const j = row === 0 ? i : i - perRow;
+        const x = 960 + (j - (inRow - 1) / 2) * (CARD.width + CARD.gap);
+        const y = CARD.top + CARD.height / 2 + row * (CARD.height + CARD.rowGap);
         const inP = pop(t, c.cardIn);
         if (inP <= 0) return null;
         // Leaving: the cards fly apart and fade, making room for the badges bursting out of the middle.

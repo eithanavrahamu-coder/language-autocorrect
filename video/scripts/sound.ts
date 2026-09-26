@@ -50,7 +50,7 @@ function sparkle(step: number): Sound {
   const rnd = random(100 + step);
   const out = new Float32Array(samples(1.7));
   const scale = [76, 78, 80, 83, 85];
-  const degree = (d: number) => scale[d % 5] + 12 * Math.floor(d / 5);
+  const degree = (d: number) => scale[((d % 5) + 5) % 5] + 12 * Math.floor(d / 5);
   [0, 2, 3, 5].forEach((d, i) => bell(out, 0.004 + i * 0.042, hz(degree(step + d)), [0.5, 0.42, 0.42, 0.55][i], 0.24));
   hiss(out, 0.01, 0.7, 0.05, 7000, rnd);
   return { data: normalized(out), hit: 0 };
@@ -200,12 +200,12 @@ play(HERO.switchAt, blip(true), 0.22, 0.15, 0.25);
 type(HERO.then, HERO.thenTimes, 0.42);
 play(HERO.out + 0.15, whoosh(0.55, 2400, 500, 2, 0.45), 0.2, 0.2, 0.3);
 
-// 2. The languages: each fix a step up the scale, then the badges landing
+// 2. The languages: each fix a step up the scale (from a little below the first fix's), then the badges landing
 LANGS.cards.forEach((c, i) => {
-  const side = ((i % 3) - 1) * 0.45;
-  play(c.cardIn, pop(0.9 + i * 0.05, 10 + i), 0.12, side);
-  type(c.keys, c.keyTimes, 0.2, side * 0.6);
-  play(c.fix, sparkle(i), 0.24, side, 0.35);
+  const side = ((i % 6) / 5 - 0.5) * 0.9;
+  play(c.cardIn, pop(0.9 + i * 0.04, 10 + i), 0.1, side);
+  type(c.keys, c.keyTimes, 0.17, side * 0.6);
+  play(c.fix, sparkle(i - 3), 0.17, side, 0.35);
 });
 play(LANGS.gridOut + 0.2, whoosh(0.5, 2600, 400, 3, 0.4), 0.2, 0, 0.3);
 const languageCount: number = JSON.parse(readFileSync(path.join(root, 'src/generated/app-info.json'), 'utf8')).languages.length;
