@@ -76,8 +76,8 @@ Settings and log: `%AppData%\LanguageAutocorrect\`.
 Requires the .NET 10 SDK.
 
 ```
-dotnet test tests/LayoutBuddy.Engine.Tests
-dotnet publish src/LayoutBuddy -c Release -p:PublishSingleFile=true -o publish
+dotnet test tests/LanguageAutocorrect.Engine.Tests
+dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o publish
 ```
 
 The download page is in `website/` (React, built with Vite; needs Node.js). `npm run dev` there shows it locally.
@@ -85,11 +85,11 @@ It reads the languages and the version from the app's code, and every build on `
 together with the app it just built. `npm run screenshots` retakes the app screenshots it shows.
 
 The app was previously called LayoutBuddy and then Type Language Corrector 4000; installing this version replaces
-installs under those names and keeps their settings. The code still uses `LayoutBuddy` as its internal project name.
+installs under those names and keeps their settings.
 
-- `src/LayoutBuddy.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
-- `src/LayoutBuddy` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
-- `src/LayoutBuddy/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
+- `src/LanguageAutocorrect.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
+- `src/LanguageAutocorrect` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
+- `src/LanguageAutocorrect/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
   browser to preview with sample data (`app.html?page=words`, `setup.html?screen=languages`, `setup.html?mode=update`,
   `setup.html?mode=uninstall`).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
@@ -100,5 +100,5 @@ Word frequency lists: [FrequencyWords](https://github.com/hermitdave/FrequencyWo
 
 ## License
 
-MIT – see [LICENSE](LICENSE). The word lists in `src/LayoutBuddy.Engine/Data` are not covered by it: they keep their
+MIT – see [LICENSE](LICENSE). The word lists in `src/LanguageAutocorrect.Engine/Data` are not covered by it: they keep their
 own license, CC BY-SA 4.0 (see Credits).

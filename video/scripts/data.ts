@@ -19,8 +19,8 @@ function run(command: string, args: string[], cwd = repo): string {
 const saved = mkdtempSync(path.join(tmpdir(), 'la-video-'));
 try {
   const archive = path.join(saved, 'saved.tar');
-  run('git', ['archive', '-o', archive, 'HEAD', 'website/scripts', 'src/LayoutBuddy.Engine/Languages.cs',
-    'src/LayoutBuddy.Engine/Data', 'src/LayoutBuddy/LayoutBuddy.csproj']);
+  run('git', ['archive', '-o', archive, 'HEAD', 'website/scripts', 'src/LanguageAutocorrect.Engine/Languages.cs',
+    'src/LanguageAutocorrect.Engine/Data', 'src/LanguageAutocorrect/LanguageAutocorrect.csproj']);
   // A plain file name: some tar versions read "C:" in a path as another computer's name.
   run('tar', ['-xf', 'saved.tar'], saved);
   process.stdout.write(run('node', [path.join(saved, 'website/scripts/prepare.mjs')]));

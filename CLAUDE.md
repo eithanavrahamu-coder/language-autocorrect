@@ -3,10 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Language Autocorrect is a Windows tray app. When a word is typed on the wrong keyboard layout (`ghbdtn` → `привет`), it
-fixes the word on Space/Enter and switches the keyboard. The code still uses the old internal name **LayoutBuddy**
-(projects, namespaces, `RootNamespace`), but the product name, exe name (`LanguageAutocorrect.exe`) and `AppInfo` use
-"Language Autocorrect". Also read `README.md` for user-facing behavior and `docs/HANDOFF-next-languages.md` for
-language-adding history and the per-language recipe.
+fixes the word on Space/Enter and switches the keyboard. It was earlier called LayoutBuddy and then Type Language
+Corrector 4000; those names remain only where old installs and settings are carried over (`AppInfo.Legacy`,
+`AppSettings.LegacyFolderNames`) and must stay there. Also read `README.md` for user-facing behavior and
+`docs/HANDOFF-next-languages.md` for language-adding history and the per-language recipe.
 
 ## Commands
 
@@ -14,11 +14,11 @@ language-adding history and the per-language recipe.
 on Windows):
 
 ```
-dotnet test tests/LayoutBuddy.Engine.Tests
-dotnet test tests/LayoutBuddy.Engine.Tests --filter "FullyQualifiedName~MultiLanguageTests.FixesWordTypedOnEnglishKeyboard"
-dotnet test tests/LayoutBuddy.Engine.Tests --logger "console;verbosity=detailed"   # prints per-language accuracy numbers
-dotnet build src/LayoutBuddy                                                     # must build with no warnings
-dotnet publish src/LayoutBuddy -c Release -p:PublishSingleFile=true -o publish   # single self-contained exe
+dotnet test tests/LanguageAutocorrect.Engine.Tests
+dotnet test tests/LanguageAutocorrect.Engine.Tests --filter "FullyQualifiedName~MultiLanguageTests.FixesWordTypedOnEnglishKeyboard"
+dotnet test tests/LanguageAutocorrect.Engine.Tests --logger "console;verbosity=detailed"   # prints per-language accuracy numbers
+dotnet build src/LanguageAutocorrect                                                     # must build with no warnings
+dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o publish   # single self-contained exe
 ```
 
 `LanguageAutocorrect.exe --selfcheck` checks keyboards, voices and detection on a real machine; `--portable` skips setup.
@@ -29,7 +29,7 @@ ffmpeg): `npm run studio`, `npm run render`, `npm run typecheck`.
 
 ## Architecture
 
-**`src/LayoutBuddy.Engine`**: a plain .NET library with no Windows calls. All detection logic lives here, and it is
+**`src/LanguageAutocorrect.Engine`**: a plain .NET library with no Windows calls. All detection logic lives here, and it is
 the only unit-tested part.
 - `Languages.cs` is the language registry: one `LanguageInfo` per language, including `Keyboard`, which says what each of
   47 physical keys types, in US-key order (`` ` 1 2 … = q w … / ``). A `~` token marks a dead key. Optional init
@@ -46,7 +46,7 @@ the only unit-tested part.
   `%AppData%\LanguageAutocorrect\`) all live here too. **Settings must stay backward compatible** with users' existing
   JSON files.
 
-**`src/LayoutBuddy`**: the WinForms app.
+**`src/LanguageAutocorrect`**: the WinForms app.
 - `Program.Main` dispatches on arguments: `--uninstall`, `--update` (run by the updater: install over the existing
   copy silently), or setup when the exe isn't the installed copy. Otherwise it starts `TrayApp`.
 - `KeyboardMonitor` runs global low-level keyboard and mouse hooks on their own thread and feeds each key to
@@ -78,7 +78,7 @@ Every push to `main` runs `.github/workflows/build.yml`:
 2. The website is built with `DOWNLOAD_BYTES` set, the exe is copied next to it, and the result is deployed to GitHub
    Pages at https://language-autocorrect.world (custom domain set in the repo's Pages settings, Source = GitHub Actions).
 
-So every push to `main` updates the public download. **Bump `<Version>` in `src/LayoutBuddy/LayoutBuddy.csproj` for
+So every push to `main` updates the public download. **Bump `<Version>` in `src/LanguageAutocorrect/LanguageAutocorrect.csproj` for
 any app change**, or installed copies won't be offered the update (the site's `version.json` comes from that number).
 
 ## Working with the owner

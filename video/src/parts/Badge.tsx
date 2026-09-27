@@ -3,7 +3,7 @@ import { byCode, FONT_BADGE, mix } from '../theme.ts';
 
 /**
  * The colored language badge. `cursor` is the one the app shows next to the text cursor (26×17 with a gentle gradient,
- * a thin darker rim and a light top edge: src/LayoutBuddy/BadgeArt.cs); `tile` is the website's big square one.
+ * a thin darker rim and a light top edge: src/LanguageAutocorrect/BadgeArt.cs); `tile` is the website's big square one.
  */
 export function Badge({ code, height, look = 'cursor' }: { code: string; height: number; look?: 'cursor' | 'tile' }) {
   const lang = byCode(code);
@@ -43,7 +43,7 @@ export function Badge({ code, height, look = 'cursor' }: { code: string; height:
 
 /**
  * A badge that changes language at the given moments, as the app's does: the old one shrinks away while the new one
- * springs in (src/LayoutBuddy/IndicatorForm.cs). The first step pops in the same way.
+ * springs in (src/LanguageAutocorrect/IndicatorForm.cs). The first step pops in the same way.
  */
 export function BadgeTrack({ steps, height, look }: {
   steps: { at: number; lang: string }[];

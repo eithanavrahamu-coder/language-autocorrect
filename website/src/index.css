@@ -1,7 +1,7 @@
 @import '@fontsource-variable/bricolage-grotesque/standard.css';
 @import '@fontsource-variable/onest/index.css';
 
-/* Colors are the app's own (src/LayoutBuddy/UI/app.html), so the site and the app feel like one thing. */
+/* Colors are the app's own (src/LanguageAutocorrect/UI/app.html), so the site and the app feel like one thing. */
 :root {
   --bg: #FBFAF8;
   --bg-2: #F4F2EE;

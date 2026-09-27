@@ -32,7 +32,7 @@ export type Caption = { in: number; out: number; text: string; faint?: string; f
 
 // ---------- 1. The problem, and the fix (0–5.4 s) ----------
 // "hello" typed with the Hebrew keyboard on comes out as יקךךם, and Space turns it back into "hello": one of the
-// app's own examples (src/LayoutBuddy/UI/app.html, website/src/demo/scenes.ts).
+// app's own examples (src/LanguageAutocorrect/UI/app.html, website/src/demo/scenes.ts).
 const heroKeys = typing('hello', 0.95, 1.25);
 export const HERO = {
   start: 0,
@@ -61,7 +61,7 @@ export const HERO = {
 // ---------- 2. The languages (5.4–10.2 s) ----------
 // Each card starts on the English keyboard. The first six are the website's examples (checked with the app's
 // engine); the second row is the newest languages, with words from the app's own tests
-// (tests/LayoutBuddy.Engine.Tests/MultiLanguageTests.cs, FixesWordTypedOnEnglishKeyboard).
+// (tests/LanguageAutocorrect.Engine.Tests/MultiLanguageTests.cs, FixesWordTypedOnEnglishKeyboard).
 const cardWords = [
   { lang: 'he', keys: 'akuo', fixed: 'שלום' },
   { lang: 'ru', keys: 'ghbdtn', fixed: 'привет' },
@@ -110,7 +110,7 @@ export const UNDO = {
 };
 
 // ---------- 4. Every app (12.7–15.8 s) ----------
-// The app window's own sample of recent fixes (src/LayoutBuddy/UI/app.html). The rows land on sixteenth notes.
+// The app window's own sample of recent fixes (src/LanguageAutocorrect/UI/app.html). The rows land on sixteenth notes.
 export const APPS = {
   start: 12.6,
   end: 15.8,

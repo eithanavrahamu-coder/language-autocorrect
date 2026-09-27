@@ -1,4 +1,4 @@
-// What each physical key types in each language: a port of the app's KeyMap (src/LayoutBuddy.Engine/KeyMap.cs).
+// What each physical key types in each language: a port of the app's KeyMap (src/LanguageAutocorrect.Engine/KeyMap.cs).
 // A physical key is named by the character it types on a US keyboard ("q", ";"), or its shifted character ("Q", ":").
 import info from '../generated/app-info.json';
 

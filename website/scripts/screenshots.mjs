@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { appVersion } from './app-info.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const ui = path.join(root, 'src/LayoutBuddy/UI');
+const ui = path.join(root, 'src/LanguageAutocorrect/UI');
 const out = path.join(root, 'website/src/assets/screens');
 const version = await appVersion();
 

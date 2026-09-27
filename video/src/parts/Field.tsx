@@ -5,7 +5,7 @@ import { BadgeTrack } from './Badge.tsx';
 
 /**
  * A fixed word as the app shows it: it sharpens out of a blur over 0.35 s and glows for a moment
- * (the website's `fixed-glow`, which the app copies in src/LayoutBuddy/FixFlash.cs).
+ * (the website's `fixed-glow`, which the app copies in src/LanguageAutocorrect/FixFlash.cs).
  */
 export function FixedWord({ text, at, size, glow = true }: { text: string; at: number; size: number; glow?: boolean }) {
   const t = useTime();

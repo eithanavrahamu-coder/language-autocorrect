@@ -75,7 +75,7 @@ export function Outro() {
   );
 }
 
-/** The app's icon, אA on the blue → violet → green gradient (src/LayoutBuddy/UI/app.html's .logo). */
+/** The app's icon, אA on the blue → violet → green gradient (src/LanguageAutocorrect/UI/app.html's .logo). */
 function AppIcon() {
   const t = useTime();
   const p = pop(t, OUTRO.icon, BOUNCY);

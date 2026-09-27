@@ -68,7 +68,7 @@ Belarusian has no word list in the source below; skip it.
 
 ## How the code is organized
 
-- `src/LayoutBuddy.Engine/` – plain .NET 10 library, no Windows calls, fully unit tested. **Most of your work is here.**
+- `src/LanguageAutocorrect.Engine/` – plain .NET 10 library, no Windows calls, fully unit tested. **Most of your work is here.**
   - `Languages.cs` – **the language registry.** One `LanguageInfo` per language: enum value, ISO code, English and
     native name, 2-letter badge, badge color, Windows primary language id, alphabet (lowercase letters), whether it
     has upper/lower case, right-to-left flag, and `Keyboard`: what each of the 47 physical keys types, in the order
@@ -80,15 +80,15 @@ Belarusian has no word list in the source below; skip it.
     character trigram model.
   - `WrongLayoutDetector.cs` – decides if keys typed in language A are really a word in language B.
   - `TypingSession.cs` – the typing state machine (current word, earlier words, sentence context, undo).
-- `src/LayoutBuddy/` – the Windows app (WinForms + WebView2 pages in `UI/`). It builds on Linux
+- `src/LanguageAutocorrect/` – the Windows app (WinForms + WebView2 pages in `UI/`). It builds on Linux
   (`EnableWindowsTargeting`) but can only run on Windows. `LayoutService.cs` maps Windows keyboards to languages
   (`FromHkl` → `Languages.FromWindowsLangId`) and also reads the user's real layouts with `ToUnicodeEx` at runtime,
   overriding the static `Keyboard` strings – so a slightly wrong static map is survivable, but get it right anyway
   because the tests use it.
-- `src/LayoutBuddy/UI/app.html` and `setup.html` – the app window and installer. They list languages from the
+- `src/LanguageAutocorrect/UI/app.html` and `setup.html` – the app window and installer. They list languages from the
   registry automatically; you only need to update the **sample data** at the bottom of each file (used for browser
   previews) if you want the new languages to show in previews.
-- `tests/LayoutBuddy.Engine.Tests/` – xUnit. `MultiLanguageTests.cs` is the template for new languages.
+- `tests/LanguageAutocorrect.Engine.Tests/` – xUnit. `MultiLanguageTests.cs` is the template for new languages.
 
 ## Recipe for a "simple" language (all of wave 1 and 2)
 
@@ -96,7 +96,7 @@ Belarusian has no word list in the source below; skip it.
    `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/<code>/<code>_50k.txt`
    (for `kk` and `hy` only `<code>_full.txt` exists – keep the top 50,000 lines).
    Filter to words made only of the language's alphabet, lowercase, NFC-normalized, deduplicated, format `word count`,
-   and save as `src/LayoutBuddy.Engine/Data/<code>.txt`. (All `Data/*.txt` files are embedded automatically.)
+   and save as `src/LanguageAutocorrect.Engine/Data/<code>.txt`. (All `Data/*.txt` files are embedded automatically.)
    **Serbian:** the subtitle corpus is largely in Latin script. Keep Cyrillic words; you may also transliterate Latin
    Serbian words to Cyrillic (the mapping is 1:1: lj→љ, nj→њ, dž→џ, etc.) to get a bigger list. Check the result.
 2. **Registry entry** in `Languages.cs`: add the enum value to `Lang` and a `LanguageInfo`. Pick a distinct badge color.
@@ -149,12 +149,12 @@ stop, push what works (behind the language being off by default), and write down
 ## Rules
 
 - **Don't break existing languages.** All existing tests must keep passing – especially the Hebrew tests and the
-  accuracy numbers. Run `dotnet test tests/LayoutBuddy.Engine.Tests` before every commit.
-- Build the Windows app too: `dotnet build src/LayoutBuddy` must succeed with no warnings.
+  accuracy numbers. Run `dotnet test tests/LanguageAutocorrect.Engine.Tests` before every commit.
+- Build the Windows app too: `dotnet build src/LanguageAutocorrect` must succeed with no warnings.
 - The .NET 10 SDK may not be installed: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0`.
 - Settings must stay backward compatible (`AppSettings` is loaded from users' existing JSON files).
 - Voice is off by default; don't change defaults.
-- Bump `<Version>` in `src/LayoutBuddy/LayoutBuddy.csproj` (currently 3.2.2) when you're done – e.g. 3.3.0.
+- Bump `<Version>` in `src/LanguageAutocorrect/LanguageAutocorrect.csproj` (currently 3.2.2) when you're done – e.g. 3.3.0.
 - Every push to `main` triggers GitHub Actions (`.github/workflows/build.yml`), which runs the tests on Windows and
   produces the `.exe` as an artifact named **LanguageAutocorrect**. Check that the run succeeds and give the owner
   the run's link (Actions → Build → the run → Artifacts).

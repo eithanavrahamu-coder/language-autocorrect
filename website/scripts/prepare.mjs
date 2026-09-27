@@ -1,6 +1,6 @@
 // Reads what the website needs from the app itself, so the site never drifts from the app:
-//   - the languages (names, badges, colors, keyboards) from src/LayoutBuddy.Engine/Languages.cs
-//   - the app version from src/LayoutBuddy/LayoutBuddy.csproj
+//   - the languages (names, badges, colors, keyboards) from src/LanguageAutocorrect.Engine/Languages.cs
+//   - the app version from src/LanguageAutocorrect/LanguageAutocorrect.csproj
 //   - the most common words of a few languages, for the "try it yourself" demo
 //   - version.json, which the app reads to find out about updates
 // Runs before `npm run dev` and `npm run build`.
@@ -79,7 +79,7 @@ function readArg(src, i, consts) {
 }
 
 async function readLanguages() {
-  const src = await readFile(path.join(root, 'src/LayoutBuddy.Engine/Languages.cs'), 'utf8');
+  const src = await readFile(path.join(root, 'src/LanguageAutocorrect.Engine/Languages.cs'), 'utf8');
   const consts = {};
   for (const m of src.matchAll(/const string (\w+) = /g)) {
     consts[m[1]] = readString(src, m.index + m[0].length, {})[0];
@@ -136,7 +136,7 @@ async function writeWordLists() {
   const out = path.join(site, 'public/words');
   await mkdir(out, { recursive: true });
   for (const code of DEMO_LANGUAGES) {
-    const text = await readFile(path.join(root, `src/LayoutBuddy.Engine/Data/${code}.txt`), 'utf8');
+    const text = await readFile(path.join(root, `src/LanguageAutocorrect.Engine/Data/${code}.txt`), 'utf8');
     const words = text.split('\n').slice(0, DEMO_WORDS).map(l => l.split(' ')[0].trim()).filter(Boolean);
     await writeFile(path.join(out, `${code}.txt`), words.join('\n'));
   }

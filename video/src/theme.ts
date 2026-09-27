@@ -1,6 +1,6 @@
 import info from './generated/app-info.json';
 
-/** The app's own colors (src/LayoutBuddy/UI/app.html), as on the website. */
+/** The app's own colors (src/LanguageAutocorrect/UI/app.html), as on the website. */
 export const C = {
   bg: '#FBFAF8',
   bg2: '#F4F2EE',
@@ -21,7 +21,7 @@ export const C = {
 const fallback = "'Segoe UI Variable Text', 'Segoe UI', 'Leelawadee UI', 'Malgun Gothic', sans-serif";
 export const FONT_DISPLAY = `'Bricolage Grotesque Variable', 'Onest Variable', ${fallback}`;
 export const FONT_BODY = `'Onest Variable', ${fallback}`;
-/** The badge's font, as the app draws it (src/LayoutBuddy/BadgeArt.cs). */
+/** The badge's font, as the app draws it (src/LanguageAutocorrect/BadgeArt.cs). */
 export const FONT_BADGE = "'Segoe UI', 'Leelawadee UI', 'Malgun Gothic', sans-serif";
 
 export type Language = (typeof info.languages)[number];

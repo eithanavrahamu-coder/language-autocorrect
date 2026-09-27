@@ -6,7 +6,7 @@ import { FixedWord } from '../parts/Field.tsx';
 import { APPS } from '../timeline.ts';
 import { C, FONT_BODY } from '../theme.ts';
 
-// The app window's "Recent fixes" list (src/LayoutBuddy/UI/app.html), 2.3 times its size.
+// The app window's "Recent fixes" list (src/LanguageAutocorrect/UI/app.html), 2.3 times its size.
 const S = 2.3;
 
 /** 12.7–15.7 s: the app's list of recent fixes, from WhatsApp, Chrome, Outlook and Word. */

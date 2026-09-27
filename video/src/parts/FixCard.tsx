@@ -4,7 +4,7 @@ import { C, FONT_BODY } from '../theme.ts';
 
 /**
  * The small card that appears above the text after a fix: "ghbdtn → привет", or "Kept as typed: ghbdtn" after an
- * undo. It springs in, stays 2.6 seconds and fades away, like the app's (src/LayoutBuddy/FixCardForm.cs).
+ * undo. It springs in, stays 2.6 seconds and fades away, like the app's (src/LanguageAutocorrect/FixCardForm.cs).
  * `font` is its text size (the app's is 15px); everything else scales with it.
  */
 export function FixCard({ typed, fixed, at, undone = false, stay = 2.6, gone, font = 36 }: {
