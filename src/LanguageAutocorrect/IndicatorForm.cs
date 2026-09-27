@@ -50,11 +50,10 @@ internal sealed class IndicatorForm : LayeredWindow
             }
         }
 
-        // The badge goes just below and slightly right of the caret, kept on screen.
-        var pos = new Point(caret.Left + 2, caret.Bottom + 3);
-        var screen = Screen.FromPoint(pos).WorkingArea;
-        if (pos.Y + _pill.Height > screen.Bottom) pos.Y = caret.Top - _pill.Height - 3;
-        if (pos.X + _pill.Width > screen.Right) pos.X = screen.Right - _pill.Width;
+        // Below the caret, or above it when the window or the screen ends there. The caret is in the foreground
+        // window (see FocusTracker).
+        var pos = BadgePlacement.Place(caret, _pill.Size, Screen.FromRectangle(caret).WorkingArea,
+            Native.VisibleBounds(Native.GetForegroundWindow()));
         _anchor = pos;
         // Clicks reach the badge only while the pointer is on it; elsewhere they go to the text below.
         ClickThrough = !new Rectangle(pos, _pill.Size).Contains(Cursor.Position);
