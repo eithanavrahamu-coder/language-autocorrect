@@ -107,7 +107,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             (_, _) => _indicator.BeginInvoke(ExitThread), null, -1, executeOnlyOnce: true);
         _showEvent = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Installer.ShowEventName);
         _showWait = System.Threading.ThreadPool.RegisterWaitForSingleObject(_showEvent,
-            (_, _) => _indicator.BeginInvoke(ShowMain), null, -1, executeOnlyOnce: false);
+            (_, _) => _indicator.BeginInvoke(() => ShowMain()), null, -1, executeOnlyOnce: false);
 
         _uiTimer.Tick += (_, _) => OnTick();
         _uiTimer.Start();
