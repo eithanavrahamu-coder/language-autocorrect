@@ -82,6 +82,38 @@ public class BadgePlacementTests
         Assert.Equal(1920 - Badge.Width, BadgePlacement.Place(caret, Badge, Screen, Rectangle.Empty).X);
     }
 
+    // Windows search, as measured on a 1920 x 1080 screen: the panel, and its search box down in the taskbar.
+    private static readonly Rectangle SearchPanel = new(663, 142, 858, 938);
+    private static readonly Rectangle SearchCaret = new(712, 1046, 1, 19);
+
+    [Fact]
+    public void GoesLeftOfTheSearchPanelAboveTheTaskbar()
+    {
+        var pos = BadgePlacement.Beside(SearchCaret, Badge, Screen, SearchPanel);
+        Assert.Equal(new Point(663 - 3 - 26, 1040 - 17), pos);
+    }
+
+    [Fact]
+    public void GoesLevelWithTheCaretBesideAPanel()
+    {
+        // Start's search box is at the top of the panel.
+        var start = new Rectangle(600, 200, 700, 800);
+        Assert.Equal(new Point(571, 252), BadgePlacement.Beside(CaretAt(650, 250), Badge, Screen, start));
+    }
+
+    [Fact]
+    public void GoesRightOfAPanelAtTheLeftEdge()
+    {
+        var panel = new Rectangle(10, 100, 600, 600);
+        Assert.Equal(new Point(613, 392), BadgePlacement.Beside(CaretAt(50, 390), Badge, Screen, panel));
+    }
+
+    [Fact]
+    public void NoRoomBesideAFullScreenPanel()
+    {
+        Assert.Null(BadgePlacement.Beside(SearchCaret, Badge, Screen, new Rectangle(0, 0, 1920, 1080)));
+    }
+
     [Fact]
     public void WorksOnASecondScreen()
     {

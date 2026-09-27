@@ -4,7 +4,8 @@ namespace LanguageAutocorrect.Engine;
 
 /// <summary>
 /// Where the cursor badge goes: just below and slightly right of the caret, or just above it when there's no room
-/// below, for example on the last line of a text box at the bottom of a window or of the screen.
+/// below, for example on the last line of a text box at the bottom of a window or of the screen. Beside Windows' own
+/// search and Start panels, which hide anything below or above their caret.
 /// </summary>
 public static class BadgePlacement
 {
@@ -38,6 +39,22 @@ public static class BadgePlacement
             : room.Top;
         int x = Math.Max(room.Left, Math.Min(caret.Left + Indent, room.Right - badge.Width));
         return new Point(x, y);
+    }
+
+    /// <summary>
+    /// The badge's top-left corner beside <paramref name="cover"/>, level with the caret: for windows that Windows
+    /// always draws over the badge (its search and Start panels), where it would be hidden below or above the caret.
+    /// Left of the window, or right when there's no room on the left; null when neither side has room. It stays out of
+    /// the taskbar (the search box is down in it), which can be drawn over the badge too.
+    /// </summary>
+    /// <param name="screen">The working area (without the taskbar) of the screen the caret is on.</param>
+    public static Point? Beside(Rectangle caret, Size badge, Rectangle screen, Rectangle cover)
+    {
+        int left = cover.Left - Gap - badge.Width, right = cover.Right + Gap;
+        int? x = left >= screen.Left ? left : right + badge.Width <= screen.Right ? right : null;
+        if (x == null) return null;
+        int y = caret.Top + caret.Height / 2 - badge.Height / 2;
+        return new Point(x.Value, Math.Max(screen.Top, Math.Min(y, screen.Bottom - badge.Height)));
     }
 
     /// <summary>Whether the badge fits below or above the caret in <paramref name="room"/>.</summary>

@@ -266,6 +266,27 @@ internal static class Native
         return Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
     }
 
+    // Undocumented, in user32 since Windows 8: the layer ("band") Windows draws a window in.
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowBand(IntPtr hwnd, out uint band);
+
+    /// <summary>
+    /// Whether Windows draws a window above all ordinary ones, even those that stay on top like the badge: the search
+    /// and Start panels, for example.
+    /// </summary>
+    public static bool IsAboveTopmost(IntPtr hwnd)
+    {
+        const uint ZBID_DESKTOP = 1; // ordinary windows
+        try
+        {
+            return GetWindowBand(hwnd, out uint band) && band > ZBID_DESKTOP;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
     public const int GWL_EXSTYLE = -20;
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
