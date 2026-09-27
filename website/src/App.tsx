@@ -1,4 +1,5 @@
 import { MotionConfig } from 'motion/react';
+import { DownloadNotice } from './components/bits';
 import { Header, Hero } from './components/Hero';
 import { Features, HowItWorks } from './components/Features';
 import { Languages } from './components/Languages';
@@ -21,6 +22,7 @@ export default function App() {
         <FinalCta />
       </main>
       <Footer />
+      <DownloadNotice />
     </MotionConfig>
   );
 }

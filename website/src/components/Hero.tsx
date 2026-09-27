@@ -1,7 +1,8 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { ArrowDownToLine } from 'lucide-react';
+import { ArrowDownToLine, LoaderCircle } from 'lucide-react';
 import icon from '../assets/icon-128.png';
+import { onDownloadClick, useDownloadStage } from '../download';
 import { DOWNLOAD_URL, REPO_URL } from '../site';
 import { DownloadButton, FixPair, GitHubMark } from './bits';
 import { TypingDemo } from './TypingDemo';
@@ -16,6 +17,8 @@ const NAV = [
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const starting = useDownloadStage() === 'starting';
+  const DownloadIcon = starting ? LoaderCircle : ArrowDownToLine;
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
     on();
@@ -37,8 +40,14 @@ export function Header() {
           <a className="header-github" href={REPO_URL} aria-label="Source code on GitHub">
             <GitHubMark />
           </a>
-          <a className="btn btn-primary header-download" href={DOWNLOAD_URL} download>
-            <ArrowDownToLine size={16} strokeWidth={2.4} aria-hidden />
+          <a
+            className={`btn btn-primary header-download${starting ? ' is-starting' : ''}`}
+            href={DOWNLOAD_URL}
+            download
+            onClick={onDownloadClick}
+            aria-disabled={starting || undefined}
+          >
+            <DownloadIcon size={16} strokeWidth={2.4} className={starting ? 'spin' : undefined} aria-hidden />
             Download
           </a>
         </div>

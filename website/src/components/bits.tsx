@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { motion } from 'motion/react';
-import { ArrowDownToLine } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowDownToLine, LoaderCircle, X } from 'lucide-react';
 import { byCode } from '../demo/keyboard';
-import { DOWNLOAD_URL, downloadMeta } from '../site';
+import { dismissDownload, onDownloadClick, useDownloadStage } from '../download';
+import { DOWNLOAD_SIZE, DOWNLOAD_URL, downloadMeta } from '../site';
 import './bits.css';
 
 /** The colored language badge the app shows next to the text cursor. */
@@ -31,20 +32,71 @@ export function FixPair({ from, to }: { from: string; to: string }) {
 }
 
 export function DownloadButton({ big = false, showMeta = true }: { big?: boolean; showMeta?: boolean }) {
+  const starting = useDownloadStage() === 'starting';
+  const Icon = starting ? LoaderCircle : ArrowDownToLine;
   return (
     <div className={`download${big ? ' download-big' : ''}`}>
       <motion.a
-        className="btn btn-primary"
+        className={`btn btn-primary${starting ? ' is-starting' : ''}`}
         href={DOWNLOAD_URL}
         download
+        onClick={onDownloadClick}
+        aria-disabled={starting || undefined}
         whileHover={{ y: -1 }}
         whileTap={{ scale: .97 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       >
-        <ArrowDownToLine size={big ? 20 : 18} strokeWidth={2.2} aria-hidden />
-        Download for Windows
+        <Icon size={big ? 20 : 18} strokeWidth={2.2} className={starting ? 'spin' : undefined} aria-hidden />
+        {starting ? 'Starting download…' : 'Download for Windows'}
       </motion.a>
       {showMeta && <p className="download-meta">Free · {downloadMeta} · Windows 10 &amp; 11</p>}
+    </div>
+  );
+}
+
+/** The note at the bottom of the window after a download click, until the browser has had time to show the file. */
+export function DownloadNotice() {
+  const stage = useDownloadStage();
+  return (
+    <div className="download-notice-wrap" role="status">
+      <AnimatePresence>
+        {stage !== 'idle' && (
+          <motion.div
+            className="download-notice"
+            initial={{ opacity: 0, y: 16, scale: .98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, transition: { duration: .18 } }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          >
+            {stage === 'starting' ? (
+              <>
+                <LoaderCircle size={22} strokeWidth={2.2} className="download-notice-icon spin" aria-hidden />
+                <div>
+                  <p className="download-notice-title">Your download is starting…</p>
+                  <p>
+                    It’s {DOWNLOAD_SIZE ? `a ${DOWNLOAD_SIZE} file` : 'a big file'}, so your browser can take a few
+                    seconds to show it. No need to click again.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <ArrowDownToLine size={22} strokeWidth={2.2} className="download-notice-icon" aria-hidden />
+                <div>
+                  <p className="download-notice-title">Look for it in your browser’s downloads</p>
+                  <p>
+                    When it’s finished, open <b>LanguageAutocorrect.exe</b> and follow the{' '}
+                    <a href="#install" onClick={dismissDownload}>install steps</a>.
+                  </p>
+                </div>
+              </>
+            )}
+            <button type="button" className="download-notice-close" onClick={dismissDownload} aria-label="Close">
+              <X size={18} aria-hidden />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
