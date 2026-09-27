@@ -202,9 +202,11 @@ export function TypingDemo() {
             )}
           </AnimatePresence>
 
+          {/* The box looks like a text box, so clicking it while the examples play starts "try it yourself";
+              otherwise the keys typed into it were ignored and Space scrolled the page. */}
           <div
             ref={box}
-            className={`demo-box${live ? ' is-live' : ''}`}
+            className={`demo-box${live ? ' is-live' : fine ? ' is-tryable' : ''}`}
             role="textbox"
             aria-label={live ? 'Demo text box. Type here; the demo keyboard starts on English.' : 'Example of typing being fixed'}
             aria-readonly={!live}
@@ -212,7 +214,7 @@ export function TypingDemo() {
             onKeyDown={onKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            onClick={() => live && box.current?.focus()}
+            onClick={() => (live ? box.current?.focus() : fine && startLive())}
           >
             <span className="demo-line" dir="auto">
               {state.words.map(w => (
