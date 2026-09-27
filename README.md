@@ -26,8 +26,8 @@ work too.
 - **Voice** (off by default; offered in setup, or turn it on in Settings) – says the language's name when the keyboard
   changes (in that language if Windows has a voice for it).
 
-Click the tray icon (or open it from the Start menu) for the app window, drawn like the setup: a colorful side
-that plays back your latest fixes, next to Home (recent fixes and stats), Never fix (your word list), and Settings.
+Click the tray icon (or open it from the Start menu) for the app window: Home (recent fixes and stats),
+Never fix (your word list), and Settings.
 
 It switches the keyboard by pressing your own language shortcut (Alt+Shift, Ctrl+Shift or Win+Space), so
 Windows stays in sync and your shortcut keeps working normally.

@@ -20,9 +20,9 @@ for (const [file, from] of [['app.html', /version: '[\d.]+'/], ['setup.html', /v
 }
 
 const shots = [
-  { name: 'home', file: 'app.html', query: '', size: [960, 640] },
-  { name: 'words', file: 'app.html', query: '?page=words', size: [960, 640] },
-  { name: 'settings', file: 'app.html', query: '?page=settings', size: [960, 640] },
+  { name: 'home', file: 'app.html', query: '', size: [980, 680] },
+  { name: 'words', file: 'app.html', query: '?page=words', size: [980, 680] },
+  { name: 'settings', file: 'app.html', query: '?page=settings', size: [980, 680] },
   { name: 'setup', file: 'setup.html', query: '', size: [960, 640] },
 ];
 

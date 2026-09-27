@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { Minus, Square, X } from 'lucide-react';
+import icon from '../assets/icon-128.png';
 import homeLight from '../assets/screens/home-light.webp';
 import homeDark from '../assets/screens/home-dark.webp';
 import wordsLight from '../assets/screens/words-light.webp';
@@ -11,17 +13,17 @@ import setupDark from '../assets/screens/setup-dark.webp';
 import { SectionHead } from './bits';
 import './Screens.css';
 
-// Real screenshots of the app's windows (scripts/screenshots.mjs), sample data included. Both windows draw their own
-// top edge, so they have no title bar.
+// Real screenshots of the app's window (scripts/screenshots.mjs), sample data included.
 const TABS = [
-  { id: 'home', label: 'Home', light: homeLight, dark: homeDark, w: 960, h: 640,
-    alt: 'The Home page: a colorful side playing back the latest fix, auto-correct switched on, counts of fixed words, and recent fixes.' },
-  { id: 'words', label: 'Never fix', light: wordsLight, dark: wordsDark, w: 960, h: 640,
+  { id: 'home', label: 'Home', light: homeLight, dark: homeDark, w: 980, h: 680, title: 'Language Autocorrect',
+    alt: 'The Home page: auto-correct is on, the current keyboard, counts of fixed words, and recent fixes.' },
+  { id: 'words', label: 'Never fix', light: wordsLight, dark: wordsDark, w: 980, h: 680, title: 'Language Autocorrect',
     alt: 'The Never fix page: a list of words that are never auto-corrected, and the option to learn from undos.' },
-  { id: 'settings', label: 'Settings', light: settingsLight, dark: settingsDark, w: 960, h: 640,
-    alt: 'Settings: a card for each language, the chosen ones in their color, and the same languages listed on the colorful side.' },
-  { id: 'setup', label: 'Setup', light: setupLight, dark: setupDark, w: 960, h: 640,
-    alt: 'The setup window: a colorful side showing a word typed on the wrong keyboard being fixed, and a Get started button.' },
+  { id: 'settings', label: 'Settings', light: settingsLight, dark: settingsDark, w: 980, h: 680, title: 'Language Autocorrect',
+    alt: 'Settings: languages switched on and off, each with its colored badge.' },
+  { id: 'setup', label: 'Setup', light: setupLight, dark: setupDark, w: 960, h: 640, title: 'Language Autocorrect Setup',
+    alt: 'The setup window: a colorful side showing a word typed on the wrong keyboard being fixed, and a Get started button.',
+    frameless: true },
 ];
 
 export function Screens() {
@@ -65,6 +67,13 @@ export function Screens() {
             role="tabpanel"
             aria-labelledby={`tab-${tab.id}`}
           >
+            {/* The setup window draws its own top edge, so it has no title bar. */}
+            {!('frameless' in tab) && (
+              <motion.div className="win-bar" layout="position">
+                <span className="win-title"><img src={icon} alt="" width={16} height={16} />{tab.title}</span>
+                <span className="win-caption" aria-hidden><Minus size={15} /><Square size={12} /><X size={16} /></span>
+              </motion.div>
+            )}
             <div className="win-body" style={{ aspectRatio: `${tab.w} / ${tab.h}` }}>
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.picture
