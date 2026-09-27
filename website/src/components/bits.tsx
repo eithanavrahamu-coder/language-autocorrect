@@ -74,7 +74,7 @@ export function DownloadNotice() {
                 <div>
                   <p className="download-notice-title">Your download is starting…</p>
                   <p>
-                    It’s {DOWNLOAD_SIZE ? `a ${DOWNLOAD_SIZE} file` : 'a big file'}, so your browser can take a few
+                    It’s {DOWNLOAD_SIZE ?? 'a big file'}, so your browser can take a few
                     seconds to show it. No need to click again.
                   </p>
                 </div>
