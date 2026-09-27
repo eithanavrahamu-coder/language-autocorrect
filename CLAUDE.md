@@ -89,6 +89,10 @@ verified. Only unit tests and the Windows CI build verify changes; the app's hoo
 here. Commit and push after each separate piece of work (for example, one commit per language). When done, give the
 link to the successful Actions run.
 
+After any app change, once the Actions run has succeeded, also **update the local exe in `publish/`** with the
+`dotnet publish … -o publish` command above, so the owner's copy on this PC is the new version. (The running app is
+normally the installed copy in `%LocalAppData%\Programs\Language Autocorrect`, which doesn't lock `publish/`.)
+
 When adding a language, follow `docs/HANDOFF-next-languages.md`. Add tests in `MultiLanguageTests.cs`: wrongly
 changed must stay under 2 % and caught above 80 %. Don't move any existing language's numbers, and check that related
 languages (e.g. the Cyrillic ones) still pick the right winner when several are on together. Voice stays off by
