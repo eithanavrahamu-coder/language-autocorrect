@@ -11,7 +11,7 @@ namespace LanguageAutocorrect;
 
 internal sealed class TrayApp : ApplicationContext, IAppController
 {
-    private sealed record RecentFix(DateTime Time, string Typed, string Fixed, string? App);
+    private sealed record RecentFix(DateTime Time, string Typed, string Fixed, string? App, Lang From, Lang To);
 
     private readonly string _settingsPath = AppSettings.DefaultPath;
     private readonly AppSettings _settings;
@@ -196,13 +196,18 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 enabled = _settings.EnabledLanguages(_installedLanguages).Contains(info.Lang),
                 installed = _installedLanguages.Contains(info.Lang),
                 locked = info.Lang == Lang.English,
+                demo = DemoWords.For(info),
             }),
             fixesToday = _settings.FixesToday(now),
             fixesTotal = _settings.TotalFixes,
             nativeVoices = _session.Languages
                 .Where(l => l != Lang.English && VoiceAnnouncer.VoiceFor(l) == null)
                 .Select(l => Languages.Get(l).Name),
-            recent = _recent.Select(r => new { time = r.Time.ToString("HH:mm"), typed = r.Typed, @fixed = r.Fixed, app = r.App }),
+            recent = _recent.Select(r => new
+            {
+                time = r.Time.ToString("HH:mm"), typed = r.Typed, @fixed = r.Fixed, app = r.App,
+                from = LanguageJson(Languages.Get(r.From)), to = LanguageJson(Languages.Get(r.To)),
+            }),
             checkForUpdates = _settings.CheckForUpdates,
             update = new
             {
@@ -511,7 +516,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private void OnFixed(FixWord fix, string? app)
     {
         _settings.CountFix(DateTime.Now, fix.Correction.WordCount);
-        _recent.Insert(0, new RecentFix(DateTime.Now, fix.Correction.Typed, fix.Correction.Replacement, FriendlyAppName(app)));
+        _recent.Insert(0, new RecentFix(DateTime.Now, fix.Correction.Typed, fix.Correction.Replacement, FriendlyAppName(app),
+            fix.Correction.From, fix.Correction.To));
         if (_recent.Count > 12) _recent.RemoveAt(_recent.Count - 1);
         ExpectLayout(fix.Layout);
         if (_settings.ShowFixes)

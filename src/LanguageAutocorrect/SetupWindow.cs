@@ -17,20 +17,6 @@ internal enum SetupResult { Cancelled, Installed, Portable, Uninstalled }
 /// </summary>
 internal sealed class SetupWindow : WebWindow
 {
-    /// <summary>
-    /// A word per language for the typing demo, shown typed on the English keyboard and then fixed. Each is one the
-    /// engine's tests check it fixes (MultiLanguageTests), or one of the website's checked examples.
-    /// </summary>
-    private static readonly Dictionary<Lang, string> DemoWords = new()
-    {
-        [Lang.Hebrew] = "שלום", [Lang.Russian] = "привет", [Lang.Arabic] = "مرحبا", [Lang.Ukrainian] = "привіт",
-        [Lang.Persian] = "سلام", [Lang.Greek] = "καλημέρα", [Lang.French] = "aller", [Lang.German] = "schön",
-        [Lang.Bulgarian] = "здравей", [Lang.Serbian] = "здраво", [Lang.Macedonian] = "здраво", [Lang.Kazakh] = "сәлем",
-        [Lang.Georgian] = "გამარჯობა", [Lang.Armenian] = "բարև", [Lang.Korean] = "안녕", [Lang.Thai] = "สวัสดี",
-        [Lang.Spanish] = "mañana", [Lang.Portuguese] = "não", [Lang.Turkish] = "güzel", [Lang.Italian] = "città",
-        [Lang.Urdu] = "شکریہ",
-    };
-
     private readonly string _mode;
     private bool _busy;
 
@@ -46,18 +32,6 @@ internal sealed class SetupWindow : WebWindow
     }
 
     protected override bool Frameless => true;
-
-    protected override CreateParams CreateParams
-    {
-        get
-        {
-            const int WS_MAXIMIZEBOX = 0x10000, WS_MINIMIZEBOX = 0x20000, WS_SYSMENU = 0x80000;
-            var cp = base.CreateParams;
-            cp.Style |= WS_MINIMIZEBOX | WS_SYSMENU; // minimizes from the taskbar button; Alt+Space menu
-            cp.Style &= ~WS_MAXIMIZEBOX;             // double-clicking the top edge doesn't maximize
-            return cp;
-        }
-    }
 
     protected override void OnMessage(string type, JsonElement msg)
     {
@@ -84,7 +58,7 @@ internal sealed class SetupWindow : WebWindow
                         installed = installed.Contains(l.Lang),
                         selected = l.Lang == Lang.English || installed.Contains(l.Lang),
                         locked = l.Lang == Lang.English,
-                        demo = Demo(l),
+                        demo = DemoWords.For(l),
                     }),
                 });
                 break;
@@ -114,10 +88,6 @@ internal sealed class SetupWindow : WebWindow
             case "open":
                 Installer.OpenInstalled();
                 Close();
-                break;
-
-            case "drag":
-                BeginDrag(new PointF(msg.GetProperty("x").GetSingle(), msg.GetProperty("y").GetSingle()));
                 break;
 
             case "openLanguageSettings":
@@ -153,14 +123,6 @@ internal sealed class SetupWindow : WebWindow
             Log.Write("Reading the switch shortcut failed: " + ex.Message);
             return null;
         }
-    }
-
-    /// <summary>The demo word for a language and the English-keyboard keys that type it, if it has one.</summary>
-    private static object? Demo(LanguageInfo language)
-    {
-        if (!DemoWords.TryGetValue(language.Lang, out var word)) return null;
-        var keys = KeyMap.ToUsKeys(word, language.Lang);
-        return KeyMap.Render(keys, language.Lang) == word ? new { word, keys } : null;
     }
 
     private void RunWork(Action<Action<double, string>> work, SetupResult success)

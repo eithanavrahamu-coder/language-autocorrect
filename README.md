@@ -26,8 +26,8 @@ work too.
 - **Voice** (off by default; offered in setup, or turn it on in Settings) – says the language's name when the keyboard
   changes (in that language if Windows has a voice for it).
 
-Click the tray icon (or open it from the Start menu) for the app window: Home (recent fixes and stats),
-Never fix (your word list), and Settings.
+Click the tray icon (or open it from the Start menu) for the app window, drawn like the setup: a colorful side
+that plays back your latest fixes, next to Home (recent fixes and stats), Never fix (your word list), and Settings.
 
 It switches the keyboard by pressing your own language shortcut (Alt+Shift, Ctrl+Shift or Win+Space), so
 Windows stays in sync and your shortcut keeps working normally.
@@ -90,8 +90,8 @@ installs under those names and keeps their settings.
 - `src/LanguageAutocorrect.Engine` – detection, undo and never-fix logic (plain .NET, unit tested).
 - `src/LanguageAutocorrect` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
 - `src/LanguageAutocorrect/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
-  browser to preview with sample data (`app.html?page=words`, `setup.html?screen=languages`, `setup.html?mode=update`,
-  `setup.html?mode=uninstall`).
+  browser to preview with sample data (`app.html?page=words`, `app.html?paused=1`, `app.html?update=available`,
+  `setup.html?screen=languages`, `setup.html?mode=update`, `setup.html?mode=uninstall`).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
 
 ## Credits

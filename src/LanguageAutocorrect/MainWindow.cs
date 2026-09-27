@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Forms;
 
 namespace LanguageAutocorrect;
 
@@ -12,7 +13,7 @@ internal interface IAppController
     void HandleAction(string type, JsonElement msg);
 }
 
-/// <summary>The app's main window (Home / Never fix / Settings).</summary>
+/// <summary>The app's main window (Home / Never fix / Settings), drawn like the setup window: no title bar, a colorful side.</summary>
 internal sealed class MainWindow : WebWindow
 {
     private readonly IAppController _app;
@@ -20,18 +21,15 @@ internal sealed class MainWindow : WebWindow
     public static string DataFolder => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppInfo.Id, "WebView2");
 
-    public MainWindow(IAppController app) : base("app.html", DataFolder, new Size(980, 680))
+    public MainWindow(IAppController app) : base("app.html", DataFolder, new Size(960, 640))
     {
         _app = app;
         Text = AppInfo.Name;
+        FormBorderStyle = FormBorderStyle.None;
+        MaximizeBox = false;
     }
 
-    protected override void OnHandleCreated(EventArgs e)
-    {
-        base.OnHandleCreated(e);
-        float scale = DeviceDpi / 96f;
-        MinimumSize = new Size((int)(800 * scale), (int)(560 * scale));
-    }
+    protected override bool Frameless => true;
 
     // Asked for before the page was ready to hear it.
     private string? _pendingPage, _pendingToast;
@@ -39,6 +37,15 @@ internal sealed class MainWindow : WebWindow
 
     protected override void OnMessage(string type, JsonElement msg)
     {
+        switch (type)
+        {
+            case "close":
+                Close();
+                return;
+            case "minimize":
+                WindowState = FormWindowState.Minimized;
+                return;
+        }
         if (type != "ready") _app.HandleAction(type, msg);
         PushState();
         if (type != "ready") return;

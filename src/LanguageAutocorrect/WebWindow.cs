@@ -29,7 +29,7 @@ internal abstract class WebWindow : Form
         Text = AppInfo.Name;
         StartPosition = FormStartPosition.CenterScreen;
         AutoScaleMode = AutoScaleMode.None;
-        BackColor = IsDarkMode ? Color.FromArgb(0x16, 0x16, 0x15) : Color.FromArgb(0xFB, 0xFA, 0xF8);
+        BackColor = IsDarkMode ? Color.FromArgb(0x19, 0x19, 0x1A) : Color.FromArgb(0xFA, 0xF9, 0xF7);
         _web.DefaultBackgroundColor = BackColor;
         Controls.Add(_web);
         try { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!); } catch { /* default icon */ }
@@ -38,8 +38,24 @@ internal abstract class WebWindow : Form
 
     protected Size LogicalClientSize { get; }
 
-    /// <summary>No Windows title bar: the page draws its own close button, and calls <see cref="BeginDrag"/> to move the window.</summary>
+    /// <summary>
+    /// No Windows title bar: the page draws its own buttons, and sends "drag" to move the window (see
+    /// <see cref="BeginDrag"/>). The subclass also sets <see cref="Form.FormBorderStyle"/> to None.
+    /// </summary>
     protected virtual bool Frameless => false;
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var cp = base.CreateParams;
+            if (!Frameless) return cp;
+            const int WS_MAXIMIZEBOX = 0x10000, WS_MINIMIZEBOX = 0x20000, WS_SYSMENU = 0x80000;
+            cp.Style |= WS_MINIMIZEBOX | WS_SYSMENU; // minimizes from the taskbar button; Alt+Space menu
+            cp.Style &= ~WS_MAXIMIZEBOX;             // double-clicking the top edge doesn't maximize
+            return cp;
+        }
+    }
 
     public static bool IsDarkMode
     {
@@ -111,6 +127,11 @@ internal abstract class WebWindow : Form
             var msg = doc.RootElement;
             var type = msg.GetProperty("type").GetString() ?? "";
             if (type == "ready") _ready = true;
+            if (type == "drag" && Frameless)
+            {
+                BeginDrag(new PointF(msg.GetProperty("x").GetSingle(), msg.GetProperty("y").GetSingle()));
+                return;
+            }
             OnMessage(type, msg);
         }
         catch (Exception ex)
