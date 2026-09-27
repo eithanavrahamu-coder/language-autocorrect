@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import icon from '../assets/icon-128.png';
 import { DOWNLOAD_SIZE, LANGUAGE_COUNT, REPO_URL } from '../site';
 import { DownloadButton, GitHubMark, Kbd, Reveal, SectionHead } from './bits';
+import { TryBar } from './TryBar';
 import './Install.css';
 
 export function Install() {
@@ -69,6 +70,7 @@ export function Install() {
             </dl>
           </Reveal>
         </div>
+        <TryBar />
       </div>
     </section>
   );
