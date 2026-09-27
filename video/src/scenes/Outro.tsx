@@ -3,7 +3,7 @@ import { AbsoluteFill } from 'remotion';
 import { BOUNCY, pop, ramp, useTime } from '../anim.ts';
 import { BadgeTrack } from '../parts/Badge.tsx';
 import { OUTRO } from '../timeline.ts';
-import { alpha, C, FONT_BADGE, FONT_BODY, FONT_DISPLAY } from '../theme.ts';
+import { alpha, C, FONT_BODY, FONT_DISPLAY } from '../theme.ts';
 
 export const ADDRESS = 'language-autocorrect.world';
 
@@ -75,7 +75,7 @@ export function Outro() {
   );
 }
 
-/** The app's icon, אA on the blue → violet → green gradient (src/LanguageAutocorrect/UI/app.html's .logo). */
+/** The app's icon, a globe with a sparkle on the blue → violet → green gradient (website/scripts/icons.mjs). */
 function AppIcon() {
   const t = useTime();
   const p = pop(t, OUTRO.icon, BOUNCY);
@@ -101,19 +101,24 @@ function AppIcon() {
           borderRadius: size * 0.27,
           overflow: 'hidden',
           background: `linear-gradient(135deg, ${C.en}, ${C.accent} 55%, ${C.he})`,
-          display: 'grid',
-          placeItems: 'center',
           color: '#FFFFFF',
-          fontFamily: FONT_BADGE,
-          fontWeight: 700,
-          fontSize: size * 0.41,
-          letterSpacing: '-0.02em',
           boxShadow: `0 ${size * 0.12}px ${size * 0.3}px ${-size * 0.08}px ${alpha(C.accent, 0.55)}`,
           opacity: Math.min(1, p * 1.5),
           transform: `scale(${0.3 + 0.7 * p}) rotate(${(1 - p) * -14}deg)`,
         }}
       >
-        אA
+        <svg viewBox="0 0 256 256" width={size} height={size} style={{ display: 'block' }}>
+          <path
+            d="M185.6 118A71.8 71.8 0 1 1 138 70.4A40.5 40.5 0 0 1 137.9 86A57 57 0 1 0 170 118.1A40.5 40.5 0 0 1 185.6 118ZM177.7 48Q182.5 73.5 208 78.3Q182.5 83.2 177.7 108.7Q172.8 83.2 147.3 78.3Q172.8 73.5 177.7 48Z"
+            fill="currentColor"
+          />
+          <path
+            d="M117 74.6A29.6 64.4 0 0 0 117 203.4A29.6 64.4 0 0 0 117 74.6M52.6 139H181.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={14.7}
+          />
+        </svg>
         {shine > 0 && shine < 1 && (
           <div
             style={{

@@ -65,10 +65,10 @@
   .logo {
     width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
     background: linear-gradient(135deg, #2563EB, #5847E0 58%, #16A34A);
-    display: grid; place-items: center; color: #fff;
-    font-weight: 700; font-size: 13px; letter-spacing: -.02em;
+    color: #fff;
     box-shadow: 0 2px 10px rgba(42, 18, 6, .18), 0 0 0 2px rgba(255, 255, 255, .7);
   }
+  .logo svg, .tile .logo svg { width: 100%; height: 100%; }
   .brand-name { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-weight: 650; font-size: 14.5px; line-height: 1.2; letter-spacing: -.01em; }
   nav { display: flex; flex-direction: column; gap: 2px; }
   nav button {
@@ -297,11 +297,15 @@
 </style>
 </head>
 <body>
+<!-- The logo's globe and sparkle (drawn by website/scripts/icons.mjs), for every .logo -->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="logo-mark" viewBox="0 0 256 256"><path d="M185.6 118A71.8 71.8 0 1 1 138 70.4A40.5 40.5 0 0 1 137.9 86A57 57 0 1 0 170 118.1A40.5 40.5 0 0 1 185.6 118ZM177.7 48Q182.5 73.5 208 78.3Q182.5 83.2 177.7 108.7Q172.8 83.2 147.3 78.3Q172.8 73.5 177.7 48Z" fill="currentColor"/><path d="M117 74.6A29.6 64.4 0 0 0 117 203.4A29.6 64.4 0 0 0 117 74.6M52.6 139H181.4" fill="none" stroke="currentColor" stroke-width="14.7"/></symbol>
+</svg>
 
 <aside>
   <div class="field" id="field"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div></div>
   <div class="brand">
-    <div class="logo">אA</div>
+    <div class="logo"><svg><use href="#logo-mark"/></svg></div>
     <div class="brand-name">Language<br>Autocorrect</div>
   </div>
   <nav>
@@ -507,7 +511,7 @@
         <label class="toggle"><input type="checkbox" data-set="startWithWindows"><span></span></label>
       </div>
       <div class="setting">
-        <div class="tile"><div class="logo">אA</div></div>
+        <div class="tile"><div class="logo"><svg><use href="#logo-mark"/></svg></div></div>
         <div class="setting-text">
           <div class="setting-title">About</div>
           <div class="setting-desc"><span id="aboutVersion">Language Autocorrect</span> · Made by Eithan Avraham</div>

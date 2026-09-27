@@ -24,8 +24,9 @@ dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o p
 `LanguageAutocorrect.exe --selfcheck` checks keyboards, voices and detection on a real machine; `--portable` skips setup.
 
 Website (`website/`, React + Vite, Node 24): `npm run dev`, `npm run build`, `npm run lint` (oxlint),
-`npm run screenshots` (retakes the app screenshots with Playwright). Promo video (`video/`, Remotion; also needs
-ffmpeg): `npm run studio`, `npm run render`, `npm run typecheck`.
+`npm run screenshots` (retakes the app screenshots with Playwright), `npm run icons` (redraws the logo: the app's
+.ico and the site's icons). Promo video (`video/`, Remotion; also needs ffmpeg): `npm run studio`, `npm run render`,
+`npm run typecheck`.
 
 ## Architecture
 
