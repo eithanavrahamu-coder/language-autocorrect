@@ -6,7 +6,7 @@ internal static class AppInfo
     public const string Name = "Language Autocorrect";
 
     /// <summary>The download page. Its version.json names the newest version, for update checks.</summary>
-    public const string Website = "https://eithanavrahamu-coder.github.io/language-auto/";
+    public const string Website = "https://language-autocorrect.world/";
 
     /// <summary>Used for the exe, folders, registry keys and system object names.</summary>
     public const string Id = LayoutBuddy.Engine.AppSettings.FolderName;

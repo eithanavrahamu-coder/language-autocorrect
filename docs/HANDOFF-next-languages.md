@@ -4,7 +4,7 @@ You are continuing work on **Language Autocorrect** (made by Eithan Avraham), a 
 words typed on the wrong keyboard layout (e.g. `ghbdtn` → `привет`, `akuo` → `שלום`) and fixes them when the
 user presses Space or Enter, then switches the keyboard.
 
-Repository: `eithanavrahamu-coder/language-auto` (branch `main`). Clone it, read `README.md`, then this file.
+Repository: `eithanavrahamu-coder/language-autocorrect` (branch `main`). Clone it, read `README.md`, then this file.
 
 ## Wave 3 (versions 3.5.0–3.9.0): Spanish, Portuguese, Turkish, Italian, Urdu
 

@@ -44,7 +44,7 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 ## Installing and uninstalling
 
-Download `LanguageAutocorrect.exe` from the website, **https://eithanavrahamu-coder.github.io/language-auto/**
+Download `LanguageAutocorrect.exe` from the website, **https://language-autocorrect.world**
 (or from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
 Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo,
 your languages (the ones already in Windows are picked), a few preferences (already set), and done, with tips and
@@ -97,3 +97,8 @@ installs under those names and keeps their settings. The code still uses `Layout
 ## Credits
 
 Word frequency lists: [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by Hermit Dave, based on OpenSubtitles data, licensed CC BY-SA 4.0.
+
+## License
+
+MIT – see [LICENSE](LICENSE). The word lists in `src/LayoutBuddy.Engine/Data` are not covered by it: they keep their
+own license, CC BY-SA 4.0 (see Credits).

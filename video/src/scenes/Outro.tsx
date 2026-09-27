@@ -5,7 +5,7 @@ import { BadgeTrack } from '../parts/Badge.tsx';
 import { OUTRO } from '../timeline.ts';
 import { alpha, C, FONT_BADGE, FONT_BODY, FONT_DISPLAY } from '../theme.ts';
 
-export const ADDRESS = 'eithanavrahamu-coder.github.io/language-auto';
+export const ADDRESS = 'language-autocorrect.world';
 
 /** 15.7–20 s: the app's icon and name, and where to get it. */
 export function Outro() {

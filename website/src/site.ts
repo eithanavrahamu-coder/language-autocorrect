@@ -4,7 +4,7 @@ import { LANGUAGES } from './demo/keyboard';
 export const VERSION = info.version;
 export const DOWNLOAD_URL = `${import.meta.env.BASE_URL}LanguageAutocorrect.exe`;
 export const DOWNLOAD_SIZE = info.downloadBytes ? `${Math.round(info.downloadBytes / 1048576)} MB` : null;
-export const REPO_URL = 'https://github.com/eithanavrahamu-coder/language-auto';
+export const REPO_URL = 'https://github.com/eithanavrahamu-coder/language-autocorrect';
 export const LANGUAGE_COUNT = LANGUAGES.length;
 
 /** "Version 3.3.0 · 68 MB" */
