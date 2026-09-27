@@ -41,6 +41,8 @@ internal static class CaretLocator
                 return null;
             acc.accLocation(out int l, out int t, out int w, out int h, 0);
             if (w <= 0 && h <= 0) return null;
+            // Chrome keeps its caret where the text box was after focus leaves it, only marked hidden.
+            if (acc.get_accState(0) is int state && (state & Native.STATE_SYSTEM_INVISIBLE) != 0) return null;
             return Valid(new Rectangle(l, t, Math.Max(w, 1), h));
         }
         catch
@@ -57,6 +59,8 @@ internal static class CaretLocator
     {
         try
         {
+            // A web page's own text is read-only, yet clicking it leaves a caret there.
+            if (el.TryGetCurrentPattern(ValuePattern.Pattern, out var v) && ((ValuePattern)v).Current.IsReadOnly) return null;
             return FromTextPattern(el) ?? FromBounds(el);
         }
         catch

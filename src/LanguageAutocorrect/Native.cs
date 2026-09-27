@@ -334,6 +334,7 @@ internal static class Native
         [MarshalAs(UnmanagedType.IUnknown)] out object? ppvObject);
 
     public const uint OBJID_CARET = 0xFFFFFFF8;
+    public const int STATE_SYSTEM_INVISIBLE = 0x8000;
     public static Guid IID_IAccessible = new("618736E0-3C3D-11CF-810C-00AA00389B71");
 
     public static bool IsDown(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
