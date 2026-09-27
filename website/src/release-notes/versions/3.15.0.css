@@ -1,0 +1,57 @@
+/* 3.15.0: the app's window; "What's new" pops up, Next goes through three versions, and Done closes it. */
+.v3-15-0 {
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  position: relative; width: 268px; height: 196px; font-family: 'Segoe UI', var(--font-body);
+}
+.v3-15-0 .window {
+  position: absolute; inset: 0; overflow: hidden;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 10px 28px -14px rgba(20, 18, 15, .3);
+  transition: filter .3s;
+}
+.v3-15-0[data-open] .window { filter: brightness(.94) saturate(.8); }
+.v3-15-0 .bar { display: flex; gap: 4px; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+.v3-15-0 .bar i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.v3-15-0 .side { position: absolute; left: 0; top: 21px; bottom: 0; width: 58px; padding: 10px 8px; display: grid; align-content: start; gap: 8px; background: var(--bg-2); }
+.v3-15-0 .side i, .v3-15-0 .rows i { display: block; height: 6px; border-radius: 3px; background: var(--line); }
+.v3-15-0 .side i:first-child { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.v3-15-0 .rows { position: absolute; left: 72px; right: 14px; top: 36px; display: grid; gap: 12px; }
+.v3-15-0 .rows i { height: 26px; border-radius: 7px; background: var(--bg-2); }
+
+.v3-15-0 .card {
+  position: absolute; left: 34px; top: 38px; width: 200px; padding: 10px 11px 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 36px -12px rgba(20, 18, 15, .38);
+  opacity: 0; scale: .92; translate: 0 6px; pointer-events: none;
+  transition: opacity .25s, scale .4s var(--ease), translate .4s var(--ease);
+}
+.v3-15-0[data-open] .card { opacity: 1; scale: 1; translate: 0 0; }
+.v3-15-0 .head { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 650; color: var(--accent); }
+.v3-15-0 .head span + span { color: var(--faint); font-weight: 500; font-variant-numeric: tabular-nums; }
+.v3-15-0 .pages { overflow: hidden; margin-top: 9px; }
+.v3-15-0 .strip { display: flex; transition: translate .45s var(--ease); }
+.v3-15-0 .page { flex: 0 0 100%; display: flex; align-items: center; gap: 10px; }
+.v3-15-0 .art { width: 50px; height: 50px; padding: 11px; border-radius: 10px; flex-shrink: 0; }
+.v3-15-0 .lines { flex: 1; display: grid; gap: 6px; }
+.v3-15-0 .lines b { font-size: 11px; font-weight: 700; color: var(--text); }
+.v3-15-0 .lines i { display: block; height: 5px; border-radius: 3px; background: var(--line); }
+.v3-15-0 .lines i + i { width: 70%; }
+.v3-15-0 .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; }
+.v3-15-0 .dots { display: flex; gap: 4px; }
+.v3-15-0 .dots i { width: 5px; height: 5px; border-radius: 3px; background: var(--line); transition: width .3s var(--ease), background-color .2s; }
+.v3-15-0 .dots i[data-on] { width: 14px; background: var(--accent); }
+.v3-15-0 .next {
+  min-width: 46px; height: 20px; padding: 0 9px; border-radius: 6px; display: grid; place-items: center;
+  font-size: 10px; font-weight: 650; color: var(--bg); background: var(--text);
+  transition: scale .1s;
+}
+.v3-15-0 .next[data-down] { scale: .92; }
+
+.v3-15-0 .pointer {
+  position: absolute; top: 0; left: 0; width: 20px; height: 24px; transform-origin: 2px 2px;
+  fill: #fff; stroke: #1B1A18; stroke-width: 1.4; stroke-linejoin: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .25));
+  translate: 236px 168px; transition: translate .6s var(--ease), scale .12s;
+}
+.v3-15-0 .pointer[data-at="next"] { translate: 213px 150px; }
+.v3-15-0 .pointer[data-down] { scale: .85; }

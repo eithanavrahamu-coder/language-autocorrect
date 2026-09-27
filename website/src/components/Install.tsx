@@ -147,7 +147,8 @@ export function FinalCta() {
   );
 }
 
-export function Footer() {
+/** @param home the way back to the site's front page from the page it's on ('../' on the release notes) */
+export function Footer({ home = '' }: { home?: string }) {
   return (
     <footer className="footer">
       <div className="page footer-inner">
@@ -159,6 +160,7 @@ export function Footer() {
           </div>
         </div>
         <div className="footer-links">
+          <a href={`${home}release-notes/`}>Release notes</a>
           <a href={REPO_URL}><GitHubMark size={16} /> Source code</a>
           <a href={`${REPO_URL}/issues`}>Report a problem</a>
         </div>

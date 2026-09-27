@@ -12,17 +12,18 @@ using Microsoft.Win32;
 
 namespace LanguageAutocorrect;
 
-/// <summary>A window that shows one of the embedded HTML pages and talks to it with JSON messages.</summary>
+/// <summary>A window that shows one of the embedded HTML pages (or a page on the website) and talks to it with JSON messages.</summary>
 internal abstract class WebWindow : Form
 {
     private readonly WebView2 _web = new() { Dock = DockStyle.Fill };
-    private readonly string _page;
+    private readonly string? _page;
     private readonly string _userDataFolder;
     private bool _ready;
 
     public static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    protected WebWindow(string page, string userDataFolder, Size logicalClientSize)
+    /// <param name="page">The embedded page to show; null for a window that opens its own (see <see cref="Open"/>).</param>
+    protected WebWindow(string? page, string userDataFolder, Size logicalClientSize)
     {
         _page = page;
         _userDataFolder = userDataFolder;
@@ -109,7 +110,7 @@ internal abstract class WebWindow : Form
             core.Settings.IsGeneralAutofillEnabled = false;
             core.WebMessageReceived += OnWebMessage;
             core.NewWindowRequested += (_, a) => a.Handled = true;
-            core.NavigateToString(LoadPage(_page));
+            Open(core);
         }
         catch (Exception ex)
         {
@@ -139,6 +140,9 @@ internal abstract class WebWindow : Form
             Log.Write("UI message error: " + ex);
         }
     }
+
+    /// <summary>Shows the page, once WebView2 is ready.</summary>
+    protected virtual void Open(CoreWebView2 core) => core.NavigateToString(LoadPage(_page!));
 
     /// <summary>Called on the UI thread for every message from the page ("ready" first).</summary>
     protected abstract void OnMessage(string type, JsonElement msg);

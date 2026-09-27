@@ -1,0 +1,67 @@
+/* 3.14.0: a click in setup's text box, "akuo" typed on the English keyboard, Space, and it becomes שלום. */
+.v3-14-0 {
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  position: relative; width: 272px; height: 196px; font-family: 'Segoe UI', var(--font-body);
+  transition: opacity .3s;
+}
+.v3-14-0[data-hidden], .v3-14-0[data-out] { opacity: 0; }
+.v3-14-0[data-hidden] *, .v3-14-0[data-hidden] *::before { transition: none !important; animation: none !important; }
+
+.v3-14-0 .fix {
+  position: absolute; top: 6px; left: 50%; translate: -50% 0;
+  display: flex; align-items: baseline; gap: 7px; padding: 5px 12px; border-radius: 10px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: 0 6px 18px -8px rgba(20, 18, 15, .25);
+  font-size: 14px; white-space: nowrap;
+  opacity: 0; scale: .9; transition: opacity .25s, scale .35s var(--ease);
+}
+.v3-14-0 .fix s { color: var(--muted); text-decoration-color: var(--faint); }
+.v3-14-0 .fix span { color: var(--faint); }
+.v3-14-0 .fix b { font-weight: 650; }
+.v3-14-0[data-fixed] .fix { opacity: 1; scale: 1; }
+
+.v3-14-0 .box {
+  position: absolute; top: 58px; left: 0; right: 0; height: 54px; padding: 0 16px;
+  display: flex; align-items: center; font-size: 20px; white-space: nowrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.v3-14-0[data-focused] .box { border-color: #5847E0; box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 22%, transparent); }
+.v3-14-0 .word { unicode-bidi: isolate; border-radius: 5px; padding: 1px 2px; margin: 0 -2px; }
+.v3-14-0 .word.he { animation: v3-14-0-glow 1.6s ease-out; }
+.v3-14-0 .caret {
+  width: 2px; height: 23px; margin-inline-start: 1px; background: var(--text); flex-shrink: 0;
+  visibility: hidden; animation: v3-14-0-blink 1s steps(1) infinite;
+}
+.v3-14-0[data-focused] .caret { visibility: visible; }
+.v3-14-0 .badge {
+  margin: -18px 0 0 6px; height: 18px; min-width: 25px; padding: 0 5px; border-radius: 6px; flex-shrink: 0;
+  display: grid; place-items: center; color: #fff; font-size: 10.5px; font-weight: 700;
+  animation: v3-14-0-pop .35s cubic-bezier(.2, 1.4, .4, 1);
+}
+.v3-14-0 .badge.en { background: var(--en); }
+.v3-14-0 .badge.he { background: var(--he); }
+
+.v3-14-0 .foot { position: absolute; left: 2px; right: 0; top: 130px; display: flex; align-items: center; justify-content: space-between; }
+.v3-14-0 .label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+.v3-14-0 .label svg { width: 16px; height: 16px; }
+.v3-14-0 .space {
+  width: 104px; height: 34px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 12px; color: var(--muted); background: var(--card);
+  border: 1px solid var(--line); border-bottom-width: 3px;
+  transition: background-color .1s, color .1s, translate .1s;
+}
+.v3-14-0 .space[data-down] { background: var(--en); border-color: var(--en); color: #fff; translate: 0 2px; }
+
+.v3-14-0 .pointer {
+  position: absolute; top: 0; left: 0; width: 20px; height: 24px; transform-origin: 2px 2px;
+  fill: #fff; stroke: #1B1A18; stroke-width: 1.4; stroke-linejoin: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .25));
+  translate: 226px 150px; transition: translate .65s var(--ease), opacity .35s, scale .12s;
+}
+.v3-14-0 .pointer[data-at="box"] { translate: 132px 80px; }
+.v3-14-0 .pointer[data-at="gone"] { translate: 150px 100px; opacity: 0; }
+.v3-14-0 .pointer[data-down] { scale: .85; }
+
+@keyframes v3-14-0-blink { 50% { opacity: 0; } }
+@keyframes v3-14-0-pop { from { scale: .5; } }
+@keyframes v3-14-0-glow { 0%, 30% { background: color-mix(in srgb, var(--he) 24%, transparent); } }

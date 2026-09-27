@@ -35,6 +35,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private IntPtr _lastWindow;
     private IntPtr _trayIconHandle;
     private MainWindow? _main;
+    private WhatsNewWindow? _whatsNew;
     private IReadOnlyList<Lang> _installedLanguages = [];
     private int _tickCount;
     // A language the badge shows right away (after a fix or a click), before Windows reports the switch.
@@ -163,6 +164,28 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             _main.Toast(_pendingToast);
             _pendingToast = null;
         }
+        ShowWhatsNew();
+    }
+
+    /// <summary>After an update: what's new in each version since the one it replaced, once, over the main window.</summary>
+    private void ShowWhatsNew()
+    {
+        if (_main == null || _whatsNew != null || _settings.WhatsNewFrom is not { } from) return;
+        if (!WhatsNew.Due(from, Installer.CurrentVersion))
+        {
+            _settings.WhatsNewFrom = null;
+            Save();
+            return;
+        }
+        var window = _whatsNew = new WhatsNewWindow(from);
+        window.FormClosed += (_, _) =>
+        {
+            _whatsNew = null;
+            if (!window.Loaded) return; // it couldn't load: offered again next time
+            _settings.WhatsNewFrom = null;
+            Save();
+        };
+        window.Show(_main);
     }
 
     private void PushState() => _main?.PushState();
@@ -275,6 +298,9 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 return;
             case "update.install":
                 StartUpdate();
+                return;
+            case "releaseNotes":
+                OpenUrl(AppInfo.Website + "release-notes/");
                 return;
         }
         SyncMenu();

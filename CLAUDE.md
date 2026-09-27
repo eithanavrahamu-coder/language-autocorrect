@@ -65,7 +65,8 @@ the only unit-tested part.
   uninstall registry entry and the run key. It also migrates installs from the old names (LayoutBuddy, Type Language
   Corrector 4000).
 - `Updater` reads `AppInfo.Website + "version.json"` once a day, downloads the exe it lists, and runs it with
-  `--update`.
+  `--update`. `Installer.Install` remembers the version it replaced (`AppSettings.WhatsNewFrom`), and the next time
+  the main window opens, `WhatsNewWindow` shows the site's release notes since then (see Release notes below).
 
 **`website/`**: before `dev`/`build`, `scripts/prepare.mjs` **parses the C# in `Languages.cs`** (a hand-written reader
 for the `new(Lang.X, …)` entries and their `{ … }` property blocks) and reads `<Version>` from the csproj. It writes
@@ -81,6 +82,20 @@ Every push to `main` runs `.github/workflows/build.yml`:
 
 So every push to `main` updates the public download. **Bump `<Version>` in `src/LanguageAutocorrect/LanguageAutocorrect.csproj` for
 any app change**, or installed copies won't be offered the update (the site's `version.json` comes from that number).
+
+### Release notes
+
+**Every new version gets release notes**: `website/src/release-notes/versions/<version>.tsx` (plus its own `.css`),
+with a date, a lucide icon, a title, a few plain sentences and an animation (`Art`). Copy the shape of the newest one
+(`notes.ts` has the type; `useTimeline` steps through an animation's scenes). They make up the site's
+`/release-notes/` page, and the app's "What's new" window (`WhatsNewWindow`) loads that page with
+`?from=<old>&to=<new>&in=app` after an update, one page per version, oldest first. The website build fails if the
+csproj's version has no notes file.
+- **Never edit or delete an older version's file**: it's that version's page for good. Keep each version's CSS under
+  its own class (`.v3-15-0`) and name its keyframes `v3-15-0-…`, so later changes can't break older animations.
+- Parallel agents: each version is its own file, so they don't collide. If `main` already has your version number when
+  you rebase, take the next free number and rename your notes file to match.
+- Small fixes get a page too (a short text and a small animation is fine).
 
 ## Working with the owner
 

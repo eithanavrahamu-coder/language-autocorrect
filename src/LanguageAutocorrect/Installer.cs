@@ -116,6 +116,7 @@ internal static class Installer
         Action<double, string> progress, string launchArgs = "--background")
     {
         progress(0.1, "Closing " + AppName);
+        var previous = InstalledVersion; // before Register() records this one
         StopRunningInstances();
         Pause();
 
@@ -133,16 +134,19 @@ internal static class Installer
         Register();
         RemoveLegacyInstalls();
         AppSettings.MigrateLegacy();
-        if (startWithWindows is bool || languages != null || voice is bool)
+        var settings = AppSettings.Load(AppSettings.DefaultPath);
+        // Over an older version: the app shows what's new since then, the next time its window opens.
+        var whatsNewFrom = WhatsNew.From(settings.WhatsNewFrom, previous, CurrentVersion);
+        if (startWithWindows is bool || languages != null || voice is bool || whatsNewFrom != settings.WhatsNewFrom)
         {
-            var settings = AppSettings.Load(AppSettings.DefaultPath);
             if (startWithWindows is bool startup) settings.StartWithWindows = startup;
             if (languages != null) settings.Languages = languages;
             if (voice is bool speak) settings.VoiceEnabled = speak;
+            settings.WhatsNewFrom = whatsNewFrom;
             settings.Save(AppSettings.DefaultPath);
         }
         // Point "start with Windows" at the installed copy (the app re-applies this on start too).
-        if (AppSettings.Load(AppSettings.DefaultPath).StartWithWindows) SetRunKey(InstalledExe);
+        if (settings.StartWithWindows) SetRunKey(InstalledExe);
         Pause();
 
         progress(0.9, "Starting " + AppName);

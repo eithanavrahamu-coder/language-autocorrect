@@ -73,6 +73,11 @@ public sealed class AppSettings
     /// <summary>The newest version the tray has already told the user about, so each one is announced once.</summary>
     public string? UpdateAnnounced { get; set; }
 
+    /// <summary>
+    /// The version an update replaced, until the window has shown what's new since then (see <see cref="WhatsNew"/>).
+    /// </summary>
+    public string? WhatsNewFrom { get; set; }
+
     public long TotalFixes { get; set; }
     public string? TodayDate { get; set; }
     public int TodayFixes { get; set; }

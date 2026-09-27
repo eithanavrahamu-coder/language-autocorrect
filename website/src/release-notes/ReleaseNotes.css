@@ -1,0 +1,106 @@
+/* ---------- The release notes page on the site ---------- */
+.rn-header { border-bottom: 1px solid var(--line); }
+.rn-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+.rn-brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -.02em;
+}
+.rn-brand img { border-radius: 8px; }
+.rn-back { height: 38px; padding: 0 14px; font-size: 14.5px; border-radius: 10px; gap: 8px; }
+
+.rn-main { padding-block: clamp(40px, 7vw, 80px) clamp(64px, 9vw, 120px); }
+.rn-intro { max-width: 640px; margin-bottom: clamp(40px, 6vw, 64px); }
+.rn-intro h1 { font-size: clamp(44px, 6vw, 68px); }
+.rn-lede { color: var(--muted); font-size: clamp(17px, 1.6vw, 19px); margin-top: 18px; }
+
+.rn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(28px, 4vw, 44px); }
+.rn-entry { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px 40px; align-items: start; scroll-margin-top: 24px; }
+.rn-meta { position: sticky; top: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-top: 16px; }
+.rn-version {
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: -.02em;
+  text-decoration: none; font-variant-numeric: tabular-nums;
+}
+.rn-version:hover { color: var(--accent); }
+.rn-meta time { color: var(--muted); font-size: 14.5px; }
+.rn-latest {
+  margin-top: 8px; padding: 2px 10px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 650; color: var(--accent); background: var(--accent-soft);
+}
+
+.rn-card {
+  display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); align-items: center;
+  gap: clamp(20px, 3vw, 36px); padding: 12px clamp(20px, 3vw, 36px) 12px 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-1);
+}
+
+/* The panel each version's animation sits in: here and in the app's window. */
+.rn-art {
+  position: relative; display: grid; place-items: center; overflow: hidden;
+  aspect-ratio: 16 / 13; border-radius: 14px;
+  background:
+    radial-gradient(110% 80% at 15% 0%, color-mix(in srgb, var(--en) 11%, transparent), transparent 62%),
+    radial-gradient(100% 80% at 100% 100%, color-mix(in srgb, var(--he) 10%, transparent), transparent 62%),
+    var(--bg-2);
+}
+
+.rn-title { display: flex; align-items: center; gap: 12px; }
+.rn-title h1, .rn-title h2 { font-size: clamp(24px, 2.6vw, 30px); letter-spacing: -.025em; line-height: 1.1; }
+.rn-icon {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+  color: var(--accent); background: var(--accent-soft);
+}
+.rn-body { margin-top: 14px; color: var(--muted); font-size: 16.5px; }
+.rn-body p + p { margin-top: 10px; }
+.rn-body b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 860px) {
+  .rn-entry { grid-template-columns: minmax(0, 1fr); }
+  .rn-meta { position: static; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-top: 0; }
+  .rn-latest { margin-top: 0; }
+}
+@media (max-width: 640px) {
+  .rn-card { grid-template-columns: minmax(0, 1fr); padding: 10px 10px 24px; }
+  .rn-text { padding-inline: 10px; }
+  .rn-back { padding: 0 10px; }
+}
+
+/* ---------- In the app's "What's new" window (?in=app, 760 × 480) ---------- */
+html.in-app, html.in-app body { height: 100%; overflow: hidden; }
+html.in-app body { font-size: 15.5px; user-select: none; }
+
+.wn { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: 18px 24px 20px; }
+.wn-top { display: flex; align-items: center; justify-content: space-between; height: 28px; }
+.wn-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 650; color: var(--accent); }
+.wn-count { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.wn-stage { display: grid; align-items: center; min-height: 0; }
+.wn-page { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 30px; align-items: center; }
+.wn-art { aspect-ratio: auto; height: 300px; }
+.wn-text { max-height: 330px; overflow: auto; }
+.wn-version { font-size: 13.5px; color: var(--muted); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+.wn-text .rn-title h1 { font-size: 26px; }
+.wn-text .rn-body { font-size: 15px; line-height: 1.55; }
+
+.wn-foot { display: flex; align-items: center; gap: 18px; padding-top: 16px; }
+.wn-dots { display: flex; }
+.wn-dots button {
+  width: 18px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer;
+  display: grid; place-items: center;
+}
+.wn-dots button::before {
+  content: ''; width: 8px; height: 8px; border-radius: 99px; background: var(--line);
+  transition: width .3s var(--ease-out), background-color .2s;
+}
+.wn-dots button:hover::before { background: var(--faint); }
+.wn-dots button.is-on { width: 30px; }
+.wn-dots button.is-on::before { width: 22px; background: var(--accent); }
+.wn-all { margin-right: auto; font-size: 14px; color: var(--muted); text-underline-offset: 3px; }
+.wn-all:hover { color: var(--text); }
+.wn-buttons { display: flex; gap: 8px; }
+.wn .btn { height: 40px; padding: 0 18px; font-size: 14.5px; border-radius: 10px; gap: 8px; }
+
+/* Nothing to show for these versions: just say it's updated. */
+.wn-none { place-content: center; justify-items: center; gap: 12px; text-align: center; grid-template-rows: none; }
+.wn-none h1 { font-size: 28px; margin-top: 6px; }
+.wn-none p { color: var(--muted); }
+.wn-none .wn-buttons { margin-top: 14px; }

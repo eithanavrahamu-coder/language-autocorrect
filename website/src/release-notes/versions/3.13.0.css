@@ -1,0 +1,51 @@
+/* 3.13.0: the new logo floats, draws its globe's lines, and its sparkle twinkles. */
+.v3-13-0 { position: relative; width: 240px; height: 200px; display: grid; place-items: center; }
+.v3-13-0 .icon {
+  position: relative; width: 136px; height: 136px; border-radius: 31px; overflow: hidden;
+  box-shadow: 0 18px 36px -14px rgba(60, 50, 200, .55);
+  animation: v3-13-0-float 4.8s ease-in-out infinite;
+}
+.v3-13-0 .icon svg { display: block; }
+.v3-13-0 .line { stroke-dasharray: 1; stroke-dashoffset: 0; animation: v3-13-0-draw 4.8s cubic-bezier(.6, 0, .3, 1) infinite; }
+.v3-13-0 .equator { animation-delay: .25s; }
+.v3-13-0 .sparkle {
+  transform-box: fill-box; transform-origin: center;
+  animation: v3-13-0-twinkle 2.4s ease-in-out infinite;
+}
+.v3-13-0 .sheen {
+  position: absolute; inset: -20%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .38) 50%, transparent 62%);
+  transform: translateX(-110%);
+  animation: v3-13-0-sheen 4.8s ease-in-out infinite;
+}
+.v3-13-0 .star { position: absolute; width: 18px; height: 18px; animation: v3-13-0-star 2.4s ease-in-out infinite; }
+.v3-13-0 .star.one { top: 26px; left: 36px; color: var(--en); }
+.v3-13-0 .star.two { top: 32px; right: 30px; width: 13px; height: 13px; color: var(--accent); animation-delay: .8s; }
+.v3-13-0 .star.three { bottom: 24px; right: 44px; width: 15px; height: 15px; color: var(--he); animation-delay: 1.6s; }
+
+@keyframes v3-13-0-float { 50% { transform: translateY(-6px); } }
+@keyframes v3-13-0-draw {
+  0% { stroke-dashoffset: 1; }
+  24%, 78% { stroke-dashoffset: 0; }
+  96%, 100% { stroke-dashoffset: -1; }
+}
+@keyframes v3-13-0-twinkle {
+  0%, 55%, 100% { transform: scale(1) rotate(0deg); }
+  72% { transform: scale(1.28) rotate(45deg); }
+  86% { transform: scale(.92) rotate(90deg); }
+}
+@keyframes v3-13-0-sheen {
+  0%, 30% { transform: translateX(-110%); }
+  55%, 100% { transform: translateX(110%); }
+}
+@keyframes v3-13-0-star {
+  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  40% { transform: scale(1) rotate(45deg); opacity: 1; }
+  70% { transform: scale(.2) rotate(90deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-13-0 *, .v3-13-0 *::before { animation: none !important; }
+  .v3-13-0 .sheen { display: none; }
+  .v3-13-0 .star { transform: scale(.8); }
+}

@@ -68,6 +68,12 @@ menu has it too). Updating downloads the new version, checks it's the app at tha
 `--update`: it closes the running copy, installs over it keeping all settings, and opens again. Nothing about you is
 sent. A copy run without installing opens the download page instead.
 
+After an update (automatic, or by running a newer setup), the next time the window opens a small **What's new** window
+shows a page for each version since the one that was replaced, oldest first, with **Next** and **Close**. The pages come
+from the website's [release notes](https://language-autocorrect.world/release-notes/), so nothing is kept on the PC;
+the app only remembers the old version number until the pages have been shown (without internet it tries again next
+time). Settings → Updates → **Release notes** opens the same page in the browser.
+
 The app window and setup use the Microsoft Edge WebView2 Runtime, which comes with Windows 11 and current Windows 10.
 Run `LanguageAutocorrect.exe --selfcheck` to check keyboard layouts, voices and detection.
 Settings and log: `%AppData%\LanguageAutocorrect\`.

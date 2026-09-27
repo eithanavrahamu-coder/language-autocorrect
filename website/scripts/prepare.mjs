@@ -3,7 +3,9 @@
 //   - the app version from src/LanguageAutocorrect/LanguageAutocorrect.csproj
 //   - the most common words of a few languages, for the "try it yourself" demo
 //   - version.json, which the app reads to find out about updates
+// and checks that this version has its release notes.
 // Runs before `npm run dev` and `npm run build`.
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { appVersion } from './app-info.mjs';
@@ -151,6 +153,11 @@ const info = {
   languages,
   demoLanguages: DEMO_LANGUAGES,
 };
+// Every app version has its release notes: the app's "What's new" window shows them after an update.
+const notes = `src/release-notes/versions/${info.version}.tsx`;
+if (!existsSync(path.join(site, notes))) {
+  throw new Error(`Version ${info.version} has no release notes. Add website/${notes} (see CLAUDE.md, "Release notes").`);
+}
 await mkdir(path.join(site, 'src/generated'), { recursive: true });
 await writeFile(path.join(site, 'src/generated/app-info.json'), JSON.stringify(info, null, 2));
 await writeWordLists();
