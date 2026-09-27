@@ -78,7 +78,11 @@ const FAQ: [string, ReactNode][] = [
   ['Is it really free?', 'Yes. No ads, no account, no trial.'],
   [
     'Does it see what I type?',
-    'It has to look at the word you’re typing in order to fix it, but that happens on your computer. The app never goes online, and nothing you type is sent anywhere.',
+    <>
+      It has to look at the word you’re typing in order to fix it, but that happens on your computer. Nothing you
+      type is saved or sent anywhere. The app goes online only to check for updates, which you can turn off. See
+      the <a href="privacy/">privacy policy</a>.
+    </>,
   ],
   [
     'It changed a word I meant to type. What now?',
@@ -161,13 +165,15 @@ export function Footer({ home = '' }: { home?: string }) {
         </div>
         <div className="footer-links">
           <a href={`${home}release-notes/`}>Release notes</a>
+          <a href={`${home}privacy/`}>Privacy</a>
           <a href={REPO_URL}><GitHubMark size={16} /> Source code</a>
           <a href={`${REPO_URL}/issues`}>Report a problem</a>
         </div>
         <p className="footer-credit">
           Word lists: <a href="https://github.com/hermitdave/FrequencyWords">FrequencyWords</a> by Hermit Dave,
           based on OpenSubtitles, licensed{' '}
-          <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+          <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>, filtered for the app.{' '}
+          <a href={`${home}privacy/#credits`}>All credits</a>
         </p>
       </div>
     </footer>

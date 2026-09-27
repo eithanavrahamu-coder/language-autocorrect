@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react';
-import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
-import icon from '../assets/icon-128.png';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import '../components/bits.css';
 import { Footer } from '../components/Install';
+import { SubpageHeader } from '../components/SubpageHeader';
 import { RELEASES, compareVersions, formatDate, type Release } from './notes';
 import './ReleaseNotes.css';
 
@@ -38,15 +38,7 @@ function AllReleases() {
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
-      <header className="rn-header">
-        <div className="page rn-header-inner">
-          <a className="rn-brand" href="../">
-            <img src={icon} alt="" width={30} height={30} />
-            <span>Language Autocorrect</span>
-          </a>
-          <a className="btn btn-quiet rn-back" href="../"><ArrowLeft size={16} strokeWidth={2.2} aria-hidden /> Back to the site</a>
-        </div>
-      </header>
+      <SubpageHeader />
       <main id="main" className="page rn-main">
         <div className="rn-intro">
           <p className="kicker">Release notes</p>

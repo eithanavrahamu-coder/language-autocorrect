@@ -112,7 +112,7 @@ const SMALL = [
   {
     icon: ShieldCheck,
     title: 'Stays on your PC',
-    text: 'Words are checked on your computer. The app doesn’t go online, and what you type is never sent anywhere.',
+    text: 'Words are checked on your computer, and what you type is never saved or sent anywhere. The app goes online only to check for updates.',
   },
   {
     icon: KeyRound,

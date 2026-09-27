@@ -523,7 +523,16 @@
         <div class="setting-text">
           <div class="setting-title">About</div>
           <div class="setting-desc"><span id="aboutVersion">Language Autocorrect</span> · Made by Eithan Avraham</div>
+          <div class="setting-desc">Word lists: FrequencyWords by Hermit Dave, from OpenSubtitles, CC BY-SA 4.0 (filtered).</div>
         </div>
+      </div>
+      <div class="setting">
+        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7 2.7v5.3c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.2z"/><path d="M9 12.2l2.1 2.1 4-4.1"/></svg></div>
+        <div class="setting-text">
+          <div class="setting-title">Privacy and credits</div>
+          <div class="setting-desc">What you type never leaves this PC. The privacy policy and credits open on the website.</div>
+        </div>
+        <button class="btn small" id="privacy">Open</button>
       </div>
       <div class="setting">
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7"/></svg></div>
@@ -608,6 +617,7 @@
   });
   $('#bannerBtn').addEventListener('click', () => send({ type: 'update.install' }));
   $('#releaseNotes').addEventListener('click', () => send({ type: 'releaseNotes' }));
+  $('#privacy').addEventListener('click', () => send({ type: 'privacy' }));
   $('#sideUpdate').addEventListener('click', () => show('home'));
   $('#openApps').addEventListener('click', () => send({ type: 'openAppsSettings' }));
 

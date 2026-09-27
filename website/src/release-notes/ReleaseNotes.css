@@ -1,13 +1,4 @@
 /* ---------- The release notes page on the site ---------- */
-.rn-header { border-bottom: 1px solid var(--line); }
-.rn-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
-.rn-brand {
-  display: inline-flex; align-items: center; gap: 10px;
-  text-decoration: none; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -.02em;
-}
-.rn-brand img { border-radius: 8px; }
-.rn-back { height: 38px; padding: 0 14px; font-size: 14.5px; border-radius: 10px; gap: 8px; }
-
 .rn-main { padding-block: clamp(40px, 7vw, 80px) clamp(64px, 9vw, 120px); }
 .rn-intro { max-width: 640px; margin-bottom: clamp(40px, 6vw, 64px); }
 .rn-intro h1 { font-size: clamp(44px, 6vw, 68px); }
@@ -61,7 +52,6 @@
 @media (max-width: 640px) {
   .rn-card { grid-template-columns: minmax(0, 1fr); padding: 10px 10px 24px; }
   .rn-text { padding-inline: 10px; }
-  .rn-back { padding: 0 10px; }
 }
 
 /* ---------- In the app's "What's new" window (?in=app, 760 × 480) ---------- */

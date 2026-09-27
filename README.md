@@ -101,9 +101,19 @@ installs under those names and keeps their settings.
   `setup.html?screen=languages`, `setup.html?mode=update`, `setup.html?mode=uninstall`).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
 
+## Privacy
+
+What you type is checked on the PC and never saved or sent anywhere. The app goes online only for updates and the
+"What's new" pages, and the website has no cookies or tracking. The full policy, with the contact address, is at
+[language-autocorrect.world/privacy/](https://language-autocorrect.world/privacy/) (`website/src/privacy/Privacy.tsx`;
+keep it true whenever the app starts saving or sending something new).
+
 ## Credits
 
 Word frequency lists: [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by Hermit Dave, based on OpenSubtitles data, licensed CC BY-SA 4.0.
+The copies in `src/LanguageAutocorrect.Engine/Data` are changed: filtered to each language's alphabet, lowercased,
+deduplicated, some cut to the 50,000 most common words, and broken entries removed. The other libraries and fonts, with
+their license texts, are listed on the [privacy and credits page](https://language-autocorrect.world/privacy/#credits).
 
 ## License
 

@@ -73,6 +73,12 @@ for the `new(Lang.X, …)` entries and their `{ … }` property blocks) and read
 `src/generated/app-info.json`, the demo word lists and `public/version.json`. When you change the shape of a
 `LanguageInfo` entry, keep that parser working. `video/scripts/data.ts` reuses it, reading from the **last commit**.
 
+**Privacy**: `website/src/privacy/Privacy.tsx` (at `/privacy/`, opened from the app's Settings → Privacy and credits) is
+the privacy policy and credits. It promises that nothing typed is saved or leaves the PC, that the app goes online
+only for updates and What's new, and that the site loads nothing from other servers (no Google Fonts, CDNs, analytics
+or cookies). Keep those true: when a change saves or sends something new, or adds a library, font or data source,
+update that page and its date in the same commit.
+
 ## Release flow
 
 Every push to `main` runs `.github/workflows/build.yml`:

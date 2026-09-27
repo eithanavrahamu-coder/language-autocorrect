@@ -1,0 +1,12 @@
+.sub-header { border-bottom: 1px solid var(--line); }
+.sub-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+.sub-brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -.02em;
+}
+.sub-brand img { border-radius: 8px; }
+.sub-back { height: 38px; padding: 0 14px; font-size: 14.5px; border-radius: 10px; gap: 8px; }
+
+@media (max-width: 640px) {
+  .sub-back { padding: 0 10px; }
+}

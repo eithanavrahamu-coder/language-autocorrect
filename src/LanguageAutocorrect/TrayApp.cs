@@ -302,6 +302,9 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             case "releaseNotes":
                 OpenUrl(AppInfo.Website + "release-notes/");
                 return;
+            case "privacy":
+                OpenUrl(AppInfo.Website + "privacy/");
+                return;
         }
         SyncMenu();
         Save();
