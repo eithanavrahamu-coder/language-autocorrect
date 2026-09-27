@@ -19,6 +19,8 @@ internal sealed class SetupWindow : WebWindow
 {
     private readonly string _mode;
     private bool _busy;
+    private WrongLayoutDetector? _detector;
+    private TryBox? _try;
 
     public SetupResult Result { get; private set; } = SetupResult.Cancelled;
 
@@ -98,7 +100,50 @@ internal sealed class SetupWindow : WebWindow
             case "close":
                 Close();
                 break;
+
+            case "tryStart":
+                var tryLangs = msg.GetProperty("languages").EnumerateArray()
+                    .Select(x => Languages.FromCode(x.GetString())?.Lang).OfType<Lang>().Distinct().ToList();
+                var detector = _detector ??= WrongLayoutDetector.LoadDefault();
+                // Load the word lists while the first word is typed, so Space doesn't wait for them.
+                Task.Run(() =>
+                {
+                    try { detector.Preload(tryLangs); }
+                    catch (Exception ex) { Log.Write("Loading word lists failed: " + ex.Message); }
+                });
+                _try = new TryBox(detector, tryLangs, new AppSettings().Sensitivity);
+                PostTry(PassThrough.Instance);
+                break;
+
+            case "tryKey" when _try != null:
+                string? key = msg.GetProperty("key").GetString();
+                bool shift = msg.TryGetProperty("shift", out var sh) && sh.GetBoolean();
+                var input = key switch
+                {
+                    "Space" => KeyInput.Space,
+                    "Backspace" => KeyInput.Backspace,
+                    "CtrlZ" => KeyInput.CtrlZ,
+                    { Length: 1 } when KeyMap.IsWordKey(key[0]) => KeyInput.Word(key[0], shift),
+                    _ => KeyInput.Other,
+                };
+                try { PostTry(_try.Press(input, DateTime.UtcNow)); }
+                catch (Exception ex) { Log.Write("Try box failed: " + ex); }
+                break;
         }
+    }
+
+    /// <summary>Shows the "try it now" box's text and keyboard, and the fix or undo the last key made.</summary>
+    private void PostTry(TypingAction action)
+    {
+        if (_try == null) return;
+        Post(new
+        {
+            type = "tryState",
+            text = _try.Text,
+            layout = Languages.Get(_try.Layout).Code,
+            fix = action is FixWord f ? new { from = f.Correction.Typed, to = f.Correction.Replacement } : null,
+            undone = action is UndoFix,
+        });
     }
 
     /// <summary>How the installed copy compares to this one: "older", "same", "newer", or "unknown".</summary>

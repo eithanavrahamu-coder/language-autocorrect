@@ -104,14 +104,31 @@
   }
   .typed { unicode-bidi: isolate; border-radius: 5px; padding: 1px 2px; margin: 0 -2px; transition: background-color .5s; }
   .typed.glow { transition: none; }
-  .caret { width: 2px; height: 22px; background: var(--text); margin-left: 1px; animation: blink 1s steps(1) infinite; flex-shrink: 0; }
+  .caret { width: 2px; height: 22px; background: var(--text); margin-inline-start: 1px; animation: blink 1s steps(1) infinite; flex-shrink: 0; }
   @keyframes blink { 50% { opacity: 0; } }
   .ibadge {
-    margin-left: 6px; margin-top: -18px; height: 18px; min-width: 24px; padding: 0 5px; border-radius: 5px;
+    margin-inline-start: 6px; margin-top: -18px; height: 18px; min-width: 24px; padding: 0 5px; border-radius: 5px;
     display: grid; place-items: center; color: #fff; font-size: 10.5px; font-weight: 700; flex-shrink: 0;
     background: #2563EB; transition: background-color .2s;
   }
   .ibadge.pop { animation: pop .3s cubic-bezier(.2, 1.4, .4, 1); }
+  /* Trying it yourself: the demo's text box takes the keys (on the welcome screen). */
+  .input.tryable { cursor: text; transition: border-color .15s, box-shadow .15s; }
+  .input.tryable:hover { border-color: var(--faint); }
+  .input.trying { outline: none; }
+  .input.trying:focus { border-color: #5847E0; box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 24%, transparent); }
+  .input.trying:not(:focus) .caret { visibility: hidden; }
+  .fixed-word { border-radius: 4px; animation: fixed-glow 1.6s ease-out; }
+  @keyframes fixed-glow { 0%, 30% { background: color-mix(in srgb, var(--c) 24%, transparent); } }
+  .try-btn {
+    margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px;
+    border: 0; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; color: #1B1A18;
+    background: rgba(255, 255, 255, .85); box-shadow: 0 2px 10px rgba(42, 18, 6, .12); transition: background-color .12s;
+  }
+  .try-btn:hover { background: #fff; }
+  .try-btn svg { width: 16px; height: 16px; }
+  .try-btn:focus-visible { outline: 2px solid #1B1A18; outline-offset: 2px; }
+  .caption b { font-weight: 700; padding: 0 5px; border-radius: 5px; background: rgba(255, 255, 255, .5); unicode-bidi: isolate; }
   .demo-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
   .kbd-label { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12.5px; min-width: 0; }
   .kbd-label svg { width: 16px; height: 16px; flex-shrink: 0; }
@@ -334,7 +351,7 @@
     <!-- A word typed on the wrong keyboard, fixed on Space -->
     <div class="stage-card demo" id="st-demo">
       <div class="demo-space"><div class="fixcard" id="demoFix"><s id="demoFrom"></s><span class="arrow">→</span><b id="demoTo"></b></div></div>
-      <div class="input"><span class="typed" id="demoTyped" dir="auto"></span><span class="caret"></span><span class="ibadge" id="demoBadge">EN</span></div>
+      <div class="input" id="demoInput" tabindex="-1" role="textbox" aria-label="Try it now: type here"><span class="typed" id="demoTyped" dir="auto"></span><span class="caret"></span><span class="ibadge" id="demoBadge">EN</span></div>
       <div class="demo-foot">
         <div class="kbd-label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></svg>
@@ -383,7 +400,11 @@
       </div>
     </div>
 
-    <div class="caption" id="caption"></div>
+    <div class="caption" id="caption" aria-live="polite"></div>
+    <button class="try-btn" id="tryBtn" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></svg>
+      <span id="tryBtnText">Try it now</span>
+    </button>
   </div>
 </div>
 
@@ -522,7 +543,8 @@
 (() => {
   const $ = s => document.querySelector(s);
   const host = window.chrome && window.chrome.webview;
-  const send = m => host ? host.postMessage(m) : console.log('send', m);
+  let previewSend = null; // in a browser preview: a stand-in for the app (at the bottom)
+  const send = m => host ? host.postMessage(m) : previewSend ? previewSend(m) : console.log('send', m);
   const CHECK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5"/></svg>';
 
   // Each step has its own colors: a base and three soft blobs over it.
@@ -557,7 +579,12 @@
 
   const INSTALL_STEPS = ['welcome', 'languages', 'prefs', 'done'];
 
+  const WELCOME_CAPTION = 'Type on the wrong keyboard, and it’s fixed when you press Space.';
+
   function show(next, opts = {}) {
+    stopTry();
+    $('#tryBtn').hidden = next !== 'welcome';
+    $('#demoInput').classList.toggle('tryable', next === 'welcome');
     const back = INSTALL_STEPS.includes(next) && INSTALL_STEPS.indexOf(next) < INSTALL_STEPS.indexOf(view);
     view = next;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('on', 'back'));
@@ -581,7 +608,7 @@
     switch (next) {
       case 'welcome':
         setPalette('welcome');
-        showStage('demo', 'Type on the wrong keyboard, and it’s fixed when you press Space.');
+        showStage('demo', WELCOME_CAPTION);
         primary.textContent = 'Get started';
         portableLink(footLeft);
         break;
@@ -953,6 +980,7 @@
       await sleep(150);
       space.classList.remove('down');
       space.style.backgroundColor = space.style.borderColor = '';
+      if (!alive()) return;
       demoState(ex, ex.demo.word, true);
       fix.classList.add('on');
       await sleep(2300);
@@ -960,6 +988,124 @@
   }
 
   function stopDemo() { demoRun++; demoRunning = false; }
+
+  // ---------------- trying it yourself ----------------
+  // On the welcome screen the demo's text box can be typed in. Each key goes to the app's own engine (TryBox),
+  // on a keyboard that belongs to the box and starts on English, so it works before anything is installed.
+
+  const PHYSICAL_KEYS = '`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./';
+  const KEY_CODES = [
+    'Backquote', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0',
+    'Minus', 'Equal', 'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'BracketLeft',
+    'BracketRight', 'Backslash', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon',
+    'Quote', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash',
+  ];
+  let trying = false;
+  let tryExample = null; // the language whose word the caption suggests
+
+  function startTry() {
+    const input = $('#demoInput');
+    if (!trying) {
+      trying = true;
+      stopDemo();
+      const others = languages.filter(l => l.selected && !l.locked);
+      tryExample = others.find(l => l.demo) || demoExamples[0] || null;
+      const codes = ['en', ...others.map(l => l.code)];
+      if (tryExample && !codes.includes(tryExample.code)) codes.push(tryExample.code);
+      send({ type: 'tryStart', languages: codes });
+      input.classList.add('trying');
+      input.tabIndex = 0;
+      $('#demoFix').classList.remove('on');
+      demoState(EN, '', false);
+      tryCaption('start');
+      $('#tryBtnText').textContent = 'Watch the examples';
+    }
+    input.focus();
+  }
+
+  function stopTry() {
+    if (!trying) return;
+    trying = false;
+    const input = $('#demoInput');
+    input.classList.remove('trying');
+    input.dir = '';
+    input.tabIndex = -1;
+    input.blur();
+    $('#tryBtnText').textContent = 'Try it now';
+  }
+
+  function tryCaption(stage) {
+    const caption = $('#caption');
+    caption.textContent = '';
+    const bold = text => { const b = document.createElement('b'); b.textContent = text; return b; };
+    if (stage === 'fixed') caption.append('That’s it! Press Backspace right away to undo it.');
+    else if (stage === 'undone') caption.append('Back as you typed it. Try another word, or click Get started.');
+    else if (tryExample) caption.append('Type ', bold(tryExample.demo.keys), ' and press Space: it’s ', bold(tryExample.demo.word), ' typed on the wrong keyboard.');
+    else caption.append('Type a word as if the keyboard were on your other language, then press Space.');
+  }
+
+  function tryState(m) {
+    if (!trying) return;
+    const lang = m.layout === 'en' ? EN : languages.find(l => l.code === m.layout) || EN;
+    demoState(lang, '', false);
+    const typed = $('#demoTyped');
+    const at = m.fix ? m.text.lastIndexOf(m.fix.to) : -1;
+    if (at < 0) typed.textContent = m.text;
+    else {
+      const word = document.createElement('span');
+      word.className = 'fixed-word';
+      word.style.setProperty('--c', lang.color);
+      word.textContent = m.fix.to;
+      typed.append(m.text.slice(0, at), word, m.text.slice(at + m.fix.to.length));
+    }
+    const badge = $('#demoBadge');
+    if (m.fix || m.undone) { badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop'); }
+    if (m.fix) {
+      $('#demoFrom').textContent = m.fix.from;
+      $('#demoTo').textContent = m.fix.to;
+      $('#demoFix').classList.add('on');
+      tryCaption('fixed');
+    } else if (m.undone) {
+      $('#demoFix').classList.remove('on');
+      tryCaption('undone');
+    }
+    // Text that starts in Hebrew or Arabic runs right to left, with the cursor on its left; keep that end in view.
+    const input = $('#demoInput');
+    input.dir = /^[^\p{L}]*[\p{Script=Hebrew}\p{Script=Arabic}]/u.test(m.text) ? 'rtl' : 'ltr';
+    input.scrollLeft = input.dir === 'rtl' ? -input.scrollWidth : input.scrollWidth;
+  }
+
+  function pressSpaceKey() {
+    const space = $('#demoSpace');
+    space.style.backgroundColor = space.style.borderColor = $('#demoBadge').style.backgroundColor;
+    space.classList.add('down');
+    setTimeout(() => { space.classList.remove('down'); space.style.backgroundColor = space.style.borderColor = ''; }, 150);
+  }
+
+  $('#tryBtn').addEventListener('click', () => {
+    if (!trying) return startTry();
+    stopTry();
+    showStage('demo', WELCOME_CAPTION);
+  });
+  $('#demoInput').addEventListener('mousedown', e => {
+    if (view !== 'welcome') return;
+    e.preventDefault(); // focus it ourselves, once it's ready for keys
+    startTry();
+  });
+  $('#demoInput').addEventListener('keydown', e => {
+    if (!trying) return;
+    e.stopPropagation(); // Enter and Escape here don't go on or close the setup
+    let key = null;
+    if (e.key === 'Escape') { e.currentTarget.blur(); return; }
+    if (e.ctrlKey && !e.altKey && !e.metaKey && e.code === 'KeyZ') key = 'CtrlZ';
+    else if (e.ctrlKey || e.altKey || e.metaKey) return;
+    else if (e.code === 'Space' || e.key === 'Enter') { key = 'Space'; pressSpaceKey(); }
+    else if (e.key === 'Backspace') key = 'Backspace';
+    else if (KEY_CODES.includes(e.code)) key = PHYSICAL_KEYS[KEY_CODES.indexOf(e.code)];
+    if (!key) return;
+    e.preventDefault();
+    send({ type: 'tryKey', key, shift: e.shiftKey || e.getModifierState('CapsLock') });
+  });
 
   // ---------------- start ----------------
 
@@ -989,6 +1135,7 @@
       if (m.type === 'init') init(m);
       else if (m.type === 'progress') progress(m);
       else if (m.type === 'done') done(m);
+      else if (m.type === 'tryState') tryState(m);
     });
     send({ type: 'ready' });
   } else {
@@ -1016,6 +1163,20 @@
            beta: ['kk', 'ka', 'hy', 'ko', 'th', 'ur'].includes(code),
            demo: demo[code] ? { word: demo[code][0], keys: demo[code][1] } : null })),
     });
+    // A stand-in for the app's engine: it fixes the example words only.
+    let text = '', word = '', layout = 'en';
+    previewSend = m => {
+      let fix = null;
+      if (m.type === 'tryStart') { text = word = ''; layout = 'en'; }
+      else if (m.type !== 'tryKey') return console.log('send', m);
+      else if (m.key === 'Space') {
+        const ex = languages.find(l => l.demo && l.demo.keys === word);
+        if (ex && layout === 'en') { fix = { from: word, to: ex.demo.word }; text = text.slice(0, -word.length) + ex.demo.word; layout = ex.code; }
+        text += ' '; word = '';
+      } else if (m.key === 'Backspace') { text = text.slice(0, -1); word = word.slice(0, -1); }
+      else if (m.key.length === 1) { const c = m.shift ? m.key.toUpperCase() : m.key; text += c; word += c; }
+      tryState({ text, layout, fix, undone: false });
+    };
     const s = q.get('screen');
     if (s === 'languages' || s === 'prefs') show(s);
     if (s === 'installing') { install(); progress({ value: .6, step: 'Adding to Settings → Apps' }); }

@@ -46,7 +46,8 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 Download `LanguageAutocorrect.exe` from the website, **https://language-autocorrect.world**
 (or from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
-Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo,
+Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo
+(click **Try it now** to type in it yourself; the app's own engine fixes the words, before anything is installed),
 your languages (the ones already in Windows are picked), a few preferences (already set), and done, with tips and
 a reminder to add any keyboard Windows doesn't have yet. Everything is pre-chosen, so *Get started → Next → Install*
 is enough.
