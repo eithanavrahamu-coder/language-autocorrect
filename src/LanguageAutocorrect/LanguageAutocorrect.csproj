@@ -13,7 +13,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>LanguageAutocorrect</AssemblyName>
     <RootNamespace>LanguageAutocorrect</RootNamespace>
-    <Version>3.14.0</Version>
+    <Version>3.14.1</Version>
     <Product>Language Autocorrect</Product>
     <Company>Eithan Avraham</Company>
     <Authors>Eithan Avraham</Authors>

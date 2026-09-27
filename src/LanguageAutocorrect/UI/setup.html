@@ -117,7 +117,7 @@
   .input.tryable:hover { border-color: var(--faint); }
   .input.trying { outline: none; }
   .input.trying:focus { border-color: #5847E0; box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 24%, transparent); }
-  .input.trying:not(:focus) .caret { visibility: hidden; }
+  .input.trying:not(:focus) :is(.caret, .ibadge) { visibility: hidden; } /* like a real text box: no cursor when you click away */
   .fixed-word { border-radius: 4px; animation: fixed-glow 1.6s ease-out; }
   @keyframes fixed-glow { 0%, 30% { background: color-mix(in srgb, var(--c) 24%, transparent); } }
   .try-btn {
