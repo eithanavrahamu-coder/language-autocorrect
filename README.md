@@ -22,7 +22,8 @@ work too.
   (`dkssud` → `안녕`, `ㅗ디ㅣㅐ` → `hello`). Laughing and crying (`ㅋㅋㅋ`, `ㅠㅠ`) are left alone.
 - **Thai** – Thai is written without spaces, so what is typed before Space is often a whole phrase; it is checked by
   splitting it into dictionary words (`l;ylfu` → `สวัสดี`, `-v[86I,kd` → `ขอบคุณมาก`).
-- **Language indicator** – a small colored badge (`EN`, `עב`, `РУ`, `ΕΛ`...) next to the text cursor.
+- **Language indicator** – a small colored badge (`EN`, `עב`, `РУ`, `ΕΛ`...) next to the text cursor. It can be turned
+  off in setup or in Settings.
 - **Voice** (off by default; offered in setup, or turn it on in Settings) – says the language's name when the keyboard
   changes (in that language if Windows has a voice for it).
 

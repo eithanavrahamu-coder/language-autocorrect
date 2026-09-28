@@ -111,9 +111,10 @@ internal static class Installer
     /// <summary>Installs or updates. <paramref name="startWithWindows"/> null keeps the current setting.</summary>
     /// <param name="languages">Language codes chosen in setup; null keeps the current choice.</param>
     /// <param name="voice">Say the language out loud; null keeps the current setting.</param>
+    /// <param name="showBadge">Show the language badge next to the cursor; null keeps the current setting.</param>
     /// <param name="launchArgs">How the installed copy is started at the end.</param>
     public static void Install(bool? startWithWindows, bool desktopShortcut, List<string>? languages, bool? voice,
-        Action<double, string> progress, string launchArgs = "--background")
+        bool? showBadge, Action<double, string> progress, string launchArgs = "--background")
     {
         progress(0.1, "Closing " + AppName);
         var previous = InstalledVersion; // before Register() records this one
@@ -137,11 +138,13 @@ internal static class Installer
         var settings = AppSettings.Load(AppSettings.DefaultPath);
         // Over an older version: the app shows what's new since then, the next time its window opens.
         var whatsNewFrom = WhatsNew.From(settings.WhatsNewFrom, previous, CurrentVersion);
-        if (startWithWindows is bool || languages != null || voice is bool || whatsNewFrom != settings.WhatsNewFrom)
+        if (startWithWindows is bool || languages != null || voice is bool || showBadge is bool
+            || whatsNewFrom != settings.WhatsNewFrom)
         {
             if (startWithWindows is bool startup) settings.StartWithWindows = startup;
             if (languages != null) settings.Languages = languages;
             if (voice is bool speak) settings.VoiceEnabled = speak;
+            if (showBadge is bool badge) settings.ShowIndicator = badge;
             settings.WhatsNewFrom = whatsNewFrom;
             settings.Save(AppSettings.DefaultPath);
         }
@@ -332,7 +335,7 @@ internal static class Installer
             return SetupResult.Portable;
         try
         {
-            Install(IsInstalled ? null : true, false, null, IsInstalled ? null : false, (_, _) => { });
+            Install(IsInstalled ? null : true, false, null, IsInstalled ? null : false, null, (_, _) => { });
             return SetupResult.Installed;
         }
         catch (Exception ex)
@@ -350,7 +353,7 @@ internal static class Installer
     {
         try
         {
-            Install(null, false, null, null, (_, step) => Log.Write("Updating: " + step), launchArgs: "--updated");
+            Install(null, false, null, null, null, (_, step) => Log.Write("Updating: " + step), launchArgs: "--updated");
         }
         catch (Exception ex)
         {

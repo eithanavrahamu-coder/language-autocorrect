@@ -1,0 +1,56 @@
+/* 3.15.3: the language badge's switch is flipped off and the badge fades out of the text box, then back on. */
+.v3-15-3 {
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  position: relative; width: 272px; height: 172px; font-family: 'Segoe UI', var(--font-body);
+}
+
+/* The option, as it looks in setup and Settings. */
+.v3-15-3 .option {
+  position: absolute; top: 0; left: 0; right: 0; height: 60px; padding: 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-1);
+}
+.v3-15-3 .tile { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--bg-2); }
+.v3-15-3 .mini {
+  padding: 2px 5px; border-radius: 5px; color: #fff; font-size: 10.5px; font-weight: 700;
+  background: var(--faint); transition: background-color .25s;
+}
+.v3-15-3[data-on] .mini { background: var(--en); }
+.v3-15-3 .label { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.v3-15-3 .switch {
+  position: relative; box-sizing: border-box; width: 40px; height: 22px; margin-inline-start: auto; flex-shrink: 0;
+  border-radius: 999px; border: 1.5px solid var(--faint); transition: background-color .2s, border-color .2s;
+}
+.v3-15-3 .switch i {
+  position: absolute; top: 2.5px; left: 3px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--faint); transition: translate .25s var(--ease), background-color .2s;
+}
+.v3-15-3[data-on] .switch { background: var(--accent); border-color: var(--accent); }
+.v3-15-3[data-on] .switch i { translate: 18px 0; background: #fff; }
+
+/* The text box, with the badge below and to the right of the cursor. */
+.v3-15-3 .box {
+  position: absolute; top: 106px; left: 0; right: 0; height: 54px; padding: 0 16px;
+  display: flex; align-items: center; font-size: 20px; white-space: nowrap;
+  background: var(--card); border: 1px solid #5847E0; border-radius: 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 22%, transparent);
+}
+.v3-15-3 .word { color: var(--text); }
+.v3-15-3 .caret {
+  width: 2px; height: 23px; margin-inline-start: 1px; background: var(--text); flex-shrink: 0;
+  animation: v3-15-3-blink 1s steps(1) infinite;
+}
+.v3-15-3 .badge {
+  margin: -18px 0 0 6px; height: 18px; min-width: 25px; padding: 0 5px; border-radius: 6px; flex-shrink: 0;
+  display: grid; place-items: center; color: #fff; font-size: 10.5px; font-weight: 700; background: var(--en);
+  transform-origin: left top; opacity: 0; scale: .6; transition: opacity .2s, scale .2s;
+}
+.v3-15-3[data-on] .badge {
+  opacity: 1; scale: 1; transition: opacity .2s, scale .35s cubic-bezier(.2, 1.4, .4, 1);
+}
+
+@keyframes v3-15-3-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-15-3 .caret { animation: none; }
+}
