@@ -371,6 +371,10 @@
     <div class="stage-card" id="st-prefs">
       <div class="pm-head"><div class="logo"><svg><use href="#logo-mark"/></svg></div><b>Language Autocorrect</b><span class="pill green" id="pmPill">At sign-in</span></div>
       <div class="pm-text">Ready. Words typed on the wrong keyboard are fixed when you press Space.</div>
+      <div class="pm-row" id="pmBadge">
+        <div class="tile teal"><span class="mini-badge">EN</span></div>
+        <div><b>Language badge</b><span id="pmBadgeText"></span></div>
+      </div>
       <div class="pm-row" id="pmVoice">
         <div class="tile violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
         <div><b>Voice</b><span id="pmVoiceText"></span></div>
@@ -456,6 +460,11 @@
           <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
           <div class="opt-text"><div class="opt-title">Desktop shortcut</div><div class="opt-desc">An icon on your desktop. It's always in the Start menu too.</div></div>
           <span class="toggle"><input type="checkbox" id="optDesktop" checked><i></i></span>
+        </label>
+        <label class="opt">
+          <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5v11"/><rect x="9" y="12.5" width="12" height="7.5" rx="2.2"/></svg></div>
+          <div class="opt-text"><div class="opt-title">Language badge</div><div class="opt-desc">A small badge at the cursor shows your language.</div></div>
+          <span class="toggle"><input type="checkbox" id="optBadge" checked><i></i></span>
         </label>
         <label class="opt">
           <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
@@ -709,6 +718,7 @@
       startWithWindows: $('#optStartup').checked,
       desktopShortcut: $('#optDesktop').checked,
       voice: $('#optVoice').checked,
+      showBadge: $('#optBadge').checked,
       languages: update ? null : languages.filter(l => l.selected).map(l => l.code),
     });
   }
@@ -901,17 +911,20 @@
 
   function renderPrefsCard() {
     const startup = $('#optStartup').checked, desktop = $('#optDesktop').checked, voice = $('#optVoice').checked;
+    const badge = $('#optBadge').checked;
     const pill = $('#pmPill');
     pill.textContent = startup ? 'At sign-in' : 'When you open it';
     pill.className = 'pill ' + (startup ? 'green' : 'grey');
     const other = languages.find(l => l.selected && !l.locked);
+    $('#pmBadgeText').textContent = badge ? 'Shows your language by the cursor' : 'Off';
+    $('#pmBadge').classList.toggle('off', !badge);
     $('#pmVoiceText').textContent = voice ? `Says “${other ? other.name : 'English'}” when you switch` : 'Off';
     $('#pmVoice').classList.toggle('off', !voice);
     $('#pmDesktopText').textContent = desktop ? 'On your desktop and in Start' : 'In the Start menu';
     $('#pmDesktop').classList.toggle('off', !desktop);
     $('#caption').textContent = startup ? 'Ready every time you sign in.' : 'Open it from the Start menu when you need it.';
   }
-  ['#optStartup', '#optDesktop', '#optVoice'].forEach(id => $(id).addEventListener('change', renderPrefsCard));
+  ['#optStartup', '#optDesktop', '#optBadge', '#optVoice'].forEach(id => $(id).addEventListener('change', renderPrefsCard));
 
   // ---------------- typing demo ----------------
 
