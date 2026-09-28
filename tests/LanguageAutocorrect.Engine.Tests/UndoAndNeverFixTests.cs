@@ -48,6 +48,38 @@ public class NeverFixListTests
     }
 }
 
+public class UndoQuestionTests
+{
+    [Fact]
+    public void AsksAtTheFifthUndoAndAgainUntilAnswered()
+    {
+        var q = new UndoQuestion();
+        for (int i = 1; i <= 4; i++) Assert.False(q.RecordUndo("akuo"));
+        Assert.True(q.RecordUndo("akuo"));
+        Assert.True(q.RecordUndo("Akuo")); // not answered (the card was ignored): asks again
+        Assert.Equal(6, q.UndoCount("AKUO"));
+    }
+
+    [Fact]
+    public void AnsweringStartsTheCountAgain()
+    {
+        var q = new UndoQuestion(undosToAsk: 2);
+        q.RecordUndo("akuo");
+        Assert.True(q.RecordUndo("akuo"));
+        q.Answered("Akuo");
+        Assert.Equal(0, q.UndoCount("akuo"));
+        Assert.False(q.RecordUndo("akuo"));
+    }
+
+    [Fact]
+    public void KeepsSavedCounts()
+    {
+        var q = new UndoQuestion(new Dictionary<string, int> { ["Akuo"] = 4, [" "] = 3, ["lol"] = 0 });
+        Assert.True(q.RecordUndo("akuo"));
+        Assert.Equal(["akuo"], q.Snapshot().Keys);
+    }
+}
+
 public class UndoTrackerTests
 {
     private static readonly DateTime T0 = new(2026, 1, 1);
@@ -215,6 +247,37 @@ public class TypingSessionTests
     }
 
     [Fact]
+    public void AsksAfterTheFifthUndoInsteadOfBlocking()
+    {
+        // Both on: asking wins, so the word never goes on the list by itself.
+        var s = new TypingSession(Shared.Detector, new NeverFixList(undosToBlock: 3), question: new UndoQuestion(undosToAsk: 5))
+        {
+            AskAfterUndos = true,
+            LearnFromUndos = true,
+        };
+        for (int i = 1; i <= 6; i++)
+        {
+            var t = T0.AddMinutes(i);
+            Assert.IsType<FixWord>(Type(s, "akuo", KeyInput.Space, Lang.English, t));
+            var undo = Assert.IsType<UndoFix>(s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, t.AddMilliseconds(300)));
+            Assert.Equal(i >= 5, undo.Ask);
+            Assert.False(undo.NowBlocked);
+        }
+        Assert.False(s.NeverFix.IsBlocked("akuo"));
+        Assert.Equal(0, s.NeverFix.UndoCount("akuo"));
+    }
+
+    [Fact]
+    public void DoesNotAskWhenAskingIsOff()
+    {
+        var s = new TypingSession(Shared.Detector, new NeverFixList(), question: new UndoQuestion(undosToAsk: 1));
+        Assert.IsType<FixWord>(Type(s, "akuo", KeyInput.Space, Lang.English, T0));
+        var undo = Assert.IsType<UndoFix>(s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0.AddMilliseconds(100)));
+        Assert.False(undo.Ask);
+        Assert.Equal(0, s.Question.UndoCount("akuo"));
+    }
+
+    [Fact]
     public void FixesEarlierWordsTypedInTheSameWrongLayout()
     {
         // "ha" (יש) is not fixed on its own; "jh" (חי) is, because "ha" reads as Hebrew. Both get fixed together.
@@ -348,6 +411,31 @@ public class AppSettingsTests
             Assert.Equal(Sensitivity.High, l.Sensitivity);
             Assert.Equal(4, l.UndosToBlock);
             Assert.Equal(2, l.NeverFixUndoCounts["akuo"]);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void AskingRoundTripsAndIsOffForOldFiles()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        try
+        {
+            // A settings file from before asking existed.
+            File.WriteAllText(path, "{ \"LearnFromUndos\": true, \"UndosToBlock\": 4 }");
+            var old = AppSettings.Load(path);
+            Assert.False(old.AskAfterUndos);
+            Assert.Equal(5, old.UndosToAsk);
+            Assert.Empty(old.UndoAskCounts);
+            Assert.True(old.LearnFromUndos);
+
+            var s = new AppSettings { AskAfterUndos = true, UndosToAsk = 7 };
+            s.UndoAskCounts["akuo"] = 3;
+            s.Save(path);
+            var l = AppSettings.Load(path);
+            Assert.True(l.AskAfterUndos);
+            Assert.Equal(7, l.UndosToAsk);
+            Assert.Equal(3, l.UndoAskCounts["akuo"]);
         }
         finally { File.Delete(path); }
     }

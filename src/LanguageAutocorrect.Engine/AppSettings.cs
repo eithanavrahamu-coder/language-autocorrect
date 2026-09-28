@@ -64,6 +64,18 @@ public sealed class AppSettings
     /// <summary>Word -> number of times its auto-correction was undone.</summary>
     public Dictionary<string, int> NeverFixUndoCounts { get; set; } = new();
 
+    /// <summary>
+    /// Once a word is undone <see cref="UndosToAsk"/> times, a card by the text asks whether to stop fixing it, instead
+    /// of the word going on the never-fix list by itself (<see cref="LearnFromUndos"/>). Off by default (offered in setup).
+    /// </summary>
+    public bool AskAfterUndos { get; set; }
+
+    /// <summary>How many times a word must be undone before the app asks whether to stop fixing it.</summary>
+    public int UndosToAsk { get; set; } = 5;
+
+    /// <summary>Word -> undos counted toward that question since it was last answered.</summary>
+    public Dictionary<string, int> UndoAskCounts { get; set; } = new();
+
     /// <summary>Look for a newer version once a day (only the download page's version number is read).</summary>
     public bool CheckForUpdates { get; set; } = true;
 
@@ -141,7 +153,9 @@ public sealed class AppSettings
                 {
                     s.ExcludedApps ??= [];
                     s.NeverFixUndoCounts ??= new();
+                    s.UndoAskCounts ??= new();
                     s.UndosToBlock = Math.Clamp(s.UndosToBlock, 1, 10);
+                    s.UndosToAsk = Math.Clamp(s.UndosToAsk, 1, 10);
                     if (s.SettingsVersion < 2) s.VoiceEnabled = false; // voice became opt-in
                     s.SettingsVersion = CurrentSettingsVersion;
                     return s;

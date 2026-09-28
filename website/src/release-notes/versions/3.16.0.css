@@ -1,0 +1,73 @@
+/* 3.16.0: a fix is undone once more, a card asks "Stop fixing akuo?", Stop fixing is clicked and the card says so. */
+.v3-16-0 {
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  position: relative; width: 272px; height: 204px; font-family: 'Segoe UI', var(--font-body);
+}
+
+/* The card above the text, as the app draws it. */
+.v3-16-0 .card {
+  position: absolute; top: 12px; left: 6px; right: 6px; height: 58px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 14px 30px -12px rgba(20, 18, 15, .32);
+  opacity: 0; scale: .95; translate: 0 10px;
+  transition: opacity .2s, scale .2s, translate .2s;
+}
+.v3-16-0[data-card] .card {
+  opacity: 1; scale: 1; translate: 0 0;
+  transition: opacity .25s, scale .45s cubic-bezier(.2, 1.3, .4, 1), translate .45s cubic-bezier(.2, 1.3, .4, 1);
+}
+.v3-16-0 .ask, .v3-16-0 .done {
+  position: absolute; inset: 0; display: flex; align-items: center; transition: opacity .2s;
+}
+.v3-16-0 .ask { gap: 5px; padding: 0 10px 0 12px; }
+.v3-16-0 .done { justify-content: center; gap: 8px; font-size: 11.5px; color: var(--text); opacity: 0; }
+.v3-16-0[data-card="done"] .ask { opacity: 0; }
+.v3-16-0[data-card="done"] .done { opacity: 1; }
+.v3-16-0 .done svg { width: 13px; height: 13px; fill: none; stroke: var(--he); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.v3-16-0 .words { flex: 1; min-width: 0; display: grid; gap: 1px; white-space: nowrap; }
+.v3-16-0 .title { font-size: 11.5px; color: var(--text); }
+.v3-16-0 .note { font-size: 9.5px; color: var(--muted); }
+.v3-16-0 .choice {
+  height: 22px; padding: 0 8px; border-radius: 6px; display: grid; place-items: center; flex-shrink: 0;
+  font-size: 9.5px; font-weight: 600; white-space: nowrap; color: var(--text); border: 1px solid var(--line);
+  transition: scale .1s;
+}
+.v3-16-0 .choice.strong { color: var(--card); background: var(--text); border-color: var(--text); }
+.v3-16-0 .choice[data-down] { scale: .92; }
+
+/* The text box: the fixed word, then the word as typed after the undo. */
+.v3-16-0 .box {
+  position: absolute; top: 96px; left: 0; right: 0; height: 54px; padding: 0 16px;
+  display: flex; align-items: center; font-size: 20px; white-space: nowrap;
+  background: var(--card); border: 1px solid #5847E0; border-radius: 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 22%, transparent);
+}
+.v3-16-0 .word { color: var(--text); }
+.v3-16-0 .caret {
+  width: 2px; height: 23px; margin-inline-start: 1px; background: var(--text); flex-shrink: 0;
+  animation: v3-16-0-blink 1s steps(1) infinite;
+}
+
+/* The key that undoes it. */
+.v3-16-0 .key {
+  position: absolute; top: 170px; right: 12px; height: 26px; padding: 0 11px; border-radius: 7px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--text);
+  background: var(--card); border: 1px solid var(--line); border-bottom-width: 3px;
+  transition: translate .08s, border-bottom-width .08s;
+}
+.v3-16-0 .key[data-down] { translate: 0 2px; border-bottom-width: 1px; }
+
+.v3-16-0 .pointer {
+  position: absolute; top: 0; left: 0; width: 20px; height: 24px; transform-origin: 2px 2px;
+  fill: #fff; stroke: #1B1A18; stroke-width: 1.4; stroke-linejoin: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .25));
+  translate: 150px 176px; transition: translate .6s var(--ease), scale .12s;
+}
+.v3-16-0 .pointer[data-at="stop"] { translate: 228px 42px; }
+.v3-16-0 .pointer[data-down] { scale: .85; }
+
+@keyframes v3-16-0-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-16-0 .caret { animation: none; }
+}

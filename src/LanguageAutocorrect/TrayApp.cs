@@ -16,6 +16,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private readonly string _settingsPath = AppSettings.DefaultPath;
     private readonly AppSettings _settings;
     private readonly NeverFixList _neverFix;
+    private readonly UndoQuestion _question;
     private readonly TypingSession _session;
     private readonly WrongLayoutDetector _detector;
     private readonly KeyboardMonitor _monitor;
@@ -23,6 +24,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     private readonly VoiceAnnouncer _voice = new();
     private readonly IndicatorForm _indicator = new();
     private readonly FixCardForm _card = new();
+    private readonly AskCardForm _ask = new();
     private readonly FixFlash _flash;
     private readonly NotifyIcon _tray;
     private readonly Timer _uiTimer = new() { Interval = 60 };
@@ -54,16 +56,23 @@ internal sealed class TrayApp : ApplicationContext, IAppController
     {
         _settings = AppSettings.Load(_settingsPath);
         _neverFix = new NeverFixList(_settings.NeverFixUndoCounts, _settings.UndosToBlock);
+        _question = new UndoQuestion(_settings.UndoAskCounts, _settings.UndosToAsk);
         _context = new MonitorContext(_settings.AutoCorrectEnabled, _settings.Sensitivity, false);
 
         // Force the indicator's handle so we can marshal calls to the UI thread through it.
         _ = _indicator.Handle;
         _ = _card.Handle;
+        _ = _ask.Handle;
         _flash = new FixFlash();
         _indicator.Clicked += OnBadgeClicked;
+        _ask.Answered += OnAskAnswered;
 
         _detector = detector;
-        _session = new TypingSession(detector, _neverFix) { LearnFromUndos = _settings.LearnFromUndos };
+        _session = new TypingSession(detector, _neverFix, question: _question)
+        {
+            LearnFromUndos = _settings.LearnFromUndos,
+            AskAfterUndos = _settings.AskAfterUndos,
+        };
         RefreshLanguages();
         _monitor = new KeyboardMonitor(_session, () => _context);
         _monitor.Fixed += fix =>
@@ -205,6 +214,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             startWithWindows = _settings.StartWithWindows,
             learnFromUndos = _settings.LearnFromUndos,
             undosToBlock = _neverFix.UndosToBlock,
+            askAfterUndos = _settings.AskAfterUndos,
+            undosToAsk = _question.UndosToAsk,
             neverFix = _neverFix.BlockedWords(),
             excludedApps = _settings.ExcludedApps,
             layout = layout is Lang l ? LanguageJson(Languages.Get(l)) : null,
@@ -318,13 +329,22 @@ internal sealed class TrayApp : ApplicationContext, IAppController
             case "showIndicator": _settings.ShowIndicator = value.GetBoolean(); break;
             case "showFixes": _settings.ShowFixes = value.GetBoolean(); break;
             case "voice": _settings.VoiceEnabled = value.GetBoolean(); break;
+            // Asking replaces adding by itself, so turning one on turns the other off.
             case "learnFromUndos":
                 _settings.LearnFromUndos = value.GetBoolean();
-                _session.LearnFromUndos = _settings.LearnFromUndos;
+                if (_settings.LearnFromUndos) _settings.AskAfterUndos = false;
+                break;
+            case "askAfterUndos":
+                _settings.AskAfterUndos = value.GetBoolean();
+                if (_settings.AskAfterUndos) _settings.LearnFromUndos = false;
                 break;
             case "undosToBlock":
                 _settings.UndosToBlock = Math.Clamp(value.GetInt32(), 1, 10);
                 _neverFix.UndosToBlock = _settings.UndosToBlock;
+                break;
+            case "undosToAsk":
+                _settings.UndosToAsk = Math.Clamp(value.GetInt32(), 1, 10);
+                _question.UndosToAsk = _settings.UndosToAsk;
                 break;
             case "sensitivity":
                 if (Enum.TryParse<Sensitivity>(value.GetString(), out var s)) _settings.Sensitivity = s;
@@ -338,6 +358,8 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 if (UpdateCheckDue()) _ = CheckForUpdatesAsync(manual: false);
                 break;
         }
+        _session.LearnFromUndos = _settings.LearnFromUndos;
+        _session.AskAfterUndos = _settings.AskAfterUndos;
     }
 
     // ---------------- updates ----------------
@@ -571,8 +593,18 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _settings.UndoTipDone = true;
         _flash.Cancel();
         ExpectLayout(undo.Layout);
-        if (_settings.ShowFixes && _focus.Snapshot.Caret is { } line)
+        var caret = _focus.Snapshot.Caret;
+        if (undo.Ask)
+        {
+            // Undone again and again: ask whether to stop fixing it (the question says it was kept as typed).
+            var word = undo.Correction.TriggerTyped;
+            _card.Dismiss();
+            _ask.Ask(word, _question.UndoCount(word), caret);
+        }
+        else if (_settings.ShowFixes && caret is { } line)
+        {
             _card.ShowFix(new FixCardText(undo.Correction.Typed, undo.Correction.Replacement, Undone: true), line, null);
+        }
         Save();
         PushState();
         if (undo.NowBlocked)
@@ -581,6 +613,15 @@ internal sealed class TrayApp : ApplicationContext, IAppController
                 $"\"{undo.Correction.TriggerTyped}\" won't be auto-corrected anymore. You can change this in the Never fix list.",
                 update: false);
         }
+    }
+
+    /// <summary>A button on the question card: stop fixing the word (it goes on the Never fix list), or keep fixing it.</summary>
+    private void OnAskAnswered(string word, bool stop)
+    {
+        _question.Answered(word);
+        if (stop) _neverFix.Block(word);
+        Save();
+        PushState();
     }
 
     private static string? FriendlyAppName(string? process)
@@ -625,6 +666,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         try
         {
             _settings.NeverFixUndoCounts = _neverFix.Snapshot();
+            _settings.UndoAskCounts = _question.Snapshot();
             _settings.Save(_settingsPath);
         }
         catch (Exception ex)
@@ -667,6 +709,7 @@ internal sealed class TrayApp : ApplicationContext, IAppController
         _tray.Dispose();
         _indicator.Close();
         _card.Close();
+        _ask.Close();
         _flash.Dispose();
         Save();
         base.ExitThreadCore();

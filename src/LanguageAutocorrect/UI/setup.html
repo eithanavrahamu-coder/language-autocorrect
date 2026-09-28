@@ -379,6 +379,10 @@
         <div class="tile violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
         <div><b>Voice</b><span id="pmVoiceText"></span></div>
       </div>
+      <div class="pm-row" id="pmAsk">
+        <div class="tile coral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+        <div><b>Words you keep undoing</b><span id="pmAskText"></span></div>
+      </div>
       <div class="pm-row" id="pmDesktop">
         <div class="tile blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
         <div><b>Desktop shortcut</b><span id="pmDesktopText"></span></div>
@@ -470,6 +474,11 @@
           <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
           <div class="opt-text"><div class="opt-title">Say the language out loud</div><div class="opt-desc">Hear the language's name when the keyboard changes.</div></div>
           <span class="toggle"><input type="checkbox" id="optVoice"><i></i></span>
+        </label>
+        <label class="opt">
+          <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+          <div class="opt-text"><div class="opt-title">Ask about words you keep undoing</div><div class="opt-desc">Undo the same word 5 times and a small card asks whether to stop fixing it.</div></div>
+          <span class="toggle"><input type="checkbox" id="optAsk"><i></i></span>
         </label>
       </div>
     </section>
@@ -719,6 +728,7 @@
       desktopShortcut: $('#optDesktop').checked,
       voice: $('#optVoice').checked,
       showBadge: $('#optBadge').checked,
+      askAfterUndos: $('#optAsk').checked,
       languages: update ? null : languages.filter(l => l.selected).map(l => l.code),
     });
   }
@@ -920,11 +930,14 @@
     $('#pmBadge').classList.toggle('off', !badge);
     $('#pmVoiceText').textContent = voice ? `Says “${other ? other.name : 'English'}” when you switch` : 'Off';
     $('#pmVoice').classList.toggle('off', !voice);
+    const ask = $('#optAsk').checked;
+    $('#pmAskText').textContent = ask ? 'Asks after 5 undos whether to stop fixing' : 'Off';
+    $('#pmAsk').classList.toggle('off', !ask);
     $('#pmDesktopText').textContent = desktop ? 'On your desktop and in Start' : 'In the Start menu';
     $('#pmDesktop').classList.toggle('off', !desktop);
     $('#caption').textContent = startup ? 'Ready every time you sign in.' : 'Open it from the Start menu when you need it.';
   }
-  ['#optStartup', '#optDesktop', '#optBadge', '#optVoice'].forEach(id => $(id).addEventListener('change', renderPrefsCard));
+  ['#optStartup', '#optDesktop', '#optBadge', '#optVoice', '#optAsk'].forEach(id => $(id).addEventListener('change', renderPrefsCard));
 
   // ---------------- typing demo ----------------
 

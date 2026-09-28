@@ -70,11 +70,13 @@ internal sealed class SetupWindow : WebWindow
                 bool desktop = msg.TryGetProperty("desktopShortcut", out var d) && d.GetBoolean();
                 bool voice = msg.TryGetProperty("voice", out var v) && v.GetBoolean();
                 bool badge = !msg.TryGetProperty("showBadge", out var b) || b.GetBoolean(); // on unless it says off
+                bool ask = msg.TryGetProperty("askAfterUndos", out var a) && a.GetBoolean();
                 List<string>? langs = msg.TryGetProperty("languages", out var ls) && ls.ValueKind == JsonValueKind.Array
                     ? ls.EnumerateArray().Select(x => x.GetString()).OfType<string>().ToList()
                     : null;
                 bool fresh = _mode == "install";
-                RunWork(p => Installer.Install(fresh ? startup : null, desktop && fresh, langs, fresh ? voice : null, fresh ? badge : null, p),
+                RunWork(p => Installer.Install(fresh ? startup : null, desktop && fresh, langs, fresh ? voice : null, fresh ? badge : null,
+                        fresh ? ask : null, p),
                     SetupResult.Installed);
                 break;
 

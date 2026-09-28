@@ -10,8 +10,11 @@ using Media = System.Windows.Media;
 
 namespace LanguageAutocorrect;
 
-/// <summary>What the card after a fix says: "ghbdtn → привет", or "Kept as typed: ghbdtn" after an undo.</summary>
-internal sealed record FixCardText(string Typed, string Fixed, bool Undone = false, bool UndoTip = false);
+/// <summary>
+/// What the card after a fix says: "ghbdtn → привет", "Kept as typed: ghbdtn" after an undo, or
+/// "ghbdtn won't be fixed anymore" once the user has chosen to stop fixing it (<see cref="AskCardForm"/>).
+/// </summary>
+internal sealed record FixCardText(string Typed, string Fixed, bool Undone = false, bool UndoTip = false, bool Blocked = false);
 
 /// <summary>
 /// The small card that appears above the text after a fix, as on the website. It springs in, stays a moment,
@@ -40,23 +43,33 @@ internal sealed class FixCardForm : LayeredWindow
     {
         _scale = Native.DpiAt(line.Location) / 96f;
         _card = CardArt.Render(text, _scale, WebWindow.IsDarkMode, out _body);
-
-        var area = Screen.FromPoint(line.Location).WorkingArea;
-        // Clear of the line even while it rises into place (it starts 10px lower).
-        int gap = Px(12);
-        // The struck-out word sits right above the word it was (the card's text starts 14px in).
-        int left = word is { } w ? w.Left - Px(14) : line.Left - _body.Width / 2;
-        int top = Math.Min(line.Top, word?.Top ?? line.Top) - gap - _body.Height;
-        // No room above: below the line and the language badge.
-        if (top < area.Top) top = line.Bottom + Px(3 + 17 + 6);
-        left = Math.Clamp(left, area.Left + gap, Math.Max(area.Left + gap, area.Right - gap - _body.Width));
-        _at = new Point(left - _body.X, top - _body.Y);
+        _at = Place(line, word, _body, _scale);
 
         _atRest = false;
         _clock.Restart();
         _frames.Start();
         DrawFrame();
         if (!Visible) Show();
+    }
+
+    /// <summary>
+    /// Where a card's picture goes (its top-left corner): above <paramref name="line"/>, lined up with
+    /// <paramref name="word"/> if known or else centered on the caret, and below the line when there's no room above.
+    /// </summary>
+    /// <param name="body">The card inside the picture; the rest is its shadow.</param>
+    public static Point Place(Rectangle line, Rectangle? word, Rectangle body, float scale)
+    {
+        int Px(float value) => BadgeArt.Px(value, scale);
+        var area = Screen.FromPoint(line.Location).WorkingArea;
+        // Clear of the line even while it rises into place (it starts 10px lower).
+        int gap = Px(12);
+        // The struck-out word sits right above the word it was (the card's text starts 14px in).
+        int left = word is { } w ? w.Left - Px(14) : line.Left - body.Width / 2;
+        int top = Math.Min(line.Top, word?.Top ?? line.Top) - gap - body.Height;
+        // No room above: below the line and the language badge.
+        if (top < area.Top) top = line.Bottom + Px(3 + 17 + 6);
+        left = Math.Clamp(left, area.Left + gap, Math.Max(area.Left + gap, area.Right - gap - body.Width));
+        return new Point(left - body.X, top - body.Y);
     }
 
     public void Dismiss()
@@ -114,10 +127,14 @@ internal sealed class FixCardForm : LayeredWindow
 /// </summary>
 internal static class CardArt
 {
-    private sealed record Theme(Color Card, Color Line, Color Text, Color Muted, Color Faint);
+    /// <summary>The card's colors, and the app window's for buttons: a hovered plain one, a hovered dark one, and green.</summary>
+    private sealed record Theme(Color Card, Color Line, Color Text, Color Muted, Color Faint, Color Hover, Color StrongHover,
+        Color Success);
 
-    private static readonly Theme Light = new(Hex("#FFFFFF"), Hex("#E9E5DF"), Hex("#1B1A18"), Hex("#75706A"), Hex("#A7A29B"));
-    private static readonly Theme Dark = new(Hex("#222220"), Hex("#2F2E2B"), Hex("#F2F0EC"), Hex("#A29E97"), Hex("#6E6A64"));
+    private static readonly Theme Light = new(Hex("#FFFFFF"), Hex("#E9E5DF"), Hex("#1B1A18"), Hex("#75706A"), Hex("#A7A29B"),
+        Hex("#F4F2EE"), Hex("#34322F"), Hex("#1F9D63"));
+    private static readonly Theme Dark = new(Hex("#222220"), Hex("#2F2E2B"), Hex("#F2F0EC"), Hex("#A29E97"), Hex("#6E6A64"),
+        Hex("#2C2B28"), Hex("#DDDBD7"), Hex("#3CCB7F"));
 
     private static readonly Media.FontFamily Family = new("Segoe UI Variable Text, Segoe UI");
 
@@ -142,6 +159,13 @@ internal static class CardArt
             Gap(12);
             row.Add(Words(text.Typed, 15 * s, bold, theme.Text));
         }
+        else if (text.Blocked)
+        {
+            row.Add(CheckIcon(15 * s, theme.Success));
+            Gap(12);
+            row.Add(Words(text.Typed, 15 * s, bold, theme.Text));
+            row.Add(Words(" won’t be fixed anymore", 15 * s, normal, theme.Text));
+        }
         else
         {
             row.Add(Words(text.Typed, 15 * s, normal, theme.Muted, strike: (theme.Faint, 1.5 * s)));
@@ -162,6 +186,73 @@ internal static class CardArt
         double border = Math.Max(1, s), padX = 14 * s, padY = 8 * s, rowHeight = 24 * s, content = 0;
         foreach (var piece in row) content += piece.Width;
         int width = (int)Math.Ceiling(2 * (border + padX) + content), height = (int)Math.Round(2 * (border + padY) + rowHeight);
+        return Card(width, height, s, theme, dc =>
+        {
+            double x = (width - content) / 2, middle = height / 2.0;
+            foreach (var piece in row)
+            {
+                piece.Draw(dc, x, middle);
+                x += piece.Width;
+            }
+        }, out body);
+    }
+
+    /// <summary>
+    /// The card asking whether to stop fixing a word: "Stop fixing akuo?" over "You undid it 5 times.", beside a
+    /// "Keep fixing" and a "Stop fixing" button. <paramref name="hover"/> is the button under the pointer (0 or 1, or -1
+    /// for neither); <paramref name="buttons"/> gets where the two are in the picture.
+    /// </summary>
+    public static Picture RenderAsk(string word, int undos, int hover, float s, bool dark, out Rectangle body,
+        out Rectangle[] buttons)
+    {
+        var theme = dark ? Dark : Light;
+        var normal = System.Windows.FontWeights.Normal;
+        var bold = System.Windows.FontWeights.Bold;
+        Piece[] title =
+        [
+            Words("Stop fixing ", 15 * s, normal, theme.Text), Words(word, 15 * s, bold, theme.Text), Words("?", 15 * s, normal, theme.Text),
+        ];
+        var note = Words(undos == 1 ? "You undid it once." : $"You undid it {undos} times.", 13 * s, normal, theme.Muted);
+        var keep = Button("Keep fixing", strong: false, hover == 0, theme, s);
+        var stop = Button("Stop fixing", strong: true, hover == 1, theme, s);
+
+        // Like the fix card, with 12px × 16px padding: two lines of text, then the buttons 20px on and 8px apart.
+        double border = Math.Max(1, s), padX = 16 * s, padY = 12 * s, titleHeight = 22 * s, noteHeight = 19 * s;
+        double gap = 20 * s, between = 8 * s, buttonHeight = 30 * s;
+        double titleWidth = 0;
+        foreach (var piece in title) titleWidth += piece.Width;
+        double text = Math.Max(titleWidth, note.Width), both = keep.Width + between + stop.Width;
+        int width = (int)Math.Ceiling(2 * (border + padX) + text + gap + both);
+        int height = (int)Math.Round(2 * (border + padY) + titleHeight + noteHeight);
+        double left = border + padX, top = border + padY, middle = height / 2.0;
+        double keepX = width - border - padX - both, stopX = keepX + keep.Width + between;
+
+        var picture = Card(width, height, s, theme, dc =>
+        {
+            double x = left;
+            foreach (var piece in title)
+            {
+                piece.Draw(dc, x, top + titleHeight / 2);
+                x += piece.Width;
+            }
+            note.Draw(dc, left, top + titleHeight + noteHeight / 2);
+            keep.Draw(dc, keepX, middle);
+            stop.Draw(dc, stopX, middle);
+        }, out body);
+        var at = body.Location;
+        Rectangle Box(double x, double w) => Rectangle.Round(new RectangleF((float)(at.X + x), (float)(at.Y + middle - buttonHeight / 2),
+            (float)w, (float)buttonHeight));
+        buttons = [Box(keepX, keep.Width), Box(stopX, stop.Width)];
+        return picture;
+    }
+
+    /// <summary>
+    /// A card <paramref name="width"/> × <paramref name="height"/> with what <paramref name="draw"/> puts on it:
+    /// 1px border, 12px corners and a soft shadow. <paramref name="body"/> gets the card inside the picture.
+    /// </summary>
+    private static Picture Card(int width, int height, float s, Theme theme, Action<Media.DrawingContext> draw, out Rectangle body)
+    {
+        double border = Math.Max(1, s);
         var shadow = new Shadow(8 * s, 24 * s, -8 * s, Color.FromArgb(56, 20, 18, 15));
         int margin = BadgeArt.ShadowMargin(shadow);
         body = new Rectangle(margin, margin, width, height);
@@ -173,12 +264,7 @@ internal static class CardArt
         using (var dc = visual.RenderOpen())
         {
             dc.DrawRectangle(Brush(theme.Card), null, new System.Windows.Rect(0, 0, width, height));
-            double x = (width - content) / 2, middle = height / 2.0;
-            foreach (var piece in row)
-            {
-                piece.Draw(dc, x, middle);
-                x += piece.Width;
-            }
+            draw(dc);
         }
         using var face = ToBitmap(visual, width, height);
         using var image = BadgeArt.Compose(face, new Size(width + 2 * margin, height + 2 * margin), body, radius, shadow);
@@ -234,6 +320,53 @@ internal static class CardArt
                 Baseline(inner.Y + inner.Height / 2, size, weight) - label.Baseline));
         });
     }
+
+    /// <summary>
+    /// A button like the app window's, 30px high with 12px on each side of its 13px label and 8px corners: dark with
+    /// light text when <paramref name="strong"/>, else the card's color with a border.
+    /// </summary>
+    private static Piece Button(string text, bool strong, bool hovered, Theme theme, float s)
+    {
+        double size = 13 * s;
+        var weight = System.Windows.FontWeights.SemiBold;
+        var label = Text(text, size, weight, strong ? theme.Card : theme.Text);
+        double width = label.WidthIncludingTrailingWhitespace + 24 * s, height = 30 * s, radius = 8 * s, border = Math.Max(1, s);
+        var fill = strong ? hovered ? theme.StrongHover : theme.Text : hovered ? theme.Hover : theme.Card;
+        return new Piece(width, (dc, x, middle) =>
+        {
+            var box = new System.Windows.Rect(x, middle - height / 2, width, height);
+            if (strong)
+            {
+                dc.DrawRoundedRectangle(Brush(fill), null, box, radius, radius);
+            }
+            else
+            {
+                dc.DrawRoundedRectangle(Brush(theme.Line), null, box, radius, radius);
+                box.Inflate(-border, -border);
+                dc.DrawRoundedRectangle(Brush(fill), null, box, radius - border, radius - border);
+            }
+            dc.DrawText(label, new System.Windows.Point(x + (width - label.WidthIncludingTrailingWhitespace) / 2,
+                Baseline(middle, size, weight) - label.Baseline));
+        });
+    }
+
+    /// <summary>Lucide's "check", <paramref name="size"/> pixels square.</summary>
+    private static Piece CheckIcon(double size, Color color) => new(size, (dc, x, middle) =>
+    {
+        double k = size / 24, top = middle - size / 2;
+        System.Windows.Point P(double px, double py) => new(x + px * k, top + py * k);
+        var pen = new Media.Pen(Brush(color), 2.4 * k)
+        {
+            StartLineCap = Media.PenLineCap.Round, EndLineCap = Media.PenLineCap.Round, LineJoin = Media.PenLineJoin.Round,
+        };
+        var check = new Media.StreamGeometry();
+        using (var c = check.Open())
+        {
+            c.BeginFigure(P(20, 6), false, false);
+            c.PolyLineTo([P(9, 17), P(4, 12)], true, true);
+        }
+        dc.DrawGeometry(null, pen, check);
+    });
 
     /// <summary>The website's undo arrow (Lucide's "undo-2"), <paramref name="size"/> pixels square.</summary>
     private static Piece UndoIcon(double size, Color color) => new(size, (dc, x, middle) =>

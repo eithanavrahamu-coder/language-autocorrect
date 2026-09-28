@@ -39,8 +39,12 @@ public sealed record PassThrough : TypingAction
 /// <summary>Delete <see cref="Backspaces"/> characters, switch to <see cref="Layout"/>, type <see cref="Text"/>, then re-send the boundary key.</summary>
 public sealed record FixWord(Correction Correction, int Backspaces, string Text, Lang Layout, KeyKind Boundary) : TypingAction;
 
-/// <summary>Delete <see cref="Backspaces"/> characters, switch to <see cref="Layout"/>, type <see cref="Text"/>.</summary>
-public sealed record UndoFix(Correction Correction, int Backspaces, string Text, Lang Layout, bool NowBlocked) : TypingAction;
+/// <summary>
+/// Delete <see cref="Backspaces"/> characters, switch to <see cref="Layout"/>, type <see cref="Text"/>.
+/// <see cref="Ask"/>: the word has been undone enough times to ask whether to stop fixing it.
+/// </summary>
+public sealed record UndoFix(Correction Correction, int Backspaces, string Text, Lang Layout, bool NowBlocked, bool Ask = false)
+    : TypingAction;
 
 /// <summary>
 /// Tracks the words being typed and decides when to auto-correct or undo.
@@ -60,18 +64,27 @@ public sealed class TypingSession
     /// <summary>Words already finished with a space, oldest first, as they appear on screen now.</summary>
     private readonly List<(string Keys, Lang Layout, bool Settled, bool Cap)> _history = new();
 
-    public TypingSession(WrongLayoutDetector detector, NeverFixList neverFix, UndoTracker? undo = null)
+    public TypingSession(WrongLayoutDetector detector, NeverFixList neverFix, UndoTracker? undo = null,
+        UndoQuestion? question = null)
     {
         _detector = detector;
         NeverFix = neverFix;
         Undo = undo ?? new UndoTracker();
+        Question = question ?? new UndoQuestion();
     }
 
     public NeverFixList NeverFix { get; }
     public UndoTracker Undo { get; }
+    public UndoQuestion Question { get; }
 
     /// <summary>When true, undoing the same word enough times adds it to the never-fix list. Off by default.</summary>
     public bool LearnFromUndos { get; set; }
+
+    /// <summary>
+    /// When true, undoing the same word enough times asks whether to stop fixing it, instead of adding it to the
+    /// never-fix list by itself (this wins over <see cref="LearnFromUndos"/>). Off by default.
+    /// </summary>
+    public bool AskAfterUndos { get; set; }
 
     /// <summary>The languages the user types in (a wrong-layout word is checked against each of them).</summary>
     public IReadOnlyList<Lang> Languages { get; set; } = [Lang.English, Lang.Hebrew];
@@ -109,8 +122,9 @@ public sealed class TypingSession
             {
                 Reset();
                 _history.Clear();
-                bool blocked = LearnFromUndos && NeverFix.RecordUndo(toUndo.TriggerTyped);
-                return new UndoFix(toUndo, toUndo.Replacement.Length + 1, toUndo.Typed + " ", toUndo.From, blocked);
+                bool ask = AskAfterUndos && Question.RecordUndo(toUndo.TriggerTyped);
+                bool blocked = !AskAfterUndos && LearnFromUndos && NeverFix.RecordUndo(toUndo.TriggerTyped);
+                return new UndoFix(toUndo, toUndo.Replacement.Length + 1, toUndo.Typed + " ", toUndo.From, blocked, ask);
             }
         }
 

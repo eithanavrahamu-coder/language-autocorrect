@@ -39,7 +39,11 @@ Windows stays in sync and your shortcut keeps working normally.
   **Ctrl+Z** within 5 seconds. Backspace later, or after typing something else, is normal editing.
 - **Never fix** is a list of words that are never auto-corrected. Add words in the app window, or hover a recent fix
   and choose *Never fix*.
-- **Learn from undos** (off by default): when on, a word you undo several times (1–10, default 3) is added to the list.
+- **Ask about words you keep undoing** (off by default, offered in setup): once you've undone the same word several
+  times (1–10, default 5), a small card by your text asks *Stop fixing akuo?* **Stop fixing** adds it to the list;
+  **Keep fixing** starts the count again. Ignored, the card asks again at the word's next undo.
+- **Learn from undos** (off by default): when on, a word you undo several times (1–10, default 3) is added to the list
+  without asking. Turning one of these two on turns the other off.
 
 Auto-correct is always off in password boxes, in the app's own window, and in the apps listed in Settings.
 

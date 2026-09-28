@@ -77,7 +77,10 @@ export default function Privacy() {
             </p>
             <ul>
               <li>your settings, such as your languages and the apps it’s turned off for;</li>
-              <li>your “Never fix” list, and the words you’ve undone, so it can learn to stop fixing them;</li>
+              <li>
+                your “Never fix” list, and the words you’ve undone and how many times, so it can learn to stop fixing
+                them or ask you whether to;
+              </li>
               <li>how many words it has fixed, today and in total;</li>
               <li>
                 a small log for finding problems: times, the names of the apps you typed in, keyboard switches and
