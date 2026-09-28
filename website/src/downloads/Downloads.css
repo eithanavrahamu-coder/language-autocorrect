@@ -1,0 +1,66 @@
+/* ---------- The download count (/downloads/) ---------- */
+.dl-main { padding-block: clamp(40px, 7vw, 80px) clamp(64px, 9vw, 120px); }
+.dl-main > * { max-width: 760px; }
+.dl-intro { max-width: 640px; margin-bottom: clamp(32px, 5vw, 48px); }
+.dl-intro h1 { font-size: clamp(44px, 6vw, 68px); }
+.dl-lede { color: var(--muted); font-size: clamp(17px, 1.6vw, 19px); margin-top: 18px; }
+
+.dl-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-1);
+}
+
+/* Asking GitHub, couldn't, or nothing counted yet */
+.dl-state { display: flex; align-items: flex-start; gap: 14px; padding: 22px 24px; color: var(--muted); }
+.dl-state-col { flex-direction: column; gap: 6px; }
+.dl-state-icon { flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+.dl-state-title { color: var(--text); font-weight: 600; }
+.dl-state .dl-again { margin-top: 14px; }
+.dl-state .dl-check { margin-top: 10px; }
+
+.dl-again { height: 38px; padding: 0 14px; font-size: 14.5px; border-radius: 10px; gap: 8px; }
+.dl-again:disabled { cursor: default; opacity: .7; }
+
+/* The total */
+.dl-summary {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+  gap: 20px clamp(24px, 5vw, 56px); padding: clamp(24px, 4vw, 36px);
+}
+.dl-total-number {
+  font-family: var(--font-display); font-weight: 700; font-size: clamp(56px, 9vw, 88px);
+  line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; color: var(--accent);
+}
+.dl-total-label { color: var(--muted); font-size: 16px; margin-top: 8px; }
+.dl-facts { margin: 0; display: grid; gap: 14px; }
+.dl-facts dt { font-size: 14px; color: var(--muted); }
+.dl-facts dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dl-check {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14.5px;
+}
+.dl-state .dl-check { align-self: stretch; }
+
+/* Each version */
+.dl-list-title { font-size: clamp(24px, 2.6vw, 30px); letter-spacing: -.025em; margin-top: clamp(40px, 5vw, 56px); }
+.dl-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.dl-row { padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.dl-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.dl-version { font-weight: 600; text-decoration: none; }
+.dl-version:hover { color: var(--accent); }
+.dl-count {
+  font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.dl-bar { height: 8px; margin-top: 10px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
+.dl-bar span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--accent); }
+.dl-when { margin-top: 8px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+.dl-notes { margin-top: clamp(48px, 6vw, 72px); max-width: 680px; }
+.dl-notes h2 { font-size: clamp(24px, 2.6vw, 30px); letter-spacing: -.025em; }
+.dl-notes ul { margin-top: 12px; padding-inline-start: 22px; display: grid; gap: 8px; color: var(--muted); }
+.dl-notes b { color: var(--text); font-weight: 600; }
+.dl-notes a { text-underline-offset: 2px; }
+.dl-notes a:hover { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .dl-summary { grid-template-columns: minmax(0, 1fr); }
+}

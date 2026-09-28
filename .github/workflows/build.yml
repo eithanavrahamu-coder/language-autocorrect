@@ -28,7 +28,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
     environment:
@@ -43,6 +43,22 @@ jobs:
         with:
           name: LanguageAutocorrect
           path: download
+      # The site's Download button links to this release, so GitHub counts the downloads (the site's /downloads/ page
+      # shows them). One release per version: a push that keeps the version keeps its release and its count.
+      # Updates still come from the copy on the site, so they aren't counted.
+      - name: Release this version on GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version=$(grep -oP '(?<=<Version>)[^<]+' src/LanguageAutocorrect/LanguageAutocorrect.csproj)
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "Version $version is already released."
+          else
+            gh release create "v$version" download/LanguageAutocorrect.exe --target "$GITHUB_SHA" \
+              --title "Language Autocorrect $version" \
+              --notes "What's new: https://language-autocorrect.world/release-notes/#v$version"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24

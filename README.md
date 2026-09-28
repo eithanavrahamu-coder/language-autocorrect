@@ -45,8 +45,9 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 
 ## Installing and uninstalling
 
-Download `LanguageAutocorrect.exe` from the website, **https://language-autocorrect.world**
-(or from the latest run on the repository's **Actions** tab → *Build* → *Artifacts*) and run it.
+Download `LanguageAutocorrect.exe` from the website, **https://language-autocorrect.world** (its Download button gets
+it from the repository's **Releases**; or take it from the latest run on the **Actions** tab → *Build* → *Artifacts*)
+and run it.
 Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo
 (click **Try it now** to type in it yourself; the app's own engine fixes the words, before anything is installed),
 your languages (the ones already in Windows are picked), a few preferences (already set), and done, with tips and
@@ -91,6 +92,9 @@ dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o p
 The download page is in `website/` (React, built with Vite; needs Node.js). `npm run dev` there shows it locally.
 It reads the languages and the version from the app's code, and every build on `main` publishes it to GitHub Pages
 together with the app it just built. `npm run screenshots` retakes the app screenshots it shows.
+The first build of each version also makes a GitHub release with the app, which the Download button links to, so
+GitHub counts the downloads; [language-autocorrect.world/downloads/](https://language-autocorrect.world/downloads/)
+shows the count (updates the app installs itself come from the site's own copy and aren't counted).
 
 The app was previously called LayoutBuddy and then Type Language Corrector 4000; installing this version replaces
 installs under those names and keeps their settings.
@@ -105,7 +109,8 @@ installs under those names and keeps their settings.
 ## Privacy
 
 What you type is checked on the PC and never saved or sent anywhere. The app goes online only for updates and the
-"What's new" pages, and the website has no cookies or tracking. The full policy, with the contact address, is at
+"What's new" pages, and the website has no cookies or tracking, just a count of downloads that GitHub keeps. The full
+policy, with the contact address, is at
 [language-autocorrect.world/privacy/](https://language-autocorrect.world/privacy/) (`website/src/privacy/Privacy.tsx`;
 keep it true whenever the app starts saving or sending something new).
 

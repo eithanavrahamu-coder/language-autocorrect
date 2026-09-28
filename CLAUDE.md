@@ -76,15 +76,19 @@ for the `new(Lang.X, …)` entries and their `{ … }` property blocks) and read
 **Privacy**: `website/src/privacy/Privacy.tsx` (at `/privacy/`, opened from the app's Settings → Privacy and credits) is
 the privacy policy and credits. It promises that nothing typed is saved or leaves the PC, that the app goes online
 only for updates and What's new, and that the site loads nothing from other servers (no Google Fonts, CDNs, analytics
-or cookies). Keep those true: when a change saves or sends something new, or adds a library, font or data source,
+or cookies) except the `/downloads/` page asking GitHub for the download count. Keep those true: when a change saves or sends something new, or adds a library, font or data source,
 update that page and its date in the same commit.
 
 ## Release flow
 
 Every push to `main` runs `.github/workflows/build.yml`:
 1. Tests run and the single-file exe is published (Windows runner), then uploaded as the `LanguageAutocorrect` artifact.
-2. The website is built with `DOWNLOAD_BYTES` set, the exe is copied next to it, and the result is deployed to GitHub
-   Pages at https://language-autocorrect.world (custom domain set in the repo's Pages settings, Source = GitHub Actions).
+2. The first build of each version creates the GitHub release `v<Version>` with the exe (later pushes of the same
+   version leave it alone, so its download count keeps growing). The site's Download button links there, so GitHub
+   counts downloads; `website/downloads/` (`/downloads/`, unlinked, for the owner) reads the counts from GitHub's API.
+3. The website is built with `DOWNLOAD_BYTES` set, the exe is copied next to it (the updater downloads that copy, so
+   updates aren't counted), and the result is deployed to GitHub Pages at https://language-autocorrect.world (custom
+   domain set in the repo's Pages settings, Source = GitHub Actions).
 
 So every push to `main` updates the public download. **Bump `<Version>` in `src/LanguageAutocorrect/LanguageAutocorrect.csproj` for
 any app change**, or installed copies won't be offered the update (the site's `version.json` comes from that number).

@@ -8,7 +8,7 @@ import { CONTACT_EMAIL, REPO_URL } from '../site';
 import './Privacy.css';
 
 /** When this page last changed what it says. Update it with every such change, and mention it in the release notes. */
-const UPDATED = { date: '2026-09-27', text: 'September 27, 2026' };
+const UPDATED = { date: '2026-09-29', text: 'September 29, 2026' };
 
 const SUMMARY: [LucideIcon, string, string][] = [
   [HardDrive, 'Your typing stays on your PC', 'Words are checked on your computer. What you type is never saved or sent anywhere.'],
@@ -135,12 +135,21 @@ export default function Privacy() {
                 . I can’t see those records.
               </li>
               <li>
+                <b>Downloads are counted.</b> The Download button gets the app from{' '}
+                <a href={`${REPO_URL}/releases`}>its releases on GitHub</a>, and GitHub counts how many times each
+                version is downloaded. That number is all I see: not who downloaded it or where from. As with the site,
+                GitHub sees your IP address, under the same privacy statement. Updates the app installs by itself come
+                from this site and aren’t counted.
+              </li>
+              <li>
                 <b>No cookies or tracking.</b> The site sets no cookies, stores nothing in your browser, and has no
                 statistics, ads or social media buttons.
               </li>
               <li>
                 <b>Nothing from other companies.</b> The site’s fonts, pictures and code are all stored on the site
-                itself, so visiting it doesn’t contact Google Fonts or any other service.
+                itself, so visiting it doesn’t contact Google Fonts or any other service. The one exception is the
+                page that shows the download count (<a href="../downloads/">/downloads/</a>), which asks GitHub for the
+                numbers when it’s opened.
               </li>
               <li>
                 <b>The typing demo</b> works inside your browser. What you type in it isn’t sent anywhere.
@@ -174,6 +183,12 @@ export default function Privacy() {
               If this ever changes, for example if the app starts sending something new, this page will say so first,
               with a new date, and the release notes will mention it.
             </p>
+            <ul>
+              <li>
+                <b>September 29, 2026:</b> the Download button now gets the app from GitHub, which counts the
+                downloads (see <a href="#website">The website</a>).
+              </li>
+            </ul>
           </Section>
 
           <Section id="who" title="Who’s responsible">

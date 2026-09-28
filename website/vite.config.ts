@@ -11,12 +11,14 @@ export default defineConfig({
   base: './',
   build: {
     rolldownOptions: {
-      // The download page, the release notes at /release-notes/ (also what the app shows after an update), and the
-      // privacy policy and credits at /privacy/ (the app links there too).
+      // The download page, the release notes at /release-notes/ (also what the app shows after an update), the
+      // privacy policy and credits at /privacy/ (the app links there too), and the download count at /downloads/
+      // (not linked from anywhere; it's for the owner).
       input: {
         main: page('index.html'),
         releaseNotes: page('release-notes/index.html'),
         privacy: page('privacy/index.html'),
+        downloads: page('downloads/index.html'),
       },
     },
   },
