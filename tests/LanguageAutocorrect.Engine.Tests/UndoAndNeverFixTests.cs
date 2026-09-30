@@ -46,6 +46,29 @@ public class NeverFixListTests
         list.UndosToBlock = 3;
         Assert.False(list.IsBlocked("abc"));
     }
+
+    [Fact]
+    public void WordBlockedByHandStaysBlockedWhenThresholdRises()
+    {
+        // Added in Settings, "Never fix this" on a recent fix, or "Stop fixing" on the question card.
+        var list = new NeverFixList(new Dictionary<string, int> { ["vbh"] = 1 }, undosToBlock: 3);
+        list.Block("akuo");
+        list.Block("vbh");   // undone once before
+        list.UndosToBlock = 10;
+        Assert.True(list.IsBlocked("akuo"));
+        Assert.True(list.IsBlocked("vbh"));
+        Assert.Equal(["akuo", "vbh"], list.BlockedWords());
+        Assert.False(list.RecordUndo("akuo"));   // already blocked, and stays so
+        Assert.True(list.IsBlocked("akuo"));
+
+        // Saved and loaded again.
+        var loaded = new NeverFixList(list.Snapshot(), undosToBlock: 10);
+        Assert.True(loaded.IsBlocked("akuo"));
+
+        list.Remove("akuo");
+        Assert.False(list.IsBlocked("akuo"));
+        Assert.Equal(["vbh"], list.BlockedWords());
+    }
 }
 
 public class UndoQuestionTests
@@ -411,6 +434,21 @@ public class AppSettingsTests
             Assert.Equal(Sensitivity.High, l.Sensitivity);
             Assert.Equal(4, l.UndosToBlock);
             Assert.Equal(2, l.NeverFixUndoCounts["akuo"]);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void WordBlockedByHandSurvivesSaving()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        try
+        {
+            var list = new NeverFixList(undosToBlock: 3);
+            list.Block("akuo");
+            new AppSettings { NeverFixUndoCounts = list.Snapshot() }.Save(path);
+            var l = AppSettings.Load(path);
+            Assert.True(new NeverFixList(l.NeverFixUndoCounts, undosToBlock: 10).IsBlocked("akuo"));
         }
         finally { File.Delete(path); }
     }
