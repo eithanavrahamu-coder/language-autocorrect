@@ -316,7 +316,7 @@ internal static class Installer
             link.TargetPath = InstalledExe;
             link.WorkingDirectory = InstallDir;
             link.IconLocation = InstalledExe + ",0";
-            link.Description = "Hebrew/English keyboard helper";
+            link.Description = "Fixes words typed on the wrong keyboard language";
             link.Save();
         });
     }
