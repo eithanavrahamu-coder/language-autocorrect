@@ -131,7 +131,14 @@ public sealed class TypingSession
         switch (key.Kind)
         {
             case KeyKind.WordKey:
-                if (_wordLayout != null && _wordLayout != layout) Reset();
+                if (_wordLayout != null && _wordLayout != layout)
+                {
+                    // The keyboard changed mid-word: the word starts again here. What was typed before stays on screen
+                    // untracked, so the earlier words aren't right before the caret anymore (Backspace into them, or
+                    // fixing them with this word, would delete the wrong characters).
+                    Reset();
+                    _history.Clear();
+                }
                 _wordLayout = layout;
                 if (key.Shifted && ShiftTypesLetter(key.UsChar, layout))
                 {

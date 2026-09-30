@@ -417,6 +417,24 @@ public class TypingSessionTests
         foreach (var c in "kuo") s.OnKey(KeyInput.Word(c), Lang.English, true, Sensitivity.Medium, T0);
         Assert.Equal("kuo", s.CurrentKeys);
     }
+
+    [Fact]
+    public void BackspaceAfterLayoutChangeMidWordStaysInThatWord()
+    {
+        // "hello a", then the keyboard changes and k types ל. The "a" stays on screen, but isn't tracked anymore.
+        var s = NewSession();
+        TypeWords(s, "hello a", Lang.English, T0);
+        s.OnKey(KeyInput.Word('k'), Lang.Hebrew, true, Sensitivity.Medium, T0);
+        s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0);   // deletes ל
+        s.OnKey(KeyInput.Backspace, Lang.Hebrew, true, Sensitivity.Medium, T0);   // deletes the "a", not the space
+        Assert.Equal("", s.CurrentKeys);
+
+        // The screen shows "hello ": a word typed now is fixed by itself.
+        var a = Assert.IsType<FixWord>(TypeWords(s, "akuo ", Lang.English, T0));
+        Assert.Equal("שלום", a.Text);
+        Assert.Equal(4, a.Backspaces);
+        Assert.Equal(1, a.Correction.WordCount);
+    }
 }
 
 public class AppSettingsTests
