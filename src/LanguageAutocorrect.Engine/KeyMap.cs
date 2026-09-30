@@ -20,18 +20,23 @@ public static class KeyMap
 
     private readonly record struct Token(string Text, char Combining, bool Dead);
 
-    private sealed record Map(Token[] Plain, Token[] Shifted);
+    /// <param name="Joins">
+    /// The letters each accent key joins with, as read from the user's Windows keyboard: (accent, letter) -> the joined
+    /// letter. Null for the built-in keyboards, which join the way Windows keyboards usually do (see <see cref="Join"/>).
+    /// </param>
+    private sealed record Map(Token[] Plain, Token[] Shifted, IReadOnlyDictionary<(char Accent, char Letter), char>? Joins);
 
     private static volatile Dictionary<Lang, Map> _maps = BuildDefaults();
 
     private static Dictionary<Lang, Map> BuildDefaults() =>
-        Languages.All.ToDictionary(l => l.Lang, l => Build(l, l.Keyboard.Split(' '), l.ShiftKeyboard?.Split(' ')));
+        Languages.All.ToDictionary(l => l.Lang, l => Build(l, l.Keyboard.Split(' '), l.ShiftKeyboard?.Split(' '), null));
 
-    private static Map Build(LanguageInfo info, IReadOnlyList<string> plain, IReadOnlyList<string>? shifted)
+    private static Map Build(LanguageInfo info, IReadOnlyList<string> plain, IReadOnlyList<string>? shifted,
+        IReadOnlyDictionary<(char Accent, char Letter), char>? joins)
     {
         var p = Parse(plain);
         var s = shifted != null ? Parse(shifted) : p.Select((t, i) => DefaultShifted(t, i, info)).ToArray();
-        return new Map(p, s);
+        return new Map(p, s, joins);
     }
 
     /// <summary>Without a shifted map: the capital of a letter, otherwise what a US keyboard types.</summary>
@@ -55,10 +60,16 @@ public static class KeyMap
     /// </summary>
     /// <param name="tokens">One entry per <see cref="PhysicalKeys"/>, in the same format as <see cref="LanguageInfo.Keyboard"/>.</param>
     /// <param name="shifted">The same with Shift held, or null to derive it.</param>
-    public static void SetKeyboard(Lang lang, IReadOnlyList<string> tokens, IReadOnlyList<string>? shifted = null)
+    /// <param name="joins">
+    /// Every letter an accent key joins with on this keyboard: (the accent the key shows by itself, the letter) -> the
+    /// joined letter (´ + e = é). An accent followed by any other letter is typed as the accent, then the letter.
+    /// Null if unknown: accents then join the way Windows keyboards usually do.
+    /// </param>
+    public static void SetKeyboard(Lang lang, IReadOnlyList<string> tokens, IReadOnlyList<string>? shifted = null,
+        IReadOnlyDictionary<(char Accent, char Letter), char>? joins = null)
     {
         var info = Languages.Get(lang);
-        var copy = new Dictionary<Lang, Map>(_maps) { [lang] = Build(info, tokens, shifted ?? info.ShiftKeyboard?.Split(' ')) };
+        var copy = new Dictionary<Lang, Map>(_maps) { [lang] = Build(info, tokens, shifted ?? info.ShiftKeyboard?.Split(' '), joins) };
         _maps = copy;
     }
 
@@ -116,17 +127,20 @@ public static class KeyMap
             var tok = t.Value;
             if (tok.Dead)
             {
-                // Combine with the next key's letter if possible (΄ + α = ά), otherwise show the accent itself.
+                // Joined with the next key's letter where Windows joins them (΄ + α = ά); otherwise the accent itself
+                // shows, and the next key types as usual (´ + m = ´m). Two accent keys type both accents (´ + ` = ´`).
                 var next = i + 1 < usKeys.Length ? Lookup(map, usKeys[i + 1]) : null;
-                if (next is { Dead: false } n && n.Text.Length == 1)
+                if (next is { Dead: true } second)
                 {
-                    var composed = (n.Text + tok.Combining).Normalize(NormalizationForm.FormC);
-                    if (composed.Length == 1)
-                    {
-                        sb.Append(composed);
-                        i++;
-                        continue;
-                    }
+                    sb.Append(tok.Text).Append(second.Text);
+                    i++;
+                    continue;
+                }
+                if (next is { } n && n.Text.Length == 1 && Join(map, tok, n.Text[0]) is char joined)
+                {
+                    sb.Append(joined);
+                    i++;
+                    continue;
                 }
                 sb.Append(tok.Text);
                 continue;
@@ -138,6 +152,24 @@ public static class KeyMap
         if (Languages.Get(lang).JoinsSyllables) s = Hangul.Compose(s);
         return s;
     }
+
+    /// <summary>
+    /// The letter an accent key followed by <paramref name="letter"/> types as one character, or null if Windows types
+    /// the accent and then the letter. A keyboard read from Windows says exactly which letters join. Otherwise: Windows
+    /// keyboards join an accent only with the letters that have it in their alphabet's basic block – á é ñ ü ý
+    /// (Latin-1), ά ϊ (Greek), ѓ ќ (Cyrillic). Letters like ḿ, ṽ or ń exist in Unicode, but pressing ´ then m types "´m".
+    /// </summary>
+    private static char? Join(Map map, Token accent, char letter)
+    {
+        if (map.Joins != null)
+            return accent.Text.Length == 1 && map.Joins.TryGetValue((accent.Text[0], letter), out var j) ? j : null;
+        var composed = (letter.ToString() + accent.Combining).Normalize(NormalizationForm.FormC);
+        return composed.Length == 1 && IsBasicLetter(composed[0]) ? composed[0] : null;
+    }
+
+    /// <summary>Latin-1 letters (À to ÿ, U+00C0 to U+00FF), or the Greek and Cyrillic blocks (U+0370 to U+04FF).</summary>
+    private static bool IsBasicLetter(char c) =>
+        c is (>= (char)0x00C0 and <= (char)0x00FF) or (>= (char)0x0370 and <= (char)0x04FF);
 
     /// <summary>
     /// True if every key types exactly one character (no dead keys, multi-letter keys like Arabic لا,

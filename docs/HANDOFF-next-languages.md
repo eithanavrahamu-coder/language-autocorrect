@@ -74,6 +74,9 @@ Belarusian has no word list in the source below; skip it.
     has upper/lower case, right-to-left flag, and `Keyboard`: what each of the 47 physical keys types, in the order
     ``` ` 1 2 3 4 5 6 7 8 9 0 - = q w e r t y u i o p [ ] \ a s d f g h j k l ; ' z x c v b n m , . / ```
     (US key names). A token `~` + combining accent + spacing accent marks a dead key (see Greek/French/German).
+    Like Windows, a dead key joins only some letters (´ + e = é, but ´ + m = "´m", two characters): the built-in
+    maps join only into Latin-1, Greek and Cyrillic letters, and the app reads the exact pairs from the user's own
+    layout (`LayoutService.ReadJoins`). A fix deletes as many characters as `Render` says were typed, so this matters.
   - `KeyMap.cs` – renders physical keys in a language (handles dead keys, multi-letter keys like Arabic `لا`,
     capital first letter), and `ToUsKeys` (text → keys, used by tests).
   - `LanguageModel.cs` – loads `Data/<code>.txt` (word + count per line, most frequent first), word ranks and a

@@ -283,13 +283,81 @@ internal static class LayoutService
                 var tokens = ReadKeyboard(hkl);
                 // Georgian and similar keyboards type letters of their own with Shift.
                 var shifted = tokens != null && Languages.Get(lang).ShiftKeyboard != null ? ReadKeyboard(hkl, shift: true) : null;
-                if (tokens != null) KeyMap.SetKeyboard(lang, tokens, shifted);
+                if (tokens != null) KeyMap.SetKeyboard(lang, tokens, shifted, JoinsFor(hkl, lang));
             }
             catch (Exception ex)
             {
                 Log.Write($"Reading keyboard {lang} failed: {ex.Message}");
             }
         }
+    }
+
+    /// <summary>Each keyboard's accent joins, read once (see <see cref="ReadJoins"/>).</summary>
+    private static readonly ConcurrentDictionary<IntPtr, IReadOnlyDictionary<(char Accent, char Letter), char>?> JoinsByHkl = new();
+
+    /// <summary>What the keyboard's accent keys join with, or null (the engine's usual rule) if it can't be read.</summary>
+    private static IReadOnlyDictionary<(char Accent, char Letter), char>? JoinsFor(IntPtr hkl, Lang lang)
+    {
+        try
+        {
+            return JoinsByHkl.GetOrAdd(hkl, ReadJoins);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Reading the accent keys of keyboard {lang} failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Which letters each accent (dead) key joins with on this keyboard. Windows joins ´ then e into é, but types ´ then
+    /// m as "´m", and the letters differ from keyboard to keyboard (Latin American Spanish joins ´ then c into ç). A fix
+    /// deletes as many characters as were typed, so this has to be exact. Found by pressing each accent key and then each
+    /// key, the way Windows does while typing: without <see cref="DontChangeKeyboardState"/>, so the accent carries over
+    /// to the next key. A space after every try clears any accent still waiting, so nothing is left pending.
+    /// </summary>
+    private static IReadOnlyDictionary<(char Accent, char Letter), char>? ReadJoins(IntPtr hkl)
+    {
+        var plain = new byte[256];
+        var shifted = new byte[256];
+        shifted[Native.VK_SHIFT] = 0x80;
+        var buf = new StringBuilder(8);
+        int Press(uint vk, uint sc, bool shift, uint flags)
+        {
+            buf.Clear();
+            return ToUnicodeEx(vk, sc, shift ? shifted : plain, buf, buf.Capacity, flags, hkl);
+        }
+        void ClearAccent() => Press(Native.VK_SPACE, 0x39, false, 0);
+
+        // Each key by itself, with and without Shift: an accent key, or a key that types one character.
+        var accents = new List<(uint Vk, uint Sc, bool Shift, char Accent)>();
+        var letters = new List<(uint Vk, uint Sc, bool Shift, char Letter)>();
+        foreach (var (scanCode, _) in KeyboardMonitor.PhysicalKeys)
+        {
+            uint sc = (uint)scanCode;
+            uint vk = MapVirtualKeyEx(sc, MAPVK_VSC_TO_VK, hkl);
+            if (vk == 0) continue;
+            foreach (bool shift in new[] { false, true })
+            {
+                int n = Press(vk, sc, shift, DontChangeKeyboardState);
+                if (n < 0 && buf.Length > 0 && !accents.Exists(a => a.Accent == buf[0])) accents.Add((vk, sc, shift, buf[0]));
+                else if (n == 1) letters.Add((vk, sc, shift, buf[0]));
+            }
+        }
+        if (accents.Count == 0) return null;
+
+        var joins = new Dictionary<(char Accent, char Letter), char>();
+        ClearAccent();
+        foreach (var a in accents)
+        {
+            foreach (var l in letters)
+            {
+                // One character back means Windows joined them (or typed just one of them): either way, one on screen.
+                if (Press(a.Vk, a.Sc, a.Shift, 0) < 0 && Press(l.Vk, l.Sc, l.Shift, 0) == 1) joins[(a.Accent, l.Letter)] = buf[0];
+                ClearAccent();
+            }
+        }
+        return joins;
     }
 
     private static string[]? ReadKeyboard(IntPtr hkl, bool shift = false)

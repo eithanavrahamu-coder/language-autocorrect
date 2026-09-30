@@ -42,6 +42,15 @@ function lookup(map: KeyMap, key: string): Token | null {
   return i >= 0 ? map.shifted[i] : null;
 }
 
+/**
+ * Windows keyboards join an accent only with letters that have it in their alphabet's basic block: Latin-1 (á é ñ ü),
+ * Greek (ά ϊ) and Cyrillic (ѓ ќ). Anything else (ḿ, ṽ) is typed as the accent, then the letter.
+ */
+const isBasicLetter = (c: string) => {
+  const n = c.charCodeAt(0);
+  return (n >= 0xc0 && n <= 0xff) || (n >= 0x370 && n <= 0x4ff);
+};
+
 /** The text a sequence of physical keys types in a language, with dead keys (΄ + α = ά) combined. */
 export function render(keys: string, code: string): string {
   const map = mapFor(byCode(code));
@@ -51,9 +60,11 @@ export function render(keys: string, code: string): string {
     if (!t) { out += keys[i]; continue; }
     if (t.dead) {
       const next = i + 1 < keys.length ? lookup(map, keys[i + 1]) : null;
-      if (next && !next.dead && next.text.length === 1) {
+      // Two accent keys type both accents (´ + ` = ´`).
+      if (next?.dead) { out += t.text + next.text; i++; continue; }
+      if (next && next.text.length === 1) {
         const composed = (next.text + t.combining).normalize('NFC');
-        if (composed.length === 1) { out += composed; i++; continue; }
+        if (composed.length === 1 && isBasicLetter(composed)) { out += composed; i++; continue; }
       }
       out += t.text;
       continue;
