@@ -236,4 +236,16 @@ public static class Languages
     /// <param name="langId">The Windows language id (LANGID) of a keyboard layout, or just its primary id.</param>
     public static LanguageInfo? FromWindowsLangId(int langId) =>
         All.FirstOrDefault(l => l.WindowsFullLangIds?.Contains(langId) ?? l.WindowsLangId == (langId & 0x3FF));
+
+    /// <summary>
+    /// The languages the installed keyboards type: each keyboard's own language, and English wherever there is a
+    /// Korean keyboard, whose IME types English in its English mode (Korean Windows often has no English keyboard).
+    /// </summary>
+    /// <param name="keyboards">The language of each installed keyboard.</param>
+    public static IReadOnlyList<Lang> TypedBy(IEnumerable<Lang> keyboards)
+    {
+        var list = keyboards.Distinct().ToList();
+        if (list.Contains(Lang.Korean) && !list.Contains(Lang.English)) list.Add(Lang.English);
+        return list;
+    }
 }

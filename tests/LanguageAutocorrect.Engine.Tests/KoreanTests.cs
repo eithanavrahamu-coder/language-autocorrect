@@ -91,4 +91,29 @@ public class KoreanTests
 
     [Fact]
     public void RecognizesKoreanKeyboard() => Assert.Equal(Lang.Korean, Languages.FromWindowsLangId(0x0412)?.Lang);
+
+    [Fact]
+    public void KoreanKeyboardAloneAlsoTypesEnglish()
+    {
+        // Korean Windows usually has only the Korean keyboard: its IME types English in its English mode.
+        var installed = Languages.TypedBy([Lang.Korean]);
+        Assert.Equal([Lang.Korean, Lang.English], installed);
+
+        // The languages the app checks (TrayApp.RefreshLanguages): the chosen ones that have a keyboard.
+        var enabled = new AppSettings().EnabledLanguages(installed).Where(installed.Contains).ToList();
+        Assert.Equal([Lang.English, Lang.Korean], enabled);
+        var s = new TypingSession(D, new NeverFixList()) { Languages = enabled };
+        foreach (var c in "hello") s.OnKey(KeyInput.Word(c), Lang.Korean, true, Sensitivity.Medium, T0);
+        var a = Assert.IsType<FixWord>(s.OnKey(KeyInput.Space, Lang.Korean, true, Sensitivity.Medium, T0));
+        Assert.Equal("hello", a.Text);
+        Assert.Equal(Lang.English, a.Layout);
+    }
+
+    [Fact]
+    public void OnlyTheKoreanKeyboardAddsEnglish()
+    {
+        Assert.Equal([Lang.Hebrew], Languages.TypedBy([Lang.Hebrew]));
+        Assert.Equal([Lang.English, Lang.Korean], Languages.TypedBy([Lang.English, Lang.Korean, Lang.Korean]));
+        Assert.Empty(Languages.TypedBy([]));
+    }
 }

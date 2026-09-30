@@ -101,10 +101,14 @@ internal static class LayoutService
         return list;
     }
 
-    /// <summary>Supported languages that have a keyboard installed in Windows.</summary>
+    /// <summary>
+    /// Supported languages that have a keyboard installed in Windows. English counts with just a Korean keyboard, which
+    /// types English in its English mode (see <see cref="AppendSwitch"/>).
+    /// </summary>
     public static IReadOnlyList<Lang> InstalledLanguages() =>
-        Installed().Select(FromHkl).OfType<Lang>().Distinct().ToList();
+        Languages.TypedBy(Installed().Select(FromHkl).OfType<Lang>());
 
+    /// <summary>The keyboard of <paramref name="lang"/> itself, or null (English typed with the Korean keyboard has none).</summary>
     public static IntPtr? FindInstalled(Lang lang)
     {
         foreach (var hkl in Installed())
