@@ -1,0 +1,64 @@
+/* 3.16.1: "I'm" typed on the Spanish keyboard shows "I´m"; Space fixes it to "I'm" and nothing is left behind. */
+.v3-16-1 {
+  position: relative; width: 272px; height: 200px; font-family: 'Segoe UI', var(--font-body);
+}
+
+/* The text box, with the language badge on the cursor. */
+.v3-16-1 .box {
+  position: absolute; top: 16px; left: 0; right: 0; height: 80px; padding: 0 18px 12px;
+  display: flex; align-items: center; font-size: 24px; white-space: nowrap;
+  background: var(--card); border: 1px solid #5847E0; border-radius: 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #5847E0 22%, transparent);
+}
+.v3-16-1 .word { color: var(--text); border-radius: 5px; transition: opacity .3s; }
+.v3-16-1[data-fixed] .word { animation: v3-16-1-glow 1.2s ease-out; }
+.v3-16-1[data-clear] .word { opacity: 0; }
+.v3-16-1 .caret {
+  position: relative; width: 2px; height: 27px; margin-inline-start: 1px; flex-shrink: 0;
+}
+/* Only the line blinks, not the badge on it. */
+.v3-16-1 .caret::before {
+  content: ''; position: absolute; inset: 0; background: var(--text);
+  animation: v3-16-1-blink 1s steps(1) infinite;
+}
+.v3-16-1 .badge {
+  position: absolute; left: 3px; top: calc(100% + 5px); height: 18px; min-width: 25px; padding: 0 5px;
+  display: grid; place-items: center; border-radius: 6px; background: #D97706;
+  color: #fff; font-size: 10.5px; font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+  transition: background .25s;
+}
+.v3-16-1 .badge[data-lang="en"] { background: var(--en); }
+
+/* The keys being pressed. */
+.v3-16-1 .keys {
+  position: absolute; top: 122px; left: 0; right: 0; display: flex; justify-content: center; gap: 7px;
+}
+.v3-16-1 .key {
+  min-width: 30px; height: 30px; padding: 0 8px; border-radius: 7px;
+  display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--text);
+  background: var(--card); border: 1px solid var(--line); border-bottom-width: 3px;
+  transition: translate .08s, border-bottom-width .08s, background .08s;
+}
+.v3-16-1 .key[data-wide] { min-width: 76px; }
+.v3-16-1 .key[data-down] {
+  translate: 0 2px; border-bottom-width: 1px; background: color-mix(in srgb, #5847E0 12%, var(--card));
+}
+
+/* What the fix used to leave, once the fix is on screen. */
+.v3-16-1 .before {
+  position: absolute; top: 172px; left: 0; right: 0; text-align: center;
+  font-size: 11.5px; color: var(--muted); opacity: 0; transition: opacity .3s;
+}
+.v3-16-1 .before s { color: var(--faint); }
+.v3-16-1[data-fixed] .before { opacity: 1; }
+.v3-16-1[data-clear] .before { opacity: 0; }
+
+@keyframes v3-16-1-blink { 50% { opacity: 0; } }
+@keyframes v3-16-1-glow {
+  from { background: color-mix(in srgb, var(--en) 26%, transparent); }
+  to { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-16-1 .caret::before, .v3-16-1[data-fixed] .word { animation: none; }
+}
