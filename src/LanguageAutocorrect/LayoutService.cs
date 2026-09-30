@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LanguageAutocorrect.Engine;
 using Microsoft.Win32;
@@ -124,6 +125,11 @@ internal static class LayoutService
     /// </summary>
     public static void AppendSwitch(InputSender input, Lang target)
     {
+        // The checks below run a moment later: only if this is still the latest switch, in the same window.
+        int switchId = Interlocked.Increment(ref _switchCount);
+        var window = Native.GetForegroundWindow();
+        bool StillWanted() => Volatile.Read(ref _switchCount) == switchId && Native.GetForegroundWindow() == window;
+
         var current = CurrentHkl();
         if (FromHkl(current) == Lang.Korean && target is Lang.Korean or Lang.English)
         {
@@ -163,13 +169,26 @@ internal static class LayoutService
             // Safety net: if the hotkey didn't land on the right layout, switch directly.
             _ = Task.Delay(400).ContinueWith(_ =>
             {
-                if (FromHkl(CurrentHkl()) is Lang now && now != keyboard) PostSwitch(keyboard);
+                if (StillWanted() && FromHkl(CurrentHkl()) is Lang now && now != keyboard) PostSwitch(keyboard);
             });
         }
 
         // The Korean keyboard comes back in whichever mode it was left in.
-        if (keyboard == Lang.Korean) _ = Task.Delay(600).ContinueWith(_ => SetKoreanMode(hangul: target == Lang.Korean));
+        if (keyboard == Lang.Korean)
+            _ = Task.Delay(600).ContinueWith(_ =>
+            {
+                if (StillWanted()) SetKoreanMode(hangul: target == Lang.Korean);
+            });
     }
+
+    /// <summary>Counts switches, so a delayed check only acts for the latest one (see <see cref="AppendSwitch"/>).</summary>
+    private static int _switchCount;
+
+    /// <summary>
+    /// Stops the delayed checks of the switches made so far. An undo switches the keyboard back; a check still waiting
+    /// from the fix would otherwise switch it again, and the next letters would come out in the wrong language.
+    /// </summary>
+    public static void CancelDelayedChecks() => Interlocked.Increment(ref _switchCount);
 
     // ---------------- the Korean IME's Hangul and English modes ----------------
 

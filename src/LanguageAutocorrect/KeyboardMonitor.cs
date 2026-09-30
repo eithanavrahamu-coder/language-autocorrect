@@ -222,6 +222,9 @@ internal sealed class KeyboardMonitor : IDisposable
         _pendingSwitch = null;
         if (_switchTimer != IntPtr.Zero) Native.KillTimer(IntPtr.Zero, _switchTimer);
         _switchTimer = IntPtr.Zero;
+        // A switch already made may still check itself a moment later (LayoutService.AppendSwitch): after an undo, or
+        // once another switch replaces it, that check must not switch the keyboard back.
+        LayoutService.CancelDelayedChecks();
     }
 
     private void OnSwitchTimer(IntPtr hWnd, uint msg, IntPtr idEvent, uint time)
