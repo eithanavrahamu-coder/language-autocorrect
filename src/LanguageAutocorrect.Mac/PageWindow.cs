@@ -71,7 +71,8 @@ internal sealed class PageWindow : NSObject, IWKScriptMessageHandler
 
     public WKWebView Web => _web;
 
-    public bool IsVisible => _window.IsVisible;
+    /// <summary>The page has loaded and listens (it said "ready").</summary>
+    public bool IsReady => _ready;
 
     /// <summary>Shows one of the app's own pages (UI/app.html).</summary>
     public void LoadPage(string name) => _web.LoadHtmlString(ReadPage(name), new NSUrl("about:blank"));

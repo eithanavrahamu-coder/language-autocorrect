@@ -37,7 +37,7 @@ internal sealed class MacApp : NSApplicationDelegate
     private PageWindow? _whatsNew;
     private bool _whatsNewLoaded;
     private string? _pendingToast;
-    private NSTimer? _timer;
+    private NSTimer? _timer, _updateTimer;
     private int _ticks;
 
     // The app in front, for the apps auto-correct is turned off in.
@@ -92,8 +92,9 @@ internal sealed class MacApp : NSApplicationDelegate
         _settings.AskAfterUndos = false;
         _session = new TypingSession(_detector, _neverFix, question: _question) { LearnFromUndos = _settings.LearnFromUndos };
         _tap = new KeyTap(_session, () => _context);
-        _tap.Fixed += OnFixed;
-        _tap.Undone += OnUndone;
+        // After the key watcher has handed the key back to macOS (saving and the window's update take a moment).
+        _tap.Fixed += fix => CoreFoundation.DispatchQueue.MainQueue.DispatchAsync(() => OnFixed(fix));
+        _tap.Undone += undo => CoreFoundation.DispatchQueue.MainQueue.DispatchAsync(() => OnUndone(undo));
 
         RefreshLanguages();
         _lastLayout = InputSources.Observe();
@@ -123,6 +124,7 @@ internal sealed class MacApp : NSApplicationDelegate
 
         _timer = NSTimer.CreateRepeatingScheduledTimer(0.25, _ => OnTick());
         NSTimer.CreateScheduledTimer(120, false, t => _ = CheckForUpdatesIfDueAsync());
+        _updateTimer = NSTimer.CreateRepeatingScheduledTimer(60 * 60, t => _ = CheckForUpdatesIfDueAsync());
 
         // Opened by hand (not at login), or there's something to do: show the window.
         if (!LaunchedAtLogin() || !Permission.Granted || firstRun || _settings.WhatsNewFrom != null) ShowWindow();
@@ -234,8 +236,6 @@ internal sealed class MacApp : NSApplicationDelegate
         _settings.CountFix(DateTime.Now, fix.Correction.WordCount);
         _recent.Insert(0, new RecentFix(DateTime.Now, fix.Correction.Typed, fix.Correction.Replacement, _frontName, fix.Correction.To));
         if (_recent.Count > 12) _recent.RemoveAt(_recent.Count - 1);
-        _lastLayout = fix.Layout;
-        UpdateStatusIcon();
         Save();
         PushState();
     }
@@ -331,7 +331,8 @@ internal sealed class MacApp : NSApplicationDelegate
         }
         else if (page != null)
         {
-            _window.Post(new { type = "show", page });
+            if (_window.IsReady) _window.Post(new { type = "show", page });
+            else _pendingPage = page;
         }
         // While the window is open the app has a Dock icon and menus, like any app.
         NSApplication.SharedApplication.ActivationPolicy = NSApplicationActivationPolicy.Regular;
@@ -362,14 +363,16 @@ internal sealed class MacApp : NSApplicationDelegate
         PushState();
     }
 
+    /// <summary>A short message at the bottom of the window (when it's next open, if it isn't).</summary>
     private void Toast(string text)
     {
-        if (_window == null) _pendingToast = text;
-        else
+        if (_window?.IsReady != true)
         {
-            _window.Post(new { type = "toast", text });
-            _pendingToast = null;
+            _pendingToast = text;
+            return;
         }
+        _window.Post(new { type = "toast", text });
+        _pendingToast = null;
     }
 
     /// <summary>After an update: what's new in each version since the one that ran before, once.</summary>
@@ -611,7 +614,6 @@ internal sealed class MacApp : NSApplicationDelegate
     {
         bool due = _settings.CheckForUpdates && (_settings.UpdateCheckedAt is not { } at || DateTime.UtcNow - at > TimeSpan.FromHours(20));
         if (due) await CheckForUpdatesAsync(manual: false);
-        NSTimer.CreateScheduledTimer(60 * 60, false, t => _ = CheckForUpdatesIfDueAsync());
     }
 
     /// <summary>
