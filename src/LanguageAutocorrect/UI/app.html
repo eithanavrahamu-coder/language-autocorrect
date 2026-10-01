@@ -277,6 +277,16 @@
   .up-icon.plain { background: var(--chip); color: var(--muted); }
   .up-icon.ok { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
   .up-icon.bad { background: color-mix(in srgb, var(--danger) 13%, transparent); color: var(--danger); }
+  /* The Mac app, until macOS allows it to see and type keys (Accessibility). */
+  .perm-banner {
+    display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 12px;
+    background: color-mix(in srgb, var(--warn) 9%, var(--card)); border-color: color-mix(in srgb, var(--warn) 32%, var(--line));
+  }
+  .perm-banner .up-icon { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+  .perm-banner .setting-desc { margin-top: 3px; }
+  .perm-banner .btn.ghost { margin: 6px 0 0 -8px; }
+  /* Things only the Windows app has (the badge by the cursor, the fix cards, the undo question). */
+  html.mac .win-only { display: none !important; }
   .up-bar { height: 4px; border-radius: 4px; background: var(--divider); overflow: hidden; margin-top: 9px; max-width: 320px; }
   .up-bar div { height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, #2563EB, #5847E0, #16A34A); transition: width .35s ease; }
   .side-update {
@@ -337,6 +347,18 @@
     <h1 id="greeting">Welcome back</h1>
     <p class="lede">Type in any of your languages. Words typed on the wrong keyboard are fixed the moment you press Space.</p>
 
+    <div class="card perm-banner" id="permBanner" hidden>
+      <div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></div>
+      <div class="setting-text">
+        <div class="setting-title">Allow Language Autocorrect to fix your typing</div>
+        <div class="setting-desc">macOS asks you first. Click <b>Allow access</b>, then <b>Open System Settings</b>, and turn on
+          Language Autocorrect under Accessibility. After an update, if it's already on there, remove it with <b>−</b> and
+          click Allow access again.</div>
+        <button class="btn ghost small" id="permOpen">Open Accessibility settings</button>
+      </div>
+      <button class="btn primary" id="permAsk">Allow access</button>
+    </div>
+
     <div class="card update-banner" id="updateBanner" hidden>
       <div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></div>
       <div class="setting-text">
@@ -364,7 +386,7 @@
 
     <h2>Recent fixes</h2>
     <div class="card list" id="recent"></div>
-    <p class="note">Wrong fix? Press <b>Backspace</b> right after it (or <b>Ctrl+Z</b>) to undo, or hover a fix above and choose <b>Never fix</b>.</p>
+    <p class="note" data-mac="Wrong fix? Press <b>Backspace</b> right after it (or <b>⌘Z</b>) to undo, or hover a fix above and choose <b>Never fix</b>.">Wrong fix? Press <b>Backspace</b> right after it (or <b>Ctrl+Z</b>) to undo, or hover a fix above and choose <b>Never fix</b>.</p>
   </section>
 
   <!-- ================= NEVER FIX ================= -->
@@ -386,7 +408,7 @@
 
     <h2>Learning</h2>
     <div class="card">
-      <div class="setting">
+      <div class="setting win-only">
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
         <div class="setting-text">
           <div class="setting-title">Ask about words you keep undoing</div>
@@ -394,7 +416,7 @@
         </div>
         <label class="toggle"><input type="checkbox" data-set="askAfterUndos"><span></span></label>
       </div>
-      <div class="setting" id="askRow">
+      <div class="setting win-only" id="askRow">
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg></div>
         <div class="setting-text">
           <div class="setting-title">Undos before asking</div>
@@ -436,7 +458,7 @@
 
     <h2>Languages</h2>
     <div class="card" id="languages"></div>
-    <p class="note">Pick the languages you type in. Each one also needs its keyboard added in Windows.</p>
+    <p class="note" data-mac="Pick the languages you type in. Each one also needs its keyboard added in System Settings → Keyboard → Text Input.">Pick the languages you type in. Each one also needs its keyboard added in Windows.</p>
 
     <h2>Auto-correct</h2>
     <div class="card">
@@ -462,7 +484,7 @@
 
     <h2>Language cues</h2>
     <div class="card">
-      <div class="setting">
+      <div class="setting win-only">
         <div class="tile"><span class="mini-badge">EN</span></div>
         <div class="setting-text">
           <div class="setting-title">Language badge next to the cursor</div>
@@ -470,7 +492,7 @@
         </div>
         <label class="toggle"><input type="checkbox" data-set="showIndicator"><span></span></label>
       </div>
-      <div class="setting">
+      <div class="setting win-only">
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="10" rx="2.5"/><path d="M7 9h10M6 19h12"/></svg></div>
         <div class="setting-text">
           <div class="setting-title">Show each fix</div>
@@ -492,7 +514,7 @@
     <h2>Apps where auto-correct is off</h2>
     <div class="card">
       <div class="add-row">
-        <input class="input" id="appInput" placeholder="Program name, e.g. notepad" maxlength="60" spellcheck="false" autocomplete="off">
+        <input class="input" id="appInput" placeholder="Program name, e.g. notepad" data-mac-placeholder="App name, e.g. Terminal" maxlength="60" spellcheck="false" autocomplete="off">
         <button class="btn" id="appAdd">Add</button>
       </div>
       <div class="words" id="apps"></div>
@@ -533,8 +555,8 @@
       <div class="setting">
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></svg></div>
         <div class="setting-text">
-          <div class="setting-title">Start with Windows</div>
-          <div class="setting-desc">Run in the background when you sign in.</div>
+          <div class="setting-title" data-mac="Open at login">Start with Windows</div>
+          <div class="setting-desc" data-mac="Run in the menu bar when you log in.">Run in the background when you sign in.</div>
         </div>
         <label class="toggle"><input type="checkbox" data-set="startWithWindows"><span></span></label>
       </div>
@@ -550,7 +572,7 @@
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7 2.7v5.3c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.2z"/><path d="M9 12.2l2.1 2.1 4-4.1"/></svg></div>
         <div class="setting-text">
           <div class="setting-title">Privacy and credits</div>
-          <div class="setting-desc">What you type never leaves this PC. The privacy policy and credits open on the website.</div>
+          <div class="setting-desc" data-mac="What you type never leaves this Mac. The privacy policy and credits open on the website.">What you type never leaves this PC. The privacy policy and credits open on the website.</div>
         </div>
         <button class="btn small" id="privacy">Open</button>
       </div>
@@ -558,9 +580,9 @@
         <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7"/></svg></div>
         <div class="setting-text">
           <div class="setting-title">Uninstall</div>
-          <div class="setting-desc">Remove it from Settings → Apps → Installed apps.</div>
+          <div class="setting-desc" data-mac="Quit it from its menu bar icon, then drag it from Applications to the Trash.">Remove it from Settings → Apps → Installed apps.</div>
         </div>
-        <button class="btn small" id="openApps">Open Windows Settings</button>
+        <button class="btn small" id="openApps" data-mac="Show in Finder">Open Windows Settings</button>
       </div>
     </div>
   </section>
@@ -624,7 +646,7 @@
   });
 
   const addApp = () => {
-    const a = $('#appInput').value.trim().replace(/\.exe$/i, '');
+    const a = $('#appInput').value.trim().replace(/\.(exe|app)$/i, '');
     if (!a) return;
     send({ type: 'excluded.add', app: a });
     $('#appInput').value = '';
@@ -642,6 +664,8 @@
   $('#privacy').addEventListener('click', () => send({ type: 'privacy' }));
   $('#sideUpdate').addEventListener('click', () => show('home'));
   $('#openApps').addEventListener('click', () => send({ type: 'openAppsSettings' }));
+  $('#permAsk').addEventListener('click', () => send({ type: 'permission.ask' }));
+  $('#permOpen').addEventListener('click', () => send({ type: 'permission.open' }));
 
   // ---------- rendering ----------
   function render(s) {
@@ -651,8 +675,17 @@
 
     $('#version').textContent = 'Version ' + s.version;
     $('#aboutVersion').textContent = 'Language Autocorrect · version ' + s.version;
-    $('#statusDot').classList.toggle('off', !s.autoCorrect);
-    $('#statusText').textContent = s.autoCorrect ? 'Auto-correct on' : 'Auto-correct paused';
+    // The Mac app (platform "mac") words a few things its own way, and waits for macOS's permission at first.
+    const mac = s.platform === 'mac';
+    if (mac && !document.documentElement.classList.contains('mac')) {
+      document.documentElement.classList.add('mac');
+      $$('[data-mac]').forEach(el => { el.innerHTML = el.dataset.mac; });
+      $$('[data-mac-placeholder]').forEach(el => { el.placeholder = el.dataset.macPlaceholder; });
+    }
+    const waiting = mac && !s.permission;
+    $('#permBanner').hidden = !waiting;
+    $('#statusDot').classList.toggle('off', !s.autoCorrect || waiting);
+    $('#statusText').textContent = waiting ? 'Waiting for permission' : s.autoCorrect ? 'Auto-correct on' : 'Auto-correct paused';
     paint();
 
     const h = new Date().getHours();
@@ -686,7 +719,7 @@
     renderChips($('#apps'), s.excludedApps, a => send({ type: 'excluded.remove', app: a }), 'Auto-correct works in every app.');
 
     $('#voiceDesc').textContent = 'Says the language\'s name when the keyboard changes.' + (s.nativeVoices.length
-      ? ` No ${s.nativeVoices.join(', ')} voice is installed in Windows, so ${s.nativeVoices.length > 1 ? 'those are' : 'it is'} said in English.`
+      ? ` No ${s.nativeVoices.join(', ')} voice is ${mac ? 'on this Mac' : 'installed in Windows'}, so ${s.nativeVoices.length > 1 ? 'those are' : 'it is'} said in English.`
       : '');
 
     renderLanguages(s.languages);
@@ -704,7 +737,7 @@
   function renderUpdate(current, u) {
     const pct = Math.round((u.progress || 0) * 100) + '%';
     let icon = 'sync', iconClass = 'plain', title = 'Version ' + current, btn = 'Check for updates', primary = false, busy = false;
-    let desc = u.checked ? `Last checked ${u.checked}.` : 'Updates install over this version and keep your settings.';
+    let desc = u.checked ? `Last checked ${u.checked}.` : (u.installed || state.platform !== 'mac' ? 'Updates install over this version and keep your settings.' : 'New versions come from the download page and keep your settings.');
     switch (u.status) {
       case 'checking':
         desc = 'Checking…'; busy = true; break;
@@ -769,7 +802,7 @@
       if (l.enabled && !l.installed) {
         const warn = document.createElement('div');
         warn.className = 'lang-warn';
-        warn.textContent = 'Keyboard not added in Windows yet. ';
+        warn.textContent = state.platform === 'mac' ? 'Keyboard not added in macOS yet. ' : 'Keyboard not added in Windows yet. ';
         const link = document.createElement('button');
         link.className = 'btn ghost small';
         link.textContent = 'Add keyboard';
@@ -855,7 +888,8 @@
     });
     send({ type: 'ready' });
   } else {
-    // Browser preview with sample data: ?page=words|settings, ?update=available|downloading|latest|error, ?paused=1
+    // Browser preview with sample data: ?page=words|settings, ?update=available|downloading|latest|error, ?paused=1,
+    // ?mac=1 (the Mac app; with &permission=0 before macOS allows it)
     const q = new URLSearchParams(location.search);
     const languages = [
       ['en', 'English', 'English', 'EN', '#2563EB', true, true],
@@ -885,6 +919,7 @@
          beta: ['kk', 'ka', 'hy', 'ko', 'th', 'ur'].includes(code) }));
     const lang = code => { const l = languages.find(x => x.code === code); return { code, name: l.name, badge: l.badge, color: l.color }; };
     window.__mockState = {
+      platform: q.get('mac') ? 'mac' : undefined, permission: q.get('permission') !== '0',
       version: '2.2.0', autoCorrect: !q.get('paused'), showIndicator: true, showFixes: true, voice: true, sensitivity: 'Medium',
       startWithWindows: true, learnFromUndos: false, undosToBlock: 3, askAfterUndos: false, undosToAsk: 5, nativeVoices: ['Hebrew'],
       layout: lang('he'),
@@ -919,6 +954,7 @@
     if (msg.type === 'excluded.remove') s.excludedApps = s.excludedApps.filter(a => a !== msg.app);
     if (msg.type === 'update.check') s.update.status = 'available';
     if (msg.type === 'update.install') { s.update.status = 'downloading'; s.update.progress = .3; }
+    if (msg.type === 'permission.ask') s.permission = true;
     render(s);
   }
 })();

@@ -1,5 +1,5 @@
 // Draws the app's logo (a globe with a sparkle on the blue → violet → green gradient) and saves every icon file:
-// the app's .ico and the website's icons.  npm run icons
+// the app's .ico, the Mac app's .icns and the website's icons.  npm run icons
 // app.html, setup.html and the video's Outro carry a copy of the white mark this prints; paste it there if it changes.
 import { chromium } from 'playwright-core';
 import { writeFile } from 'node:fs/promises';
@@ -46,15 +46,52 @@ const icon = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" 
   </linearGradient></defs>
   <rect width="256" height="256" rx="58" fill="url(#g)"/>${mark(size <= 24)}</svg>`;
 
+/**
+ * The Mac app's icon: the same square, drawn the way Mac icons are, a little smaller than the canvas with a soft
+ * shadow below (824 of 1024). `small`: shown at 32 points or less, so the globe alone.
+ */
+const macIcon = (px, small) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 1024 1024" color="#fff">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#2563EB"/><stop offset=".58" stop-color="#5847E0"/><stop offset="1" stop-color="#16A34A"/>
+  </linearGradient>
+  <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity=".28"/>
+  </filter></defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#g)" filter="url(#s)"/>
+  <g transform="translate(100 100) scale(3.21875)">${mark(small)}</g></svg>`;
+
 const browser = await chromium.launch({ channel: 'msedge' });
-const pngs = new Map();
-for (const size of [16, 20, 24, 32, 40, 48, 64, 128, 256]) {
+async function render(svg, size) {
   const page = await browser.newPage({ viewport: { width: size, height: size } });
-  await page.setContent(`<style>body { margin: 0 } svg { display: block }</style>${icon(size)}`);
-  pngs.set(size, await page.screenshot({ type: 'png', omitBackground: true }));
+  await page.setContent(`<style>body { margin: 0 } svg { display: block }</style>${svg}`);
+  const png = await page.screenshot({ type: 'png', omitBackground: true });
   await page.close();
+  return png;
+}
+const pngs = new Map();
+for (const size of [16, 20, 24, 32, 40, 48, 64, 128, 256]) pngs.set(size, await render(icon(size), size));
+
+// An .icns is a list of PNGs, each with a four-letter type: [type, pixels, points it's shown at].
+const macEntries = [
+  ['icp4', 16, 16], ['ic11', 32, 16], ['icp5', 32, 32], ['ic12', 64, 32], ['ic07', 128, 128], ['ic13', 256, 128],
+  ['ic08', 256, 256], ['ic14', 512, 256], ['ic09', 512, 512], ['ic10', 1024, 512],
+];
+const macPngs = new Map();
+const macParts = [];
+for (const [type, px, points] of macEntries) {
+  const key = `${px}/${points <= 32}`;
+  if (!macPngs.has(key)) macPngs.set(key, await render(macIcon(px, points <= 32), px));
+  const png = macPngs.get(key);
+  const head = Buffer.alloc(8);
+  head.write(type, 0, 'latin1');
+  head.writeUInt32BE(8 + png.length, 4);
+  macParts.push(head, png);
 }
 await browser.close();
+const icnsBody = Buffer.concat(macParts);
+const icnsHead = Buffer.alloc(8);
+icnsHead.write('icns', 0, 'latin1');
+icnsHead.writeUInt32BE(8 + icnsBody.length, 4);
 
 // An .ico is a small directory of images; Windows reads PNGs inside it for every size.
 const header = Buffer.alloc(6 + 16 * pngs.size);
@@ -77,6 +114,7 @@ const files = [
   ['website/public/icon.png', pngs.get(256)],
   ['website/public/favicon.png', pngs.get(32)],
   ['website/src/assets/icon-128.png', pngs.get(128)],
+  ['src/LanguageAutocorrect.Mac/Assets/AppIcon.icns', Buffer.concat([icnsHead, icnsBody])],
 ];
 for (const [file, data] of files) {
   await writeFile(path.join(root, file), data);

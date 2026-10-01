@@ -90,6 +90,12 @@ public sealed class AppSettings
     /// </summary>
     public string? WhatsNewFrom { get; set; }
 
+    /// <summary>
+    /// The version that ran last (the Mac app, which is updated by dragging a new copy over it, notices an update by
+    /// it). Null until then.
+    /// </summary>
+    public string? LastRunVersion { get; set; }
+
     public long TotalFixes { get; set; }
     public string? TodayDate { get; set; }
     public int TodayFixes { get; set; }

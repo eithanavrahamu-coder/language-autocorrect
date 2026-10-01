@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Mac app (beta): a menu bar app that uses the same engine and the same app window (UI/app.html) as the Windows app.
+    Needs the .NET macOS workload (dotnet workload install macos). The app bundle is made on a Mac (the Build workflow's
+    mac job); on Windows this project still compiles, which checks the code.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-macos</TargetFramework>
+    <SupportedOSPlatformVersion>14.0</SupportedOSPlatformVersion>
+    <!-- One app for Apple silicon and Intel Macs: the website can't tell them apart. -->
+    <RuntimeIdentifiers>osx-arm64;osx-x64</RuntimeIdentifiers>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>LanguageAutocorrect</AssemblyName>
+    <RootNamespace>LanguageAutocorrect.Mac</RootNamespace>
+    <ApplicationTitle>Language Autocorrect</ApplicationTitle>
+    <ApplicationId>world.language-autocorrect</ApplicationId>
+    <!-- The version is the Windows app's: both are released together (bump it there). -->
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../LanguageAutocorrect/LanguageAutocorrect.csproj')), '&lt;Version&gt;([^&lt;]+)&lt;/Version&gt;').Groups[1].Value)</Version>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <ApplicationVersion>$(Version)</ApplicationVersion>
+    <Product>Language Autocorrect</Product>
+    <Company>Eithan Avraham</Company>
+    <Authors>Eithan Avraham</Authors>
+    <Copyright>© Eithan Avraham</Copyright>
+    <!-- The page state and the settings are turned into JSON by reflection: fine, as macOS apps aren't trimmed. -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <!-- Not packaged into an installer: the build workflow puts the app in a disk image. -->
+    <CreatePackage>false</CreatePackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <BundleResource Include="Assets\AppIcon.icns" LogicalName="AppIcon.icns" />
+    <EmbeddedResource Include="..\LanguageAutocorrect\UI\app.html" LogicalName="LanguageAutocorrect.UI.app.html" />
+    <Compile Include="..\LanguageAutocorrect\AppInfo.cs" Link="AppInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LanguageAutocorrect.Engine\LanguageAutocorrect.Engine.csproj" />
+  </ItemGroup>
+
+</Project>

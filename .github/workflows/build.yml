@@ -2,7 +2,8 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    # Branches under try/ build and test both apps without releasing anything (the website job is main only).
+    branches: [main, 'try/**']
   workflow_dispatch:
 
 jobs:
@@ -22,9 +23,47 @@ jobs:
           name: LanguageAutocorrect
           path: publish/LanguageAutocorrect.exe
 
-  # The download page (website/) on GitHub Pages, with the app just built as its download.
+  # The Mac app (beta), built on a Mac: one app for Apple silicon and Intel, in a disk image to drag to Applications.
+  # It isn't signed by Apple (that needs a paid Apple developer account), only "ad hoc", which Apple silicon requires.
+  mac:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Use the newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Install the .NET macOS workload
+        run: dotnet workload install macos
+      - name: Build
+        run: dotnet build src/LanguageAutocorrect.Mac -c Release -p:ValidateXcodeVersion=false
+      - name: Sign
+        run: |
+          app=$(find src/LanguageAutocorrect.Mac/bin/Release -maxdepth 3 -name '*.app' -type d | head -1)
+          mkdir dmg
+          cp -R "$app" "dmg/Language Autocorrect.app"
+          codesign --force --deep --sign - "dmg/Language Autocorrect.app"
+          codesign --verify --deep --strict "dmg/Language Autocorrect.app"
+          lipo -archs "dmg/Language Autocorrect.app/Contents/MacOS/LanguageAutocorrect"
+      # Starts the app and checks keyboards, detection, the menu bar icon and the window (MacApp.RunSelfCheck).
+      - name: Self-check
+        timeout-minutes: 3
+        run: '"dmg/Language Autocorrect.app/Contents/MacOS/LanguageAutocorrect" --selfcheck'
+      - name: Disk image
+        run: |
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Language Autocorrect" -srcfolder dmg -ov -format UDZO LanguageAutocorrect.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LanguageAutocorrect-mac
+          path: LanguageAutocorrect.dmg
+
+  # The download page (website/) on GitHub Pages, with the apps just built as its downloads.
   website:
-    needs: build
+    needs: [build, mac]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -43,19 +82,30 @@ jobs:
         with:
           name: LanguageAutocorrect
           path: download
-      # The site's Download button links to this release, so GitHub counts the downloads (the site's /downloads/ page
-      # shows them). One release per version: a push that keeps the version keeps its release and its count.
-      # Updates still come from the copy on the site, so they aren't counted.
+      - uses: actions/download-artifact@v4
+        with:
+          name: LanguageAutocorrect-mac
+          path: download
+      # The site's Download buttons link to this release, so GitHub counts the downloads (the site's /downloads/ page
+      # shows them). One release per version: a push that keeps the version keeps its release and its counts (a file
+      # the release doesn't have yet is added). Updates of the Windows app still come from the copy on the site, so
+      # they aren't counted.
       - name: Release this version on GitHub
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           version=$(grep -oP '(?<=<Version>)[^<]+' src/LanguageAutocorrect/LanguageAutocorrect.csproj)
+          files="download/LanguageAutocorrect.exe download/LanguageAutocorrect.dmg"
           if gh release view "v$version" > /dev/null 2>&1; then
             echo "Version $version is already released."
+            for f in $files; do
+              if ! gh release view "v$version" --json assets --jq '.assets[].name' | grep -qx "$(basename "$f")"; then
+                gh release upload "v$version" "$f"
+              fi
+            done
           else
-            gh release create "v$version" download/LanguageAutocorrect.exe --target "$GITHUB_SHA" \
+            gh release create "v$version" $files --target "$GITHUB_SHA" \
               --title "Language Autocorrect $version" \
               --notes "What's new: https://language-autocorrect.world/release-notes/#v$version"
           fi
@@ -68,7 +118,8 @@ jobs:
         working-directory: website
         run: |
           npm ci
-          DOWNLOAD_BYTES=$(stat -c %s ../download/LanguageAutocorrect.exe) npm run build
+          DOWNLOAD_BYTES=$(stat -c %s ../download/LanguageAutocorrect.exe) \
+          MAC_DOWNLOAD_BYTES=$(stat -c %s ../download/LanguageAutocorrect.dmg) npm run build
           cp ../download/LanguageAutocorrect.exe dist/
       - uses: actions/upload-pages-artifact@v5
         with:
