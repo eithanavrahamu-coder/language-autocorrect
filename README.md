@@ -2,8 +2,8 @@
 
 *Made by Eithan Avraham*
 
-A Windows app for people who type in more than one language. It notices words typed on the wrong keyboard
-and fixes them.
+An app for Windows (and, in beta, for Mac) for people who type in more than one language. It notices words typed on
+the wrong keyboard and fixes them.
 
 **Languages:** English, Hebrew, Russian, Arabic, Ukrainian, Persian, Greek, French (AZERTY), German (QWERTZ),
 Bulgarian, Serbian (Cyrillic), Macedonian, Kazakh, Georgian, Armenian, Korean, Thai, Spanish, Portuguese, Turkish, Italian and Urdu.
@@ -85,6 +85,28 @@ The app window and setup use the Microsoft Edge WebView2 Runtime, which comes wi
 Run `LanguageAutocorrect.exe --selfcheck` to check keyboard layouts, voices and detection.
 Settings and log: `%AppData%\LanguageAutocorrect\`.
 
+## Mac (beta)
+
+The Mac app (macOS 14 or newer, Apple silicon and Intel) is a menu bar app with the same engine and the same app window
+(Home, Never fix, Settings). The website's Download button offers it to Mac visitors as `LanguageAutocorrect.dmg`:
+open it, drag Language Autocorrect to Applications and open it from there. It isn't signed with a paid Apple developer
+account, so the first time macOS says it can't check it: click **Done**, then **System Settings → Privacy & Security →
+Open Anyway**. Then the app asks for the **Accessibility** permission (System Settings → Privacy & Security →
+Accessibility), which macOS requires before an app can see and type keys in other apps; its window shows a card until
+it's given. After an update macOS may want it again (remove the app from that list with − and allow it again).
+
+- The menu bar icon shows the keyboard's language as a colored badge (gray while paused or waiting for permission);
+  its menu opens the window, pauses auto-correct, checks for updates and quits.
+- It reads the keyboards added in System Settings → Keyboard → Text Input, with their real layouts (like the Windows
+  app), and switches between them directly. Undo is Backspace right after a fix or **⌘Z**.
+- Not on the Mac yet: Korean, the badge next to the cursor, the fix cards and the card that asks about words you keep
+  undoing. Voice, Never fix, learning from undos, sensitivity, apps to leave alone and opening at login are there.
+- Updates: it checks `version.json` once a day like the Windows app, but a new version is downloaded from the website
+  and dragged over the old one (settings stay). After that, the window shows What's new.
+- Settings and log: `~/Library/Application Support/LanguageAutocorrect/`. Dragging the app to the Trash leaves them.
+- `LanguageAutocorrect --selfcheck` (the program inside the app) starts it, checks keyboards, detection, the menu bar
+  icon and the window, prints the results and quits; the build runs it on a Mac.
+
 ## Building
 
 Requires the .NET 10 SDK.
@@ -94,11 +116,16 @@ dotnet test tests/LanguageAutocorrect.Engine.Tests
 dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o publish
 ```
 
+The Mac app needs the .NET macOS workload (`dotnet workload install macos`). `dotnet build src/LanguageAutocorrect.Mac`
+checks its code on any computer; the app itself is built on a Mac with Xcode, which the Build workflow does (`mac` job:
+build, sign ad hoc, `--selfcheck`, disk image). Pushing a branch named `try/…` runs both builds without releasing
+anything.
+
 The download page is in `website/` (React, built with Vite; needs Node.js). `npm run dev` there shows it locally.
 It reads the languages and the version from the app's code, and every build on `main` publishes it to GitHub Pages
 together with the app it just built. `npm run screenshots` retakes the app screenshots it shows.
-The first build of each version also makes a GitHub release with the app, which the Download button links to, so
-GitHub counts the downloads; [language-autocorrect.world/downloads/](https://language-autocorrect.world/downloads/)
+The first build of each version also makes a GitHub release with both apps, which the Download button links to
+(it offers the one for the visitor's computer, worked out in the browser), so GitHub counts the downloads; [language-autocorrect.world/downloads/](https://language-autocorrect.world/downloads/)
 shows the count (updates the app installs itself come from the site's own copy and aren't counted).
 
 The app was previously called LayoutBuddy and then Type Language Corrector 4000; installing this version replaces
@@ -108,14 +135,16 @@ installs under those names and keeps their settings.
 - `src/LanguageAutocorrect` – the Windows app (keyboard hook, caret tracking, indicator, voice, tray, installer).
 - `src/LanguageAutocorrect/UI` – the app window and setup window (HTML pages shown with WebView2). Open them directly in a
   browser to preview with sample data (`app.html?page=words`, `app.html?paused=1`, `app.html?update=available`,
-  `setup.html?screen=languages`, `setup.html?mode=update`, `setup.html?mode=uninstall`).
+  `app.html?mac=1&permission=0`, `setup.html?screen=languages`, `setup.html?mode=update`, `setup.html?mode=uninstall`).
+- `src/LanguageAutocorrect.Mac` – the Mac app (event tap, keyboards, menu bar icon, voice, and the same app window in a
+  web view).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
 - `motion-video` – a 54-second motion-graphics video (the problem, the core feature, how to use it, the download) with
   its own synthesized music and sound effects (see `motion-video/README.md`).
 
 ## Privacy
 
-What you type is checked on the PC and never saved or sent anywhere. The app goes online only for updates and the
+What you type is checked on your computer and never saved or sent anywhere. The app goes online only for updates and the
 "What's new" pages, and the website has no cookies or tracking, just a count of downloads that GitHub keeps. The full
 policy, with the contact address, is at
 [language-autocorrect.world/privacy/](https://language-autocorrect.world/privacy/) (`website/src/privacy/Privacy.tsx`;

@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Language Autocorrect is a Windows tray app. When a word is typed on the wrong keyboard layout (`ghbdtn` → `привет`), it
-fixes the word on Space/Enter and switches the keyboard. It was earlier called LayoutBuddy and then Type Language
+Language Autocorrect is a Windows tray app, with a Mac menu bar app in beta. When a word is typed on the wrong keyboard
+layout (`ghbdtn` → `привет`), it fixes the word on Space/Enter and switches the keyboard. It was earlier called LayoutBuddy and then Type Language
 Corrector 4000; those names remain only where old installs and settings are carried over (`AppInfo.Legacy`,
 `AppSettings.LegacyFolderNames`) and must stay there. Also read `README.md` for user-facing behavior and
 `docs/HANDOFF-next-languages.md` for language-adding history and the per-language recipe.
@@ -23,9 +23,14 @@ dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o p
 
 `LanguageAutocorrect.exe --selfcheck` checks keyboards, voices and detection on a real machine; `--portable` skips setup.
 
+The Mac app needs the macOS workload (`dotnet workload install macos`, already in the local SDK if it was installed
+before). `dotnet build src/LanguageAutocorrect.Mac` compiles it on Windows too, which is the only check available here:
+the app bundle is made, signed and run (`--selfcheck`) only by the Build workflow's `mac` job on a Mac. It isn't in
+the .sln (the Windows runner has no macOS workload). To try the Mac build without releasing, push a `try/…` branch.
+
 Website (`website/`, React + Vite, Node 24): `npm run dev`, `npm run build`, `npm run lint` (oxlint),
 `npm run screenshots` (retakes the app screenshots with Playwright), `npm run icons` (redraws the logo: the app's
-.ico and the site's icons). Promo video (`video/`, Remotion; also needs ffmpeg): `npm run studio`, `npm run render`,
+.ico, the Mac app's .icns and the site's icons). Promo video (`video/`, Remotion; also needs ffmpeg): `npm run studio`, `npm run render`,
 `npm run typecheck`. Motion video (`motion-video/`, Remotion; its music and sound effects are synthesized by
 `scripts/make-audio.mjs` before every run): `npm run studio`, `npm run render`.
 
@@ -48,6 +53,24 @@ the only unit-tested part.
   `%AppData%\LanguageAutocorrect\`) all live here too. **Settings must stay backward compatible** with users' existing
   JSON files.
 
+**`src/LanguageAutocorrect.Mac`** (beta): the Mac app, `net10.0-macos`, macOS 14+, one universal app. Its version is read
+from the Windows csproj. It has no Windows code; parts mirror the Windows app, so keep them in step:
+- `MacApp` is the controller (like `TrayApp`): menu bar badge and menu, settings (`~/Library/Application Support/
+  LanguageAutocorrect/settings.json`, the same `AppSettings`), `BuildState`/`HandleAction` for the app window (same
+  message types, plus `platform: "mac"`, `permission`, `permission.ask`/`.open`), update checks (it only opens the
+  website; `installed: false`), What's new (from `AppSettings.LastRunVersion`).
+- `KeyTap` is a CGEvent tap (needs the Accessibility permission) on the **main run loop**, because macOS requires the
+  keyboard (TIS) functions on the main thread. It feeds `TypingSession` like `KeyboardMonitor`; fixes are posted by
+  `KeyPoster` (Backspaces, the text as Unicode key events, then a copy of the user's Space/Return) tagged in the event's
+  user-data field. ⌘Z is `KeyKind.CtrlZ`.
+- `InputSources` lists the keyboards added in System Settings, maps each to a language (its first TIS language code,
+  checked against the letters it types) and reads its keys with `UCKeyTranslate` into `KeyMap.SetKeyboard`, like
+  `LayoutService` does with `ToUnicodeEx`; it switches with `TISSelectInputSource`. Korean (an input method that
+  builds syllables) is left out on the Mac (`InputSources.Unsupported`).
+- `PageWindow` shows `UI/app.html` (embedded from the Windows project) in a WKWebView, with a small script that gives
+  the page the same `chrome.webview` it has on Windows. In `app.html`, Mac wording goes in `data-mac` attributes and
+  Windows-only rows get `class="win-only"`; preview with `app.html?mac=1&permission=0`.
+
 **`src/LanguageAutocorrect`**: the WinForms app.
 - `Program.Main` dispatches on arguments: `--uninstall`, `--update` (run by the updater: install over the existing
   copy silently), or setup when the exe isn't the installed copy. Otherwise it starts `TrayApp`.
@@ -69,8 +92,9 @@ the only unit-tested part.
   `--update`. `Installer.Install` remembers the version it replaced (`AppSettings.WhatsNewFrom`), and the next time
   the main window opens, `WhatsNewWindow` shows the site's release notes since then (see Release notes below).
 
-**`website/`**: before `dev`/`build`, `scripts/prepare.mjs` **parses the C# in `Languages.cs`** (a hand-written reader
-for the `new(Lang.X, …)` entries and their `{ … }` property blocks) and reads `<Version>` from the csproj. It writes
+**`website/`**: `platform.ts` picks the Windows or Mac download from what the browser says (Windows for phones and
+anything else) and `site.ts` (`DOWNLOADS`) has both files; the Download buttons and the Install tabs follow it.
+Before `dev`/`build`, `scripts/prepare.mjs` **parses the C# in `Languages.cs`** (a hand-written reader for the `new(Lang.X, …)` entries and their `{ … }` property blocks) and reads `<Version>` from the csproj. It writes
 `src/generated/app-info.json`, the demo word lists and `public/version.json`. When you change the shape of a
 `LanguageInfo` entry, keep that parser working. `video/scripts/data.ts` reuses it, reading from the **last commit**.
 
@@ -84,8 +108,10 @@ update that page and its date in the same commit.
 
 Every push to `main` runs `.github/workflows/build.yml`:
 1. Tests run and the single-file exe is published (Windows runner), then uploaded as the `LanguageAutocorrect` artifact.
-2. The first build of each version creates the GitHub release `v<Version>` with the exe (later pushes of the same
-   version leave it alone, so its download count keeps growing). The site's Download button links there, so GitHub
+   In parallel the `mac` job builds the Mac app, signs it ad hoc (no paid Apple account, so users click Open Anyway),
+   runs `--selfcheck` and uploads `LanguageAutocorrect.dmg` as `LanguageAutocorrect-mac`. The website waits for both.
+2. The first build of each version creates the GitHub release `v<Version>` with the exe and the dmg (later pushes of
+   the same version leave it alone, so its download count keeps growing; a file it lacks is added). The site's Download button links there, so GitHub
    counts downloads; `website/downloads/` (`/downloads/`, unlinked, for the owner) reads the counts from GitHub's API.
 3. The website is built with `DOWNLOAD_BYTES` set, the exe is copied next to it (the updater downloads that copy, so
    updates aren't counted), and the result is deployed to GitHub Pages at https://language-autocorrect.world (custom

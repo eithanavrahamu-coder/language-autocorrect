@@ -1,0 +1,62 @@
+/* 3.17.0: a Mac's menu bar shows the keyboard's language; "ghbdtn" becomes "привет" on Space and it switches. */
+.v3-17-0 {
+  position: relative; width: 272px; height: 214px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', var(--font-body);
+}
+
+/* The screen: a menu bar over a desktop with one window. */
+.v3-17-0 .screen {
+  position: absolute; inset: 8px 0 52px; overflow: hidden; border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, #2563EB 30%, var(--card)), color-mix(in srgb, #7C5CE0 26%, var(--card)) 55%, color-mix(in srgb, #16A34A 24%, var(--card)));
+  border: 1px solid var(--line);
+}
+.v3-17-0 .menubar {
+  display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 10px;
+  background: color-mix(in srgb, var(--card) 72%, transparent); backdrop-filter: blur(8px);
+  font-size: 11px; color: var(--text);
+}
+.v3-17-0 .app { font-weight: 700; }
+.v3-17-0 .spacer { flex: 1; }
+.v3-17-0 .clock { font-variant-numeric: tabular-nums; }
+.v3-17-0 .badge {
+  height: 15px; min-width: 22px; padding: 0 5px; display: grid; place-items: center; border-radius: 4px;
+  background: var(--en); color: #fff; font-size: 9.5px; font-weight: 700;
+}
+.v3-17-0 .badge[data-lang="ru"] { background: #DC2626; animation: v3-17-0-pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+
+/* The window being typed in. */
+.v3-17-0 .window {
+  position: absolute; left: 22px; right: 22px; top: 42px; bottom: 16px; padding: 10px 14px;
+  background: var(--card); border-radius: 9px; box-shadow: 0 10px 26px -10px rgba(0, 0, 0, .35);
+}
+.v3-17-0 .lights { display: flex; gap: 5px; margin-bottom: 14px; }
+.v3-17-0 .lights i { width: 8px; height: 8px; border-radius: 50%; background: #FF5F57; }
+.v3-17-0 .lights i:nth-child(2) { background: #FEBC2E; }
+.v3-17-0 .lights i:nth-child(3) { background: #28C840; }
+.v3-17-0 .text { display: flex; align-items: center; height: 30px; font-size: 22px; color: var(--text); white-space: nowrap; }
+.v3-17-0 .word { border-radius: 5px; transition: opacity .3s; }
+.v3-17-0[data-fixed] .word { animation: v3-17-0-glow 1.2s ease-out; }
+.v3-17-0[data-clear] .word { opacity: 0; }
+.v3-17-0 .caret { width: 2px; height: 24px; margin-inline-start: 1px; background: var(--text); animation: v3-17-0-blink 1s steps(1) infinite; }
+
+/* The key being pressed. */
+.v3-17-0 .key {
+  position: absolute; bottom: 4px; left: 50%; translate: -50% 0; min-width: 120px; height: 30px;
+  display: grid; place-items: center; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--muted);
+  background: var(--card); border: 1px solid var(--line); border-bottom-width: 3px;
+  transition: translate .08s, border-bottom-width .08s, background .08s;
+}
+.v3-17-0 .key[data-down] {
+  translate: -50% 2px; border-bottom-width: 1px; background: color-mix(in srgb, #5847E0 12%, var(--card));
+}
+
+@keyframes v3-17-0-blink { 50% { opacity: 0; } }
+@keyframes v3-17-0-pop { from { scale: .6; } to { scale: 1; } }
+@keyframes v3-17-0-glow {
+  from { background: color-mix(in srgb, #DC2626 22%, transparent); }
+  to { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-17-0 .caret, .v3-17-0[data-fixed] .word, .v3-17-0 .badge[data-lang="ru"] { animation: none; }
+}
