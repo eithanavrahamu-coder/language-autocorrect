@@ -26,7 +26,8 @@ dotnet publish src/LanguageAutocorrect -c Release -p:PublishSingleFile=true -o p
 Website (`website/`, React + Vite, Node 24): `npm run dev`, `npm run build`, `npm run lint` (oxlint),
 `npm run screenshots` (retakes the app screenshots with Playwright), `npm run icons` (redraws the logo: the app's
 .ico and the site's icons). Promo video (`video/`, Remotion; also needs ffmpeg): `npm run studio`, `npm run render`,
-`npm run typecheck`.
+`npm run typecheck`. Motion video (`motion-video/`, Remotion; its music and sound effects are synthesized by
+`scripts/make-audio.mjs` before every run): `npm run studio`, `npm run render`.
 
 ## Architecture
 

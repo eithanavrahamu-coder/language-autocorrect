@@ -1,0 +1,4 @@
+node_modules/
+out/
+# Made by `npm run audio` (scripts/make-audio.mjs) before every studio/render run.
+public/audio/

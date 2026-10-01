@@ -110,6 +110,8 @@ installs under those names and keeps their settings.
   browser to preview with sample data (`app.html?page=words`, `app.html?paused=1`, `app.html?update=available`,
   `setup.html?screen=languages`, `setup.html?mode=update`, `setup.html?mode=uninstall`).
 - `video` – a 20-second promo video of the app, with sound effects (see `video/README.md`).
+- `motion-video` – a 54-second motion-graphics video (the problem, the core feature, how to use it, the download) with
+  its own synthesized music and sound effects (see `motion-video/README.md`).
 
 ## Privacy
 

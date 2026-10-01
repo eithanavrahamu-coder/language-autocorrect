@@ -1,0 +1,30 @@
+{
+  "name": "language-autocorrect-motion-video",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "audio": "node scripts/make-audio.mjs",
+    "prestudio": "node scripts/make-audio.mjs",
+    "studio": "remotion studio",
+    "prerender": "node scripts/make-audio.mjs",
+    "render": "remotion render Promo out/language-autocorrect.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/onest": "5.3.1",
+    "@remotion/cli": "4.0.532",
+    "@remotion/fonts": "4.0.532",
+    "@remotion/media": "4.0.532",
+    "lucide-react": "1.49.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}
