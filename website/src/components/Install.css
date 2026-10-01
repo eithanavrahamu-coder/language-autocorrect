@@ -1,3 +1,15 @@
+/* Windows | Mac: starts on the visitor's own computer (see platform.ts). */
+.install-tabs {
+  display: flex; width: fit-content; margin: -12px auto 28px; padding: 4px; gap: 4px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+}
+.install-tabs button {
+  display: inline-flex; align-items: center; padding: 8px 20px; border: 0; border-radius: 9px; cursor: pointer;
+  background: none; color: var(--muted); font: inherit; font-size: 15px; font-weight: 600;
+}
+.install-tabs button:hover { color: var(--text); }
+.install-tabs button.is-on { background: var(--card); color: var(--text); box-shadow: var(--shadow-1); }
+
 .install { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; align-items: start; }
 .install-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .install-steps li {
@@ -55,6 +67,32 @@
 .smartscreen-btn .smartscreen-step { left: -30px; }
 .smartscreen-link { display: inline-block; margin-left: 26px; }
 .smartscreen-btn.is-hint { animation: none; } }
+
+/* A small sketch of the Mac's Privacy & Security setting, where "Open Anyway" is. */
+.mac-blocked {
+  margin-top: 18px; max-width: 440px; padding: 14px 16px 16px; border-radius: 12px;
+  background: #F5F5F7; color: #1D1D1F; border: 1px solid #D9D9DE;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', var(--font-body);
+}
+.mac-blocked p { color: #1D1D1F; }
+.mac-blocked-head { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.mac-blocked-row {
+  display: flex; align-items: center; gap: 14px; padding: 10px 12px;
+  background: #fff; border-radius: 8px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.mac-blocked-row p { flex: 1; font-size: 13px; line-height: 1.4; }
+.mac-blocked-btn {
+  flex-shrink: 0; font-size: 13px; padding: 3px 12px; border-radius: 6px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 1px 1px rgba(0, 0, 0, .08);
+  outline: 2px solid #FFD84D; outline-offset: 3px; animation: hint 2.4s var(--ease-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .mac-blocked-btn { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  .mac-blocked { background: #2B2B2E; color: #F5F5F7; border-color: #3A3A3D; }
+  .mac-blocked p { color: #F5F5F7; }
+  .mac-blocked-row { background: #1E1E20; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08); }
+  .mac-blocked-btn { background: #48484C; box-shadow: none; }
+}
 
 .install-side {
   position: sticky; top: 96px;

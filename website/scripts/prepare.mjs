@@ -147,8 +147,9 @@ async function writeWordLists() {
 const languages = await readLanguages();
 const info = {
   version: await appVersion(),
-  // Set by the website build on GitHub, which knows the size of the file it publishes.
+  // Set by the website build on GitHub, which knows the size of the files it publishes (the Windows app, the Mac app).
   downloadBytes: Number(process.env.DOWNLOAD_BYTES) || null,
+  macDownloadBytes: Number(process.env.MAC_DOWNLOAD_BYTES) || null,
   builtAt: new Date().toISOString(),
   languages,
   demoLanguages: DEMO_LANGUAGES,
@@ -161,8 +162,11 @@ if (!existsSync(path.join(site, notes))) {
 await mkdir(path.join(site, 'src/generated'), { recursive: true });
 await writeFile(path.join(site, 'src/generated/app-info.json'), JSON.stringify(info, null, 2));
 await writeWordLists();
-// What the app's update check reads (AppInfo.Website + version.json): the newest version and the file next to this page.
+// What the apps' update checks read (AppInfo.Website + version.json): the newest version, and for the Windows app the
+// file next to this page that it updates itself from. The Mac app only reads the version (it sends people here).
 await writeFile(path.join(site, 'public/version.json'),
   JSON.stringify({ version: info.version, file: 'LanguageAutocorrect.exe', size: info.downloadBytes }, null, 2));
+const mb = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;
 console.log(`Language Autocorrect ${info.version}: ${languages.length} languages` +
-  (info.downloadBytes ? `, download ${(info.downloadBytes / 1048576).toFixed(1)} MB` : ''));
+  (info.downloadBytes ? `, Windows download ${mb(info.downloadBytes)}` : '') +
+  (info.macDownloadBytes ? `, Mac download ${mb(info.macDownloadBytes)}` : ''));

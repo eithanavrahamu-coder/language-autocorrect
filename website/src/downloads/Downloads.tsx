@@ -6,13 +6,14 @@ import { SubpageHeader } from '../components/SubpageHeader';
 import { REPO_URL } from '../site';
 import './Downloads.css';
 
-type Version = { version: string; released: Date; downloads: number };
+/** `mac`: of the downloads, the Mac app's (its disk image); the rest are the Windows app's. */
+type Version = { version: string; released: Date; downloads: number; mac: number };
 
 type GitHubRelease = {
   tag_name: string;
   draft: boolean;
   published_at: string | null;
-  assets: { download_count: number }[];
+  assets: { name: string; download_count: number }[];
 };
 
 const RELEASES_API = `${REPO_URL.replace('https://github.com/', 'https://api.github.com/repos/')}/releases`;
@@ -36,6 +37,7 @@ async function fetchVersions(signal: AbortSignal): Promise<Version[]> {
       version: r.tag_name.replace(/^v/, ''),
       released: new Date(r.published_at!),
       downloads: r.assets.reduce((sum, a) => sum + a.download_count, 0),
+      mac: r.assets.filter(a => a.name.endsWith('.dmg')).reduce((sum, a) => sum + a.download_count, 0),
     }))
     .sort((a, b) => b.released.getTime() - a.released.getTime());
 }
@@ -53,6 +55,12 @@ const count = (n: number) => n.toLocaleString('en-US');
 const time = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 const day = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const plural = (n: number, word: string) => `${count(n)} ${word}${n === 1 ? '' : 's'}`;
+
+/** "Windows 120 · Mac 14", once there's a Mac app (from version 3.17.0). */
+/** Version 3.17.0 and later have a Mac app too. */
+const hasMacApp = (version: string) => { const [a, b] = version.split('.').map(Number); return a > 3 || (a === 3 && b >= 17); };
+
+const split = (downloads: number, mac: number) => `Windows ${count(downloads - mac)} · Mac ${count(mac)}`;
 
 /** "about 12 a day" while a version was the newest, once it's been out a day. */
 function rate(downloads: number, from: Date, until: Date) {
@@ -138,6 +146,7 @@ export default function Downloads() {
               Downloading the app from its page on GitHub counts too. Someone who downloads it twice counts twice.
             </li>
             <li>Updates the app installs by itself aren’t counted.</li>
+            <li>From version 3.17.0 there’s also a Mac app; its downloads are counted with the Windows app’s and shown apart.</li>
             <li>
               Counting started with version 3.15.3, on September 29, 2026. Downloads before then weren’t counted
               anywhere.
@@ -181,6 +190,8 @@ function Counts({ versions, at, checking, error, onCheck }: {
   }
 
   const total = versions.reduce((sum, v) => sum + v.downloads, 0);
+  const totalMac = versions.reduce((sum, v) => sum + v.mac, 0);
+  const hasMac = versions.some(v => hasMacApp(v.version));
   const most = Math.max(1, ...versions.map(v => v.downloads));
   const [newest] = versions;
   return (
@@ -189,6 +200,7 @@ function Counts({ versions, at, checking, error, onCheck }: {
         <div className="dl-total">
           <p className="dl-total-number">{count(total)}</p>
           <p className="dl-total-label">{total === 1 ? 'download' : 'downloads'} in total</p>
+          {hasMac && <p className="dl-total-label">{split(total, totalMac)}</p>}
         </div>
         <dl className="dl-facts">
           <div>
@@ -220,6 +232,7 @@ function Counts({ versions, at, checking, error, onCheck }: {
               <p className="dl-when">
                 {i ? `${day(v.released)} – ${day(until)}` : `Newest, since ${day(v.released)}`}
                 {perDay && ` · ${perDay}`}
+                {hasMacApp(v.version) && ` · ${split(v.downloads, v.mac)}`}
               </p>
             </li>
           );

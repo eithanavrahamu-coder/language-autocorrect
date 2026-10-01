@@ -12,8 +12,8 @@ export function Languages() {
           kicker="Languages"
           title={<span id="languages-title">{LANGUAGE_COUNT} languages. <em>Use as many as you like.</em></span>}
         >
-          Pick yours once in setup. Languages whose keyboard is already on your PC are picked for you. The app
-          reads your actual Windows keyboards, so variants like Canadian French or Swiss German work too.
+          Pick yours once in setup. Languages whose keyboard is already on your computer are picked for you. The
+          app reads your actual keyboards, so variants like Canadian French or Swiss German work too.
         </SectionHead>
 
         <motion.ul
@@ -51,7 +51,7 @@ export function Languages() {
         <dl className="lang-notes">
           <div>
             <dt>Korean</dt>
-            <dd>The Korean keyboard types both Hangul and English, so the app fixes a word by switching the 한/영 mode.</dd>
+            <dd>The Korean keyboard types both Hangul and English, so the app fixes a word by switching the 한/영 mode. Windows only for now.</dd>
           </div>
           <div>
             <dt>Thai</dt>
@@ -59,7 +59,7 @@ export function Languages() {
           </div>
           <div>
             <dt>Beta</dt>
-            <dd>Newer and less tested so far: a smaller word list, or not yet tried on every Windows keyboard.</dd>
+            <dd>Newer and less tested so far: a smaller word list, or not yet tried on every keyboard.</dd>
           </div>
         </dl>
       </div>

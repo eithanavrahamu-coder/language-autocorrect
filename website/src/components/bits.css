@@ -41,6 +41,17 @@
 .download { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .download-big .btn { height: 56px; padding: 0 28px; font-size: 17px; border-radius: 14px; }
 .download-meta { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.download-beta {
+  display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 6px; vertical-align: 1px;
+  font-size: 11px; font-weight: 600; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+/* "On a Mac? Get the Mac app": switches the page (button, install steps) to the other computer. */
+.download-other {
+  margin-top: -6px; padding: 2px 4px; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 14px; color: var(--accent); text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+.download-other:hover { text-decoration-color: currentColor; }
 .btn.is-starting { cursor: progress; }
 
 .spin { animation: spin .9s linear infinite; }

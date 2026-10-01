@@ -34,7 +34,7 @@ export function Screens() {
     <section className="section" id="app" aria-labelledby="app-title">
       <div className="page">
         <SectionHead kicker="The app" title={<span id="app-title">A calm little window, <em>one click away.</em></span>}>
-          Click the tray icon, or open it from the Start menu, to see recent fixes, your Never fix list and settings.
+          Click its icon by the clock (in the menu bar on a Mac), or open it from the Start menu or Applications, to see recent fixes, your Never fix list and settings.
         </SectionHead>
 
         <div className="screens-tabs" role="tablist" aria-label="App pages">

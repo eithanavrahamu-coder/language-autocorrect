@@ -8,10 +8,10 @@ import { CONTACT_EMAIL, REPO_URL } from '../site';
 import './Privacy.css';
 
 /** When this page last changed what it says. Update it with every such change, and mention it in the release notes. */
-const UPDATED = { date: '2026-09-29', text: 'September 29, 2026' };
+const UPDATED = { date: '2026-10-02', text: 'October 2, 2026' };
 
 const SUMMARY: [LucideIcon, string, string][] = [
-  [HardDrive, 'Your typing stays on your PC', 'Words are checked on your computer. What you type is never saved or sent anywhere.'],
+  [HardDrive, 'Your typing stays on your computer', 'Words are checked on your computer. What you type is never saved or sent anywhere.'],
   [CloudOff, 'Nothing is collected', 'No account, no statistics, no crash reports, no ads. The app goes online only to check for updates.'],
   [Cookie, 'No cookies or tracking', 'This site sets no cookies and loads nothing from Google or any other company.'],
 ];
@@ -37,8 +37,8 @@ export default function Privacy() {
           <p className="kicker">Privacy</p>
           <h1>Privacy policy</h1>
           <p className="pv-lede">
-            Language Autocorrect is free, with no ads and no account. This page says exactly what the app and this
-            website do with information, in plain words.
+            Language Autocorrect is free, with no ads and no account. This page says exactly what the app (for
+            Windows and for Mac) and this website do with information, in plain words.
           </p>
           <p className="pv-updated">Last updated <time dateTime={UPDATED.date}>{UPDATED.text}</time></p>
         </div>
@@ -63,17 +63,26 @@ export default function Privacy() {
               the apps you turned it off for and switch the keyboard for you.
             </p>
             <p>
-              It never changes anything in password boxes. It also leaves Remote Desktop and the password managers
-              KeePass, KeePassXC, 1Password and Bitwarden alone, and you can add any other app in its settings.
+              On a Mac, macOS asks you first: the app needs your permission under{' '}
+              <b>System Settings → Privacy &amp; Security → Accessibility</b>, which is what lets any app see the keys
+              you press in other apps and type a fixed word for you. The app uses it only for that, and you can turn
+              it off there at any time.
             </p>
             <p>
-              To draw the short flash on a word it fixed, it looks at the pixels of that one line on the screen, just
-              before and just after the fix. That picture stays in memory for a moment and is never saved.
+              It never changes anything in password boxes (on a Mac, macOS keeps what you type in them from every app).
+              It also leaves Remote Desktop and the password managers KeePass, KeePassXC, 1Password and Bitwarden alone,
+              and you can add any other app in its settings.
+            </p>
+            <p>
+              On Windows, to draw the short flash on a word it fixed, it looks at the pixels of that one line on the
+              screen, just before and just after the fix. That picture stays in memory for a moment and is never saved.
+              The Mac app doesn’t do this.
             </p>
 
-            <h3>What it keeps on your PC</h3>
+            <h3>What it keeps on your computer</h3>
             <p>
-              In your Windows user folder (<code>%AppData%\LanguageAutocorrect</code>) the app keeps:
+              In your user folder (on Windows <code>%AppData%\LanguageAutocorrect</code>, on a Mac{' '}
+              <code>~/Library/Application Support/LanguageAutocorrect</code>) the app keeps:
             </p>
             <ul>
               <li>your settings, such as your languages and the apps it’s turned off for;</li>
@@ -82,27 +91,31 @@ export default function Privacy() {
                 them or ask you whether to;
               </li>
               <li>how many words it has fixed, today and in total;</li>
+              <li>the version that last ran, so it can show what’s new after an update;</li>
               <li>
                 a small log for finding problems: times, the names of the apps you typed in, keyboard switches and
                 errors. It never contains what you type, and it starts over when it reaches half a megabyte.
               </li>
             </ul>
             <p>
-              The app’s own window keeps a browser cache in <code>%LocalAppData%\LanguageAutocorrect</code>. The list of
-              recent fixes on its home page is kept in memory only and is gone when the app closes.
+              On Windows, the app’s own window keeps a browser cache in <code>%LocalAppData%\LanguageAutocorrect</code>;
+              on a Mac it keeps none. The list of recent fixes on its home page is kept in memory only and is gone when
+              the app closes.
             </p>
             <p>
-              None of this is ever sent to anyone. Uninstalling the app deletes all of it, unless you choose to keep
-              your settings for later.
+              None of this is ever sent to anyone. On Windows, uninstalling the app deletes all of it, unless you choose
+              to keep your settings for later. On a Mac, moving the app to the Trash leaves that folder, so your
+              settings are there if you install it again; delete the folder to remove them too.
             </p>
 
             <h3>What it sends over the internet</h3>
             <ul>
               <li>
-                <b>Update checks.</b> Once a day, the app asks this website for the number of the newest version, and
-                when you install an update, it downloads it from here. Each request carries the app’s name and version
-                number and, like any visit to a website, your IP address, which this site’s host can see (see{' '}
-                <a href="#website">The website</a>). You can turn update checks off in the app’s settings.
+                <b>Update checks.</b> Once a day, the app asks this website for the number of the newest version. On
+                Windows, when you install an update, the app downloads it from here; on a Mac you download it yourself
+                from this site. Each request carries the app’s name and version number and, like any visit to a website,
+                your IP address, which this site’s host can see (see <a href="#website">The website</a>). You can turn
+                update checks off in the app’s settings.
               </li>
               <li>
                 <b>What’s new.</b> After an update, the app shows this website’s release notes for the new version.
@@ -116,11 +129,14 @@ export default function Privacy() {
               tells your copy apart from anyone else’s.
             </p>
 
-            <h3>Parts of Windows it uses</h3>
+            <h3>Parts of Windows and macOS it uses</h3>
             <p>
-              Spoken keyboard names (off unless you turn them on) use the voices built into Windows, which run on your
-              PC. The app’s windows are shown by Microsoft Edge WebView2, which is part of Windows and is covered by{' '}
-              <a href="https://privacy.microsoft.com/privacystatement">Microsoft’s privacy statement</a>.
+              Spoken keyboard names (off unless you turn them on) use the voices built into Windows or macOS, which run
+              on your computer. On Windows, the app’s windows are shown by Microsoft Edge WebView2, which is part of
+              Windows and is covered by{' '}
+              <a href="https://privacy.microsoft.com/privacystatement">Microsoft’s privacy statement</a>. On a Mac they’re
+              shown by WebKit, which is part of macOS and is covered by{' '}
+              <a href="https://www.apple.com/legal/privacy/">Apple’s privacy policy</a>.
             </p>
           </Section>
 
@@ -140,9 +156,14 @@ export default function Privacy() {
               <li>
                 <b>Downloads are counted.</b> The Download button gets the app from{' '}
                 <a href={`${REPO_URL}/releases`}>its releases on GitHub</a>, and GitHub counts how many times each
-                version is downloaded. That number is all I see: not who downloaded it or where from. As with the site,
+                version is downloaded, for Windows and for Mac. That number is all I see: not who downloaded it or where from. As with the site,
                 GitHub sees your IP address, under the same privacy statement. Updates the app installs by itself come
                 from this site and aren’t counted.
+              </li>
+              <li>
+                <b>The right download for your computer.</b> To show the Windows or the Mac download, the page looks at
+                what your browser says about your computer. That happens in your browser: it isn’t sent anywhere or
+                kept.
               </li>
               <li>
                 <b>No cookies or tracking.</b> The site sets no cookies, stores nothing in your browser, and has no
@@ -175,7 +196,7 @@ export default function Privacy() {
           <Section id="rights" title="Your rights">
             <p>
               Because neither the app nor this site collects information about you, there’s nothing about you for me
-              to show you, correct or delete. What the app keeps is on your own PC, and uninstalling removes it. For
+              to show you, correct or delete. What the app keeps is on your own computer, and you can delete it (see <a href="#app">The app</a>). For
               what GitHub or Google keep, see their privacy statements. If you have a question or a concern, email{' '}
               <Mail />. You can also complain to the data protection authority where you live.
             </p>
@@ -187,6 +208,12 @@ export default function Privacy() {
               with a new date, and the release notes will mention it.
             </p>
             <ul>
+              <li>
+                <b>October 2, 2026:</b> there’s now a Mac app, which asks for the Accessibility permission and keeps its
+                files in <code>~/Library/Application Support/LanguageAutocorrect</code> (see <a href="#app">The app</a>).
+                The website shows the download for your computer, worked out in your browser (see{' '}
+                <a href="#website">The website</a>).
+              </li>
               <li>
                 <b>September 29, 2026:</b> the Download button now gets the app from GitHub, which counts the
                 downloads (see <a href="#website">The website</a>).
@@ -214,7 +241,7 @@ const MIT_HOLDERS = [
   'Copyright (c) 2024 Motion B.V. (Motion)',
   'Copyright (c) 2018 Framer B.V. (Framer Motion)',
   'Copyright (c) 2013-present Cole Bemis (Feather icons, used by Lucide)',
-  'Copyright (c) .NET Foundation and Contributors (.NET, Windows Forms)',
+  'Copyright (c) .NET Foundation and Contributors (.NET, Windows Forms, .NET for macOS)',
 ];
 
 /** Everything the app and the site are made of that someone else made, with the notices their licenses ask for. */
@@ -248,7 +275,8 @@ function Credits() {
         <li>
           <b>The app’s code:</b> <a href="https://dotnet.microsoft.com/">.NET</a> and Windows Forms (MIT License,
           with the parts listed in <a href="https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT">
-          .NET’s third-party notices</a>) and the Microsoft Edge WebView2 SDK (BSD license).
+          .NET’s third-party notices</a>) and the Microsoft Edge WebView2 SDK (BSD license). The Mac app uses{' '}
+          <a href="https://github.com/dotnet/macios">.NET for macOS</a> (MIT License).
         </li>
       </ul>
 

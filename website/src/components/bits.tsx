@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowDownToLine, LoaderCircle, X } from 'lucide-react';
 import { byCode } from '../demo/keyboard';
 import { dismissDownload, onDownloadClick, useDownloadStage } from '../download';
-import { DOWNLOAD_SIZE, DOWNLOAD_URL, downloadMeta } from '../site';
+import { otherPlatform, setPlatform, usePlatform } from '../platform';
+import { DOWNLOADS, downloadMeta } from '../site';
 import './bits.css';
 
 /** The colored language badge the app shows next to the text cursor. */
@@ -31,14 +32,20 @@ export function FixPair({ from, to }: { from: string; to: string }) {
   );
 }
 
+/**
+ * The download for the visitor's own computer (Windows or Mac), with a way to get the other one. `showMeta` adds the
+ * version, size and what it runs on.
+ */
 export function DownloadButton({ big = false, showMeta = true }: { big?: boolean; showMeta?: boolean }) {
   const starting = useDownloadStage() === 'starting';
+  const platform = usePlatform();
+  const d = DOWNLOADS[platform];
   const Icon = starting ? LoaderCircle : ArrowDownToLine;
   return (
     <div className={`download${big ? ' download-big' : ''}`}>
       <motion.a
         className={`btn btn-primary${starting ? ' is-starting' : ''}`}
-        href={DOWNLOAD_URL}
+        href={d.url}
         download
         onClick={onDownloadClick}
         aria-disabled={starting || undefined}
@@ -47,9 +54,19 @@ export function DownloadButton({ big = false, showMeta = true }: { big?: boolean
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       >
         <Icon size={big ? 20 : 18} strokeWidth={2.2} className={starting ? 'spin' : undefined} aria-hidden />
-        {starting ? 'Starting download…' : 'Download for Windows'}
+        {starting ? 'Starting download…' : `Download for ${d.name}`}
       </motion.a>
-      {showMeta && <p className="download-meta">Free · {downloadMeta} · Windows 10 &amp; 11</p>}
+      {showMeta && (
+        <>
+          <p className="download-meta">
+            Free · {downloadMeta(platform)}
+            {d.beta && <span className="download-beta" title="New and still being tested">Beta</span>}
+          </p>
+          <button type="button" className="download-other" onClick={() => setPlatform(otherPlatform(platform))}>
+            {platform === 'mac' ? 'On Windows? Get the Windows app' : 'On a Mac? Get the Mac app (beta)'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -57,6 +74,8 @@ export function DownloadButton({ big = false, showMeta = true }: { big?: boolean
 /** The note at the bottom of the window after a download click, until the browser has had time to show the file. */
 export function DownloadNotice() {
   const stage = useDownloadStage();
+  const platform = usePlatform();
+  const d = DOWNLOADS[platform];
   return (
     <div className="download-notice-wrap" role="status">
       <AnimatePresence>
@@ -74,7 +93,7 @@ export function DownloadNotice() {
                 <div>
                   <p className="download-notice-title">Your download is starting…</p>
                   <p>
-                    It’s {DOWNLOAD_SIZE ?? 'a big file'}, so your browser can take a few
+                    It’s {d.size ?? 'a big file'}, so your browser can take a few
                     seconds to show it. No need to click again.
                   </p>
                 </div>
@@ -85,7 +104,8 @@ export function DownloadNotice() {
                 <div>
                   <p className="download-notice-title">Look for it in your browser’s downloads</p>
                   <p>
-                    When it’s finished, open <b>LanguageAutocorrect.exe</b> and follow the{' '}
+                    When it’s finished, open <b>{d.file}</b>
+                    {platform === 'mac' && <>, drag Language Autocorrect into Applications,</>} and follow the{' '}
                     <a href="#install" onClick={dismissDownload}>install steps</a>.
                   </p>
                 </div>

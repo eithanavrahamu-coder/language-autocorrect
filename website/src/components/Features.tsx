@@ -111,7 +111,7 @@ const SMALL = [
   },
   {
     icon: ShieldCheck,
-    title: 'Stays on your PC',
+    title: 'Stays on your computer',
     text: 'Words are checked on your computer, and what you type is never saved or sent anywhere. The app goes online only to check for updates.',
   },
   {
@@ -122,12 +122,12 @@ const SMALL = [
   {
     icon: AppWindow,
     title: 'Uses your own shortcut',
-    text: 'It switches keyboards with your Windows shortcut (Alt+Shift, Ctrl+Shift or Win+Space), so Windows always stays in sync.',
+    text: 'On Windows it switches keyboards with your own shortcut (Alt+Shift, Ctrl+Shift or Win+Space), and on a Mac the way the input menu does, so your computer always stays in sync.',
   },
   {
     icon: AudioLines,
     title: 'Hear the language',
-    text: 'Optional: it says the language’s name when the keyboard changes, in that language when Windows has a voice for it.',
+    text: 'Optional: it says the language’s name when the keyboard changes, in that language when your computer has a voice for it.',
   },
 ];
 

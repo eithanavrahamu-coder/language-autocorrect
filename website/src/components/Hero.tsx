@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { ArrowDownToLine, LoaderCircle } from 'lucide-react';
 import icon from '../assets/icon-128.png';
 import { onDownloadClick, useDownloadStage } from '../download';
-import { DOWNLOAD_URL, REPO_URL } from '../site';
+import { usePlatform } from '../platform';
+import { DOWNLOADS, REPO_URL } from '../site';
 import { DownloadButton, FixPair, GitHubMark } from './bits';
 import { TypingDemo } from './TypingDemo';
 import './Hero.css';
@@ -18,6 +19,7 @@ const NAV = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const starting = useDownloadStage() === 'starting';
+  const download = DOWNLOADS[usePlatform()];
   const DownloadIcon = starting ? LoaderCircle : ArrowDownToLine;
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
@@ -42,10 +44,11 @@ export function Header() {
           </a>
           <a
             className={`btn btn-primary header-download${starting ? ' is-starting' : ''}`}
-            href={DOWNLOAD_URL}
+            href={download.url}
             download
             onClick={onDownloadClick}
             aria-disabled={starting || undefined}
+            title={`Download for ${download.name}`}
           >
             <DownloadIcon size={16} strokeWidth={2.4} className={starting ? 'spin' : undefined} aria-hidden />
             Download
@@ -68,7 +71,7 @@ export function Hero() {
       <div className="page hero-inner">
         <motion.p className="hero-pill" {...rise(0)}>
           <span className="hero-pill-dot" aria-hidden />
-          Free for Windows 10 and 11
+          Free for Windows and Mac
         </motion.p>
         <motion.h1 {...rise(.06)}>
           Type in all your languages without watching the keyboard.
