@@ -34,12 +34,23 @@ jobs:
           dotnet-version: 10.0.x
       - name: Use the newest Xcode
         run: |
+          ls -d /Applications/Xcode*.app
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
-          xcodebuild -version
+          echo "::notice::$(xcodebuild -version | tr '\n' ' ')"
       - name: Install the .NET macOS workload
-        run: dotnet workload install macos
+        run: |
+          dotnet workload install macos
+          echo "::notice::$(dotnet workload list | grep -i macos | tr -s ' ')"
       - name: Build
-        run: dotnet build src/LanguageAutocorrect.Mac -c Release -p:ValidateXcodeVersion=false
+        run: |
+          set -o pipefail
+          dotnet build src/LanguageAutocorrect.Mac -c Release -p:ValidateXcodeVersion=false 2>&1 | tee build.log
+      # The build log needs a GitHub sign-in to read; its errors also go on the run's summary page.
+      - name: Show the build's errors
+        if: failure()
+        run: |
+          grep -iE "error|exception| at |IL[0-9]{4}|MT[0-9]{4}" build.log | grep -v "warning" | sort -u | head -40 \
+            | sed 's/%/%25/g' | cut -c1-900 | sed 's/^/::error::/'
       - name: Sign
         run: |
           app=$(find src/LanguageAutocorrect.Mac/bin/Release -maxdepth 3 -name '*.app' -type d | head -1)
