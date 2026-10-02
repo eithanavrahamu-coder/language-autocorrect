@@ -61,7 +61,17 @@ jobs:
       # Starts the app and checks keyboards, detection, the menu bar icon and the window (MacApp.RunSelfCheck).
       - name: Self-check
         timeout-minutes: 3
-        run: '"dmg/Language Autocorrect.app/Contents/MacOS/LanguageAutocorrect" --selfcheck'
+        run: |
+          set -o pipefail
+          "dmg/Language Autocorrect.app/Contents/MacOS/LanguageAutocorrect" --selfcheck 2>&1 | tee selfcheck.txt
+      # Its results, and the app's log, on the run's summary page.
+      - name: Show the self-check
+        if: always()
+        run: |
+          log="$HOME/Library/Application Support/LanguageAutocorrect/log.txt"
+          note() { [ -s "$2" ] && echo "::notice title=$1::$(tail -n 30 "$2" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"; true; }
+          note "Self-check" selfcheck.txt
+          note "App log" "$log"
       - name: Disk image
         run: |
           ln -s /Applications dmg/Applications
