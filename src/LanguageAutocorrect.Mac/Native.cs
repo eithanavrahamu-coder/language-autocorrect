@@ -11,8 +11,10 @@ internal static unsafe class Native
 {
     private const string CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
     private const string CoreGraphics = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
-    public const string HIToolbox = "/System/Library/Frameworks/Carbon.framework/Frameworks/HIToolbox.framework/HIToolbox";
-    public const string HIServices = "/System/Library/Frameworks/ApplicationServices.framework/Frameworks/HIServices.framework/HIServices";
+    // HIToolbox and HIServices are reached through the frameworks they're part of: the build links every framework
+    // named here, and only these outer ones can be linked.
+    public const string HIToolbox = "/System/Library/Frameworks/Carbon.framework/Carbon";
+    public const string HIServices = "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices";
 
     // ---------------- Core Foundation ----------------
 
