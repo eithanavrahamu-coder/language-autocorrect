@@ -49,8 +49,9 @@ jobs:
       - name: Show the build's errors
         if: failure()
         run: |
-          grep -iE "error|exception| at |IL[0-9]{4}|MT[0-9]{4}" build.log | grep -v "warning" | sort -u | head -40 \
-            | sed 's/%/%25/g' | cut -c1-900 | sed 's/^/::error::/'
+          # GitHub shows at most 10 per step.
+          grep -E "error [A-Z]+[0-9]+|: error|[Ee]rror:|xcrun: |xcodebuild: " build.log | grep -v "result bundle" \
+            | awk '!seen[$0]++' | head -10 | sed 's/%/%25/g' | cut -c1-900 | sed 's/^/::error::/'
       - name: Sign
         run: |
           app=$(find src/LanguageAutocorrect.Mac/bin/Release -maxdepth 3 -name '*.app' -type d | head -1)
