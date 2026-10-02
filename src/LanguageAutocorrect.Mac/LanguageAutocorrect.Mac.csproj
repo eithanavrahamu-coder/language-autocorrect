@@ -7,7 +7,11 @@
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-macos</TargetFramework>
+    <!--
+      Built with the macOS 26 SDK, which GitHub's Mac build machines have (Xcode 26). The newest .NET macOS workload's
+      default needs Xcode 27; move up once the build machines have it.
+    -->
+    <TargetFramework>net10.0-macos26.0</TargetFramework>
     <SupportedOSPlatformVersion>14.0</SupportedOSPlatformVersion>
     <!-- One app for Apple silicon and Intel Macs: the website can't tell them apart. -->
     <RuntimeIdentifiers>osx-arm64;osx-x64</RuntimeIdentifiers>
