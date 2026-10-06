@@ -150,8 +150,9 @@ const FAQ: [string, ReactNode][] = [
     'Does it see what I type?',
     <>
       It has to look at the word you’re typing in order to fix it, but that happens on your computer. Nothing you
-      type is saved or sent anywhere. The app goes online only to check for updates, which you can turn off. See
-      the <a href="privacy/">privacy policy</a>.
+      type is saved or sent anywhere. The app goes online only for updates: once a day it asks this website for the
+      newest version number (you can turn that off), and after an update it shows what’s new from here. See the{' '}
+      <a href="privacy/">privacy policy</a>.
     </>,
   ],
   [

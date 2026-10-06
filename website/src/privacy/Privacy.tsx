@@ -12,7 +12,7 @@ const UPDATED = { date: '2026-10-02', text: 'October 2, 2026' };
 
 const SUMMARY: [LucideIcon, string, string][] = [
   [HardDrive, 'Your typing stays on your computer', 'Words are checked on your computer. What you type is never saved or sent anywhere.'],
-  [CloudOff, 'Nothing is collected', 'No account, no statistics, no crash reports, no ads. The app goes online only to check for updates.'],
+  [CloudOff, 'Nothing is collected', 'No account, no statistics, no crash reports, no ads. The app goes online only for updates and to show what’s new.'],
   [Cookie, 'No cookies or tracking', 'This site sets no cookies and loads nothing from Google or any other company.'],
 ];
 
