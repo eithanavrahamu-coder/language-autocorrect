@@ -3,7 +3,7 @@ import icon from '../assets/icon-128.png';
 import './bits.css';
 import './SubpageHeader.css';
 
-/** The top of the site's other pages (release notes, privacy): the name, and a way back to the front page. */
+/** The top of the site's other pages (release notes, privacy, code signing):the name, and a way back to the front page. */
 export function SubpageHeader() {
   return (
     <header className="sub-header">

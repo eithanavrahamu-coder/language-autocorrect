@@ -104,6 +104,12 @@ only for updates and What's new, and that the site loads nothing from other serv
 or cookies) except the `/downloads/` page asking GitHub for the download count. Keep those true: when a change saves or sends something new, or adds a library, font or data source,
 update that page and its date in the same commit.
 
+**Code signing**: `website/src/code-signing/CodeSigning.tsx` (at `/code-signing/`, linked from the site footer and
+from each GitHub release's notes) and README's "Code signing policy" section are the policy SignPath Foundation
+requires for its free certificate. Keep the sentence "Free code signing provided by SignPath.io, certificate by
+SignPath Foundation" word for word, keep the team roles current, and keep both in step with how `build.yml` really
+builds and signs the Windows exe.
+
 ## Release flow
 
 Every push to `main` runs `.github/workflows/build.yml`:

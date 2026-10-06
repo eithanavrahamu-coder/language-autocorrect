@@ -150,6 +150,28 @@ policy, with the contact address, is at
 [language-autocorrect.world/privacy/](https://language-autocorrect.world/privacy/) (`website/src/privacy/Privacy.tsx`;
 keep it true whenever the app starts saving or sending something new).
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/)
+
+*Status: applied for; releases are not signed yet. This section will say from which version on they are.*
+
+- **What is signed:** the Windows app, `LanguageAutocorrect.exe` (the website download and the file the app downloads
+  for its updates), and only when built from this repository's source code. The Mac app is not covered; it's signed
+  ad hoc (see Mac above).
+- **How:** every release is built from this repository's source code only by the GitHub Actions workflow
+  [`.github/workflows/build.yml`](.github/workflows/build.yml), on GitHub's build machines. The workflow sends the exe
+  to SignPath, which checks its product name and version and signs it only after an approver has approved that release.
+- **Team roles:** committers and reviewers: [Eithan Avraham (eithanavrahamu-coder)](https://github.com/eithanavrahamu-coder);
+  approvers: [Eithan Avraham (eithanavrahamu-coder)](https://github.com/eithanavrahamu-coder). Changes from anyone else
+  (pull requests) are merged only after review. Everyone with a role uses two-step verification on GitHub and SignPath.
+- **Privacy:** see the [privacy policy](https://language-autocorrect.world/privacy/) (summary under Privacy above).
+
+The same policy is on the website at
+[language-autocorrect.world/code-signing/](https://language-autocorrect.world/code-signing/)
+(`website/src/code-signing/CodeSigning.tsx`); keep the two in step.
+
 ## Credits
 
 Word frequency lists: [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by Hermit Dave, based on OpenSubtitles data, licensed CC BY-SA 4.0.

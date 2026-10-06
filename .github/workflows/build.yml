@@ -125,9 +125,12 @@ jobs:
               fi
             done
           else
+            # SignPath Foundation asks for the code signing policy on the download pages, which these releases are.
+            notes="What's new: https://language-autocorrect.world/release-notes/#v$version"
+            notes+=$'\n\n'"Code signing policy: https://language-autocorrect.world/code-signing/"
             gh release create "v$version" $files --target "$GITHUB_SHA" \
               --title "Language Autocorrect $version" \
-              --notes "What's new: https://language-autocorrect.world/release-notes/#v$version"
+              --notes "$notes"
           fi
       - uses: actions/setup-node@v4
         with:

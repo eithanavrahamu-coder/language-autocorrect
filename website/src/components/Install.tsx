@@ -244,6 +244,7 @@ export function Footer({ home = '' }: { home?: string }) {
         <div className="footer-links">
           <a href={`${home}release-notes/`}>Release notes</a>
           <a href={`${home}privacy/`}>Privacy</a>
+          <a href={`${home}code-signing/`}>Code signing policy</a>
           <a href={REPO_URL}><GitHubMark size={16} /> Source code</a>
           <a href={`${REPO_URL}/issues`}>Report a problem</a>
         </div>
