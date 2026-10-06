@@ -157,6 +157,12 @@ The copies in `src/LanguageAutocorrect.Engine/Data` are changed: filtered to eac
 deduplicated, some cut to the 50,000 most common words, and broken entries removed. The other libraries and fonts, with
 their license texts, are listed on the [privacy and credits page](https://language-autocorrect.world/privacy/#credits).
 
+## Code of conduct
+
+Everyone taking part in this project, in its issues and anywhere else, is asked to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md) (Contributor Covenant 3.0). Report problems by email to the maintainer, as it
+says there, not in a public issue.
+
 ## License
 
 MIT – see [LICENSE](LICENSE). The word lists in `src/LanguageAutocorrect.Engine/Data` are not covered by it: they keep their
