@@ -104,6 +104,9 @@ export function DownloadNotice() {
                 <div>
                   <p className="download-notice-title">Look for it in your browser’s downloads</p>
                   <p>
+                    {platform === 'windows' && (
+                      <>If Chrome says <b>Suspicious download blocked</b>, click it, then <b>Download suspicious file</b>. </>
+                    )}
                     When it’s finished, open <b>{d.file}</b>
                     {platform === 'mac' && <>, drag Language Autocorrect into Applications,</>} and follow the{' '}
                     <a href="#install" onClick={dismissDownload}>install steps</a>.

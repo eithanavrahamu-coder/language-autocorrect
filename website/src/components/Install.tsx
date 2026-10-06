@@ -1,39 +1,87 @@
-import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
+import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react';
 import icon from '../assets/icon-128.png';
 import { setPlatform, usePlatform, type Platform } from '../platform';
 import { DOWNLOADS, LANGUAGE_COUNT, REPO_URL } from '../site';
 import { DownloadButton, GitHubMark, Kbd, Reveal, SectionHead } from './bits';
 import './Install.css';
 
-/** One install step: [title, what to do]. */
-type Step = [string, ReactNode];
+/** One install step: [title, what to do, a sketch of the warning it's about]. */
+type Step = [string, ReactNode, ComponentType?];
+
+/*
+ * Sketches of the warnings people meet on the way, so they recognize them and know where to click. They're pictures,
+ * hidden from screen readers; the step's text says the same.
+ */
+
+/** Chrome's download list, in Chrome's words for a file it hasn't seen much of (DOWNLOAD_DANGER_TYPE_UNCOMMON_CONTENT). */
+function ChromeWarning() {
+  return (
+    <div className="chrome-dl" aria-hidden>
+      <div className="chrome-dl-row">
+        <span className="chrome-dl-step">1</span>
+        <TriangleAlert size={18} strokeWidth={2} className="chrome-dl-icon" />
+        <div className="chrome-dl-file">
+          <p className="chrome-dl-name">LanguageAutocorrect.exe</p>
+          <p className="chrome-dl-status">Suspicious download blocked</p>
+        </div>
+        <ChevronRight size={18} strokeWidth={2} className="chrome-dl-chevron" />
+      </div>
+      <div className="chrome-dl-sub">
+        <p>This file isn’t commonly downloaded and it may be dangerous</p>
+        <div className="chrome-dl-buttons">
+          <span className="chrome-dl-btn is-hint"><span className="chrome-dl-step">2</span>Download suspicious file</span>
+          <span className="chrome-dl-btn is-filled">Delete from history</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SmartScreenWarning() {
+  return (
+    <div className="smartscreen" aria-hidden>
+      <p className="smartscreen-title">Windows protected your PC</p>
+      <p className="smartscreen-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</p>
+      <p className="smartscreen-link"><span className="smartscreen-step">1</span>More info</p>
+      <div className="smartscreen-buttons">
+        <span className="smartscreen-btn is-hint"><span className="smartscreen-step">2</span>Run anyway</span>
+        <span className="smartscreen-btn">Don’t run</span>
+      </div>
+    </div>
+  );
+}
+
+function MacBlocked() {
+  return (
+    <div className="mac-blocked" aria-hidden>
+      <p className="mac-blocked-head">Security</p>
+      <div className="mac-blocked-row">
+        <p>“Language Autocorrect” was blocked to protect your Mac.</p>
+        <span className="mac-blocked-btn">Open Anyway</span>
+      </div>
+    </div>
+  );
+}
 
 const WINDOWS_STEPS: Step[] = [
   [
     'Download the app',
     <>
       It’s a single file, <code>LanguageAutocorrect.exe</code>{DOWNLOADS.windows.size && ` (${DOWNLOADS.windows.size})`}.
-      If your browser asks whether to keep it, choose <b>Keep</b>.
+      Chrome may say <b>Suspicious download blocked</b>, because each new version is a file few people have
+      downloaded yet. Click the download, then <b>Download suspicious file</b>. Other browsers may ask whether to keep
+      it: choose <b>Keep</b>.
     </>,
+    ChromeWarning,
   ],
   [
     'Open it',
     <>
-      <p>
-        Windows may show <b>“Windows protected your PC”</b>, because the app is new and isn’t signed with a
-        paid certificate. Click <b>More info</b>, then <b>Run anyway</b>.
-      </p>
-      <div className="smartscreen" aria-hidden>
-        <p className="smartscreen-title">Windows protected your PC</p>
-        <p className="smartscreen-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</p>
-        <p className="smartscreen-link"><span className="smartscreen-step">1</span>More info</p>
-        <div className="smartscreen-buttons">
-          <span className="smartscreen-btn is-hint"><span className="smartscreen-step">2</span>Run anyway</span>
-          <span className="smartscreen-btn">Don’t run</span>
-        </div>
-      </div>
+      Windows may show <b>“Windows protected your PC”</b>, because each new version is an app it hasn’t seen much of,
+      and the app isn’t signed yet. Click <b>More info</b>, then <b>Run anyway</b>.
     </>,
+    SmartScreenWarning,
   ],
   [
     'Click Get started',
@@ -55,19 +103,11 @@ const MAC_STEPS: Step[] = [
   [
     'Open it',
     <>
-      <p>
-        The first time, macOS says it can’t check the app, because it isn’t signed with a paid Apple developer
-        account. Click <b>Done</b>, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click{' '}
-        <b>Open Anyway</b>, then <b>Open Anyway</b> again.
-      </p>
-      <div className="mac-blocked" aria-hidden>
-        <p className="mac-blocked-head">Security</p>
-        <div className="mac-blocked-row">
-          <p>“Language Autocorrect” was blocked to protect your Mac.</p>
-          <span className="mac-blocked-btn">Open Anyway</span>
-        </div>
-      </div>
+      The first time, macOS says it can’t check the app, because it isn’t signed with a paid Apple developer
+      account. Click <b>Done</b>, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click{' '}
+      <b>Open Anyway</b>, then <b>Open Anyway</b> again.
     </>,
+    MacBlocked,
   ],
   [
     'Allow it to fix your typing',
@@ -119,13 +159,14 @@ export function Install() {
         </div>
         <div className="install" id="install-panel" role="tabpanel" key={platform}>
           <ol className="install-steps">
-            {steps.map(([title, text], i) => (
+            {steps.map(([title, text, Sketch], i) => (
               <Reveal key={title} delay={i * .06}>
                 <li>
                   <span className="install-num">{i + 1}</span>
                   <div>
                     <h3>{title}</h3>
-                    {i === 1 ? text : <p>{text}</p>}
+                    <p>{text}</p>
+                    {Sketch && <Sketch />}
                   </div>
                 </li>
               </Reveal>
@@ -164,8 +205,22 @@ const FAQ: [string, ReactNode][] = [
     </>,
   ],
   [
-    'Why does Windows warn me when I open it?',
-    'Windows is careful with apps it hasn’t seen much of, and this one isn’t signed with a paid certificate. Click More info, then Run anyway.',
+    'Why does Chrome say “Suspicious download blocked”?',
+    <>
+      Chrome is careful with files that few people have downloaded yet, and every new version of the app is a new
+      file. It doesn’t mean Chrome found anything harmful in it. Click the download in Chrome’s download list (top
+      right), then <b>Download suspicious file</b>. If the list has closed, press <Kbd>Ctrl</Kbd>+<Kbd>J</Kbd>, click the
+      three dots (<b>More actions</b>) next to <b>LanguageAutocorrect.exe</b> and choose <b>Download suspicious file</b>.
+    </>,
+  ],
+  [
+    'Why does Windows say “Windows protected your PC”?',
+    <>
+      Microsoft Defender SmartScreen is careful with apps it hasn’t seen much of, and every new version starts from
+      zero. The app also isn’t signed yet (see the <a href="code-signing/">code signing policy</a>). Click{' '}
+      <b>More info</b>, then <b>Run anyway</b>. Every download is built from the app’s public{' '}
+      <a href={REPO_URL}>source code</a> on GitHub’s own build machines, not on anyone’s computer.
+    </>,
   ],
   [
     'Why does my Mac say it can’t open it?',

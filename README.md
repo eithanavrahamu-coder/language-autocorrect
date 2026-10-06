@@ -53,6 +53,10 @@ Auto-correct is always off in password boxes, in the app's own window, and in th
 Download `LanguageAutocorrect.exe` from the website, **https://language-autocorrect.world** (its Download button gets
 it from the repository's **Releases**; or take it from the latest run on the **Actions** tab → *Build* → *Artifacts*)
 and run it.
+Until releases are signed (see Code signing policy below), and because every version is a new file that few people
+have downloaded yet, two warnings are expected: Chrome's *Suspicious download blocked* (click the download, then
+**Download suspicious file**; or Ctrl+J → the three dots (*More actions*) next to the file → **Download suspicious file**) and Windows'
+*Windows protected your PC* (**More info** → **Run anyway**). The website's install steps and FAQ show both.
 Setup takes four short steps, each with a colorful side that shows what it's about: a welcome with a typing demo
 (click **Try it now** to type in it yourself; the app's own engine fixes the words, before anything is installed),
 your languages (the ones already in Windows are picked), a few preferences (already set), and done, with tips and

@@ -58,15 +58,48 @@
   animation: hint 2.4s var(--ease-out) infinite;
 }
 @keyframes hint { 0%, 100% { outline-color: #FFD84D; } 50% { outline-color: rgba(255, 216, 77, .25); } }
-@media (prefers-reduced-motion: reduce) { .smartscreen-link, .smartscreen-btn.is-hint { position: relative; }
-.smartscreen-step {
-  position: absolute; left: -26px; top: 50%; translate: 0 -50%;
-  width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
-  background: #FFD84D; color: #1B1A18; font-size: 11px; font-weight: 700; text-decoration: none;
+@media (prefers-reduced-motion: reduce) { .smartscreen-btn.is-hint { animation: none; } }
+
+/*
+ * A small sketch of Chrome's download list when it holds back a file it hasn't seen much of: the download (click it),
+ * then the page it opens, with Chrome's own words and buttons.
+ */
+.chrome-dl {
+  margin-top: 18px; max-width: 420px; overflow: hidden;
+  background: #fff; color: #1F1F1F; border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 6px 18px rgba(0, 0, 0, .1);
+  font-family: 'Segoe UI', var(--font-body);
 }
-.smartscreen-btn .smartscreen-step { left: -30px; }
-.smartscreen-link { display: inline-block; margin-left: 26px; }
-.smartscreen-btn.is-hint { animation: none; } }
+.chrome-dl p { color: #1F1F1F; font-size: 13px; line-height: 1.4; }
+.chrome-dl-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #F0F4F9; }
+.chrome-dl-icon { flex-shrink: 0; color: #B06000; }
+.chrome-dl-file { flex: 1; min-width: 0; }
+.chrome-dl .chrome-dl-name { font-weight: 600; overflow-wrap: anywhere; }
+.chrome-dl .chrome-dl-status { color: #B06000; font-size: 12px; }
+.chrome-dl-chevron { flex-shrink: 0; color: #5F6368; }
+.chrome-dl-sub { padding: 12px 14px 14px; border-top: 1px solid #E3E3E3; }
+.chrome-dl-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+.chrome-dl-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 999px;
+  border: 1px solid #C4C7C5; color: #0B57D0; font-size: 13px; font-weight: 600;
+}
+.chrome-dl-btn.is-filled { background: #0B57D0; border-color: #0B57D0; color: #fff; }
+.chrome-dl-btn.is-hint { outline: 2px solid #FFD84D; outline-offset: 3px; animation: hint 2.4s var(--ease-out) infinite; }
+.chrome-dl-step {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: #FFD84D; color: #1B1A18; font-size: 11px; font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) { .chrome-dl-btn.is-hint { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  .chrome-dl { background: #1F1F1F; box-shadow: 0 0 0 1px rgba(255, 255, 255, .1); }
+  .chrome-dl p { color: #E3E3E3; }
+  .chrome-dl-row { background: #2D2F31; }
+  .chrome-dl-icon, .chrome-dl .chrome-dl-status { color: #FDD663; }
+  .chrome-dl-chevron { color: #C4C7C5; }
+  .chrome-dl-sub { border-color: #444746; }
+  .chrome-dl-btn { border-color: #8E918F; color: #A8C7FA; }
+  .chrome-dl-btn.is-filled { background: #A8C7FA; border-color: #A8C7FA; color: #062E6F; }
+}
 
 /* A small sketch of the Mac's Privacy & Security setting, where "Open Anyway" is. */
 .mac-blocked {
